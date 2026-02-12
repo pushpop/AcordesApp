@@ -1,6 +1,9 @@
+<img width="698" height="485" alt="image" src="https://github.com/user-attachments/assets/52cd7352-ebd7-45ea-8079-8854dd3f7cd8" />
+
 # Acordes - MIDI Piano TUI Application
 
 A terminal-based MIDI piano application with real-time visualization and chord detection.
+
 
 ## Features
 
