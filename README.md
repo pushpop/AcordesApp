@@ -8,7 +8,7 @@ A terminal-based MIDI piano application with real-time visualization and chord d
 ## Features
 
 - **Config Mode**: Display and select MIDI devices connected to your system
-- **Piano Mode**: Real-time visual piano keyboard (2 octaves) showing notes and chord detection
+- **Piano Mode**: Real-time visual piano keyboard (3 octaves) showing notes and chord detection
 - **Chord Compendium**: Reference guide with all chord types across all musical keys
 
 ## Requirements
