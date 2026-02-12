@@ -106,7 +106,7 @@ python main.py
 - Press Space to refresh the device list
 
 #### Piano Mode
-- Visual 2-octave piano keyboard (C4-B5)
+- Visual 3-octave piano keyboard (C4-B5)
 - Real-time note highlighting
 - Automatic chord detection
 - Displays currently pressed notes and detected chords
