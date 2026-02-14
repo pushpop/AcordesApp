@@ -10,7 +10,9 @@ class ConfirmationDialog(ModalScreen[bool]):
 
     BINDINGS = [
         Binding("y", "confirm_yes", "Yes", show=False),
+        Binding("Y", "confirm_yes", "Yes", show=False),
         Binding("n", "confirm_no", "No", show=False),
+        Binding("N", "confirm_no", "No", show=False),
         Binding("enter", "confirm_yes", "Confirm", show=False),
         Binding("escape", "confirm_no", "Cancel", show=False),
     ]

@@ -1,11 +1,19 @@
 # Acordes - MIDI Piano TUI Application
 
-A terminal-based MIDI piano application with real-time visualization and chord detection.
+**Version 1.0**
+
+A terminal-based MIDI piano application with real-time visualization, chord detection, and traditional musical staff notation.
 
 ## Features
 
 - **Config Mode**: Display and select MIDI devices connected to your system
-- **Piano Mode**: Real-time visual piano keyboard (2 octaves) showing notes and chord detection
+- **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection
+  - 3-octave visual keyboard display with color-coded keys
+  - Real-time chord name display positioned above the keyboard
+  - **Musical Staff Display**: Side-by-side Bass Clef (F) and Treble Clef (G) notation
+  - Notes appear as yellow dots (●) on the staff as you play
+  - Sharp notes (♯) are clearly marked
+  - Automatic note distribution across both clefs based on pitch
 - **Chord Compendium**: Reference guide with all chord types across all musical keys
 
 ## Requirements
@@ -103,10 +111,16 @@ python main.py
 - Press Space to refresh the device list
 
 #### Piano Mode
-- Visual 2-octave piano keyboard (C4-B5)
-- Real-time note highlighting
-- Automatic chord detection
-- Displays currently pressed notes and detected chords
+- Visual 3-octave piano keyboard display
+- Real-time note highlighting in red
+- Automatic chord detection with smart recognition
+- Chord names displayed centrally above the keyboard
+- Side-by-side musical staff notation:
+  - **Bass Clef (F)**: Displays notes below B3 (MIDI 59)
+  - **Treble Clef (G)**: Displays notes B3 and above
+  - Notes appear as yellow dots (●) on the staff lines
+  - Sharp notes marked with ♯ symbol
+  - Reference note labels on the right side of each staff
 
 #### Compendium Mode
 - Browse complete chord library
@@ -123,6 +137,7 @@ acordes/
 ├── components/                  # UI widgets
 │   ├── piano_widget.py          # Visual piano keyboard
 │   ├── chord_display.py         # Chord name display
+│   ├── staff_widget.py          # Musical staff notation display
 │   └── confirmation_dialog.py   # Quit confirmation
 ├── modes/                       # Screen modes
 │   ├── config_mode.py           # MIDI device configuration

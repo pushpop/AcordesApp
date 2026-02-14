@@ -1,6 +1,6 @@
 """Real-time piano display and chord detection screen."""
 from textual.widget import Widget
-from textual.containers import Container, Vertical, Center
+from textual.containers import Container, Vertical, Center, Horizontal
 from textual.widgets import Static, Label
 from textual.binding import Binding
 from textual.message import Message
@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Set
 
 from components.piano_widget import PianoWidget
 from components.chord_display import ChordDisplay
+from components.staff_widget import StaffWidget
 
 if TYPE_CHECKING:
     from midi.input_handler import MIDIInputHandler
@@ -34,62 +35,75 @@ class PianoMode(Widget):
 
     #title-section {
         width: 100%;
-        height: 33%;
-        align: center bottom;
+        height: 8%;
+        align: center top;
         background: #0a1f3f;
-        padding-bottom: 2;
+        padding: 0;
         border-bottom: heavy #ffd700;
     }
 
     #title {
         width: auto;
         height: auto;
-        content-align: center middle;
+        content-align: center top;
         text-align: center;
         color: #ffd700;
     }
 
     #piano-section {
+        layout: vertical;
         width: 100%;
-        height: 67%;
-        content-align: center middle;
+        height: 43%;
         text-align: center;
+        content-align: center middle;
         background: #1a1a1a;
-        padding: 2 0;
+        padding: 1;
     }
 
-    #chord-display {
+    #staff-section {
         width: 100%;
-        height: 5;
-        margin: 2 0 1 0;
-        text-align: center;
-        content-align: center middle;
-    }
-
-    #note-display {
-        width: 100%;
-        height: auto;
-        content-align: center middle;
-        margin: 1 0;
-        color: #888888;
+        height: 48%;
+        align: center top;
+        background: #0a0a0a;
+        padding: 0;
     }
 
     #piano {
-        width: auto;
+        width: 100%;
         height: auto;
-        content-align: center middle;
         text-align: center;
-        margin: 1 0;
-        padding: 1 2;
+        content-align: center middle;
         color: #ffffff;
+        background: #1a1a1a;
     }
 
     #status {
         width: 100%;
         height: auto;
         content-align: center middle;
+        padding: 1 0;
         color: #666666;
         text-style: italic;
+    }
+
+    #staff-display {
+        width: auto;
+        height: auto;
+        content-align: center top;
+        text-align: center;
+        padding: 0;
+        background: #0a0a0a;
+    }
+
+    #chord-display {
+        width: auto;
+        height: auto;
+        min-height: 1;
+        content-align: center middle;
+        text-align: center;
+        padding: 0 4;
+        margin: 0;
+        background: transparent;
     }
     """
 
@@ -100,30 +114,36 @@ class PianoMode(Widget):
         self.chord_detector = chord_detector
         self.piano_widget = None
         self.chord_display_widget = None
+        self.staff_widget = None
 
     def compose(self):
         """Compose the piano mode layout."""
-        # Title section (top third)
+        # Title section (top - 15%)
         with Vertical(id="title-section"):
             with Center():
                 yield Label(self._get_acordes_ascii(), id="title")
-
-        # Piano section (bottom two-thirds)
-        with Vertical(id="piano-section"):
-            # Piano keyboard
+            # Status
             with Center():
-                self.piano_widget = Label("", id="piano")
-                yield self.piano_widget
+                yield Label(self._get_status_text(), id="status")
 
-            # Chord display
+        # Chord display section (above piano)
+        with Center():
             self.chord_display_widget = ChordDisplay(id="chord-display")
             yield self.chord_display_widget
 
-            # Note names
-            yield Label("", id="note-display")
+        # Piano section (middle - 43%)
+        with Vertical(id="piano-section"):
+            # Piano keyboard
+            with Center():
+                self.piano_widget = Label(self._build_piano_display(set()), id="piano")
+                yield self.piano_widget
 
-            # Status
-            yield Label(self._get_status_text(), id="status")
+        # Staff section (bottom - 56%)
+        with Vertical(id="staff-section"):
+            # Musical staff
+            with Center():
+                self.staff_widget = StaffWidget(id="staff-display")
+                yield self.staff_widget
 
     def on_mount(self):
         """Called when screen is mounted."""
@@ -137,6 +157,14 @@ class PianoMode(Widget):
         if self.piano_widget:
             piano_text = self._build_piano_display(set())
             self.piano_widget.update(piano_text)
+
+        # Initialize chord display
+        if self.chord_display_widget:
+            self.chord_display_widget.update_display(None, [])
+
+        # Initialize staff display
+        if self.staff_widget:
+            self.staff_widget.update_notes(set())
 
         # Start polling for MIDI messages
         self.set_interval(0.01, self._poll_midi)  # Poll every 10ms
@@ -204,7 +232,7 @@ class PianoMode(Widget):
             else:
                 lines[0] += " ▓▓▓"
                 lines[1] += " ▓▓▓"
-                lines[2] += " C#│"
+                lines[2] += " C#▓"
                 lines[3] += " ▓▓▓"
 
             if notes[0]:  # C pressed
@@ -233,7 +261,7 @@ class PianoMode(Widget):
             else:
                 lines[0] += " ▓▓▓"
                 lines[1] += " ▓▓▓"
-                lines[2] += " D#│"
+                lines[2] += " D#▓"
                 lines[3] += " ▓▓▓"
 
             if notes[2]:  # D pressed
@@ -256,7 +284,7 @@ class PianoMode(Widget):
             # E (no black key)
             lines[0] += "    "
             lines[1] += "    "
-            lines[2] += "   │"
+            lines[2] += "    "
             lines[3] += "    "
 
             if notes[4]:  # E pressed
@@ -285,7 +313,7 @@ class PianoMode(Widget):
             else:
                 lines[0] += " ▓▓▓"
                 lines[1] += " ▓▓▓"
-                lines[2] += " F#│"
+                lines[2] += " F#▓"
                 lines[3] += " ▓▓▓"
 
             if notes[5]:  # F pressed
@@ -314,7 +342,7 @@ class PianoMode(Widget):
             else:
                 lines[0] += " ▓▓▓"
                 lines[1] += " ▓▓▓"
-                lines[2] += " G#│"
+                lines[2] += " G#▓"
                 lines[3] += " ▓▓▓"
 
             if notes[7]:  # G pressed
@@ -343,7 +371,7 @@ class PianoMode(Widget):
             else:
                 lines[0] += " ▓▓▓"
                 lines[1] += " ▓▓▓"
-                lines[2] += " A#│"
+                lines[2] += " A#▓"
                 lines[3] += " ▓▓▓"
 
             if notes[9]:  # A pressed
@@ -366,7 +394,7 @@ class PianoMode(Widget):
             # B (no black key)
             lines[0] += "    "
             lines[1] += "    "
-            lines[2] += "   │"
+            lines[2] += "    "
             lines[3] += "    "
 
             if notes[11]:  # B pressed
@@ -418,19 +446,15 @@ class PianoMode(Widget):
             piano_text = self._build_piano_display(notes)
             self.piano_widget.update(piano_text)
 
-        # Update note display
-        note_display = self.query_one("#note-display", Label)
-        if notes:
-            note_names = self.chord_detector.get_note_names(notes)
-            note_display.update(" ".join(note_names))
-        else:
-            note_display.update("")
-
         # Detect and display chord
         if self.chord_display_widget:
             chord_name = self.chord_detector.detect_chord(notes)
             note_names = self.chord_detector.get_note_names(notes)
             self.chord_display_widget.update_display(chord_name, note_names)
+
+        # Update musical staff
+        if self.staff_widget:
+            self.staff_widget.update_notes(notes)
 
     def _get_status_text(self) -> str:
         """Get status text based on MIDI connection."""
