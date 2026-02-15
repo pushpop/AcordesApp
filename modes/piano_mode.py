@@ -177,9 +177,10 @@ class PianoMode(Widget):
             active_notes = self.midi_handler.get_active_notes()
             self._update_display(active_notes)
 
-    def _on_note_on(self, note: int):
-        """Callback for note on events."""
+    def _on_note_on(self, note: int, velocity: int):
+        """Callback for note on events with velocity."""
         # Updates happen in _poll_midi
+        # Velocity is ignored in piano mode (visual only)
         pass
 
     def _on_note_off(self, note: int):

@@ -2,9 +2,9 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.0**
+**Version 1.0.1**
 
-A terminal-based MIDI piano application with real-time visualization, chord detection, and traditional musical staff notation.
+A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, and a monophonic synthesizer.
 
 ## Features
 
@@ -16,12 +16,20 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - Notes appear as yellow dots (●) on the staff as you play
   - Sharp notes (♯) are clearly marked
   - Automatic note distribution across both clefs based on pitch
+- **Synth Mode** *(NEW in v1.0.1)*: Monophonic synthesizer with real-time MIDI playback
+  - Three waveforms: Sine, Square, Triangle
+  - Mixer with volume control
+  - Low-pass filter with adjustable cutoff and resonance
+  - Envelope generator with Attack, Decay, and Intensity controls
+  - Interactive keyboard controls for all parameters
+  - Real-time audio synthesis using PyAudio
 - **Chord Compendium**: Reference guide with all chord types across all musical keys
 
 ## Requirements
 
 - Python 3.8+
 - MIDI input device (MIDI keyboard, controller, or virtual MIDI device)
+- PyAudio (optional, required for Synth Mode audio playback)
 
 ## Installation
 
@@ -99,11 +107,26 @@ python main.py
 
 ### Keyboard Controls
 
-- **Tab**: Switch between modes (Config → Piano → Compendium → Config)
+#### Global Controls
+- **1**: Switch to Piano Mode
+- **2**: Switch to Compendium Mode
+- **3**: Switch to Synth Mode
+- **C**: Open Config Mode
 - **Escape**: Quit application (with confirmation dialog)
-- **Arrow Keys**: Navigate within each mode
+
+#### Mode-Specific Controls
+- **Arrow Keys**: Navigate within Config and Compendium modes
 - **Enter**: Select/Expand items
 - **Space**: Refresh device list (Config Mode only)
+
+#### Synth Mode Controls
+- **W**: Toggle waveform (Sine → Square → Triangle)
+- **↑/↓**: Adjust volume
+- **←/→**: Adjust filter cutoff frequency
+- **Q/A**: Increase/Decrease resonance
+- **E/D**: Increase/Decrease attack time
+- **R/F**: Increase/Decrease decay time
+- **T/G**: Increase/Decrease intensity
 
 ### Modes
 
@@ -130,6 +153,16 @@ python main.py
 - 15+ chord types per key
 - View chord notes for reference
 
+#### Synth Mode *(NEW in v1.0.1)*
+- Monophonic synthesizer (plays one note at a time)
+- Real-time MIDI input with audio synthesis
+- Visual controls for all synth parameters
+- **Oscillator**: Choose between sine, square, or triangle waveforms
+- **Mixer**: Control output volume
+- **Filter**: Low-pass filter with cutoff (100Hz-5000Hz) and resonance controls
+- **Envelope**: Shape sound with attack, decay, and intensity parameters
+- Live parameter adjustment while playing
+
 ## Project Structure
 
 ```
@@ -144,13 +177,15 @@ acordes/
 ├── modes/                       # Screen modes
 │   ├── config_mode.py           # MIDI device configuration
 │   ├── piano_mode.py            # Real-time piano display
-│   └── compendium_mode.py       # Chord reference
+│   ├── compendium_mode.py       # Chord reference
+│   └── synth_mode.py            # Synthesizer interface (NEW in v1.0.1)
 ├── midi/                        # MIDI handling
 │   ├── device_manager.py        # Device detection
 │   └── input_handler.py         # MIDI input processing
-├── music/                       # Music theory
+├── music/                       # Music theory and synthesis
 │   ├── chord_detector.py        # Chord recognition (supports 9th, 11th, 13th chords)
-│   └── chord_library.py         # Chord database
+│   ├── chord_library.py         # Chord database
+│   └── synth_engine.py          # Audio synthesis engine (NEW in v1.0.1)
 ├── run.bat                      # Windows launcher (Command Prompt)
 ├── run.ps1                      # Windows launcher (PowerShell)
 ├── run.sh                       # Linux/macOS launcher
@@ -164,8 +199,37 @@ acordes/
 - **mido**: MIDI I/O library
 - **python-rtmidi**: Real-time MIDI backend
 - **mingus**: Music theory library
+- **PyAudio**: Real-time audio I/O (optional, for Synth Mode)
+- **NumPy**: Numerical computing for audio synthesis
 
 ## Troubleshooting
+
+### Audio Not Available (Synth Mode)
+
+If you see "Audio not available" in Synth Mode:
+
+1. Install PyAudio:
+   ```bash
+   pip install pyaudio
+   ```
+
+2. On Windows, you may need to install it via pre-built wheels:
+   ```bash
+   pip install pipwin
+   pipwin install pyaudio
+   ```
+
+3. On Linux:
+   ```bash
+   sudo apt-get install portaudio19-dev python3-pyaudio
+   pip install pyaudio
+   ```
+
+4. On macOS:
+   ```bash
+   brew install portaudio
+   pip install pyaudio
+   ```
 
 ### No MIDI Devices Found
 

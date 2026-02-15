@@ -21,6 +21,7 @@ from music.chord_library import ChordLibrary
 from modes.config_mode import ConfigMode
 from modes.piano_mode import PianoMode
 from modes.compendium_mode import CompendiumMode
+from modes.synth_mode import SynthMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
@@ -35,12 +36,14 @@ class MainScreen(Screen):
     #content-area {
         height: 100%;
         width: 100%;
+        align: left top;
     }
     """
 
     BINDINGS = [
         Binding("1", "show_piano", "Piano", show=True),
         Binding("2", "show_compendium", "Compendium", show=True),
+        Binding("3", "show_synth", "Synth", show=True),
         Binding("c", "show_config", "Config", show=True),
         Binding("escape", "quit_app", "Quit", show=True),
     ]
@@ -82,6 +85,15 @@ class MainScreen(Screen):
         content.mount(compendium)
         self.app_context["current_mode"] = "compendium"
 
+    def action_show_synth(self):
+        """Show synth mode."""
+        content = self.query_one("#content-area")
+        content.remove_children()
+
+        synth = self.app_context["create_synth"]()
+        content.mount(synth)
+        self.app_context["current_mode"] = "synth"
+
     def action_show_config(self):
         """Show config modal."""
         # Remember current mode
@@ -100,8 +112,10 @@ class MainScreen(Screen):
             # Return to previous mode
             if self.app_context["mode_before_config"] == "piano":
                 self.action_show_piano()
-            else:
+            elif self.app_context["mode_before_config"] == "compendium":
                 self.action_show_compendium()
+            else:
+                self.action_show_synth()
 
         config = ConfigMode(self.app_context["device_manager"])
         self.app.push_screen(config, on_closed)
@@ -143,6 +157,7 @@ class AcordesApp(App):
             "chord_library": self.chord_library,
             "create_piano": self._create_piano_mode,
             "create_compendium": self._create_compendium_mode,
+            "create_synth": self._create_synth_mode,
             "current_mode": "piano",
             "mode_before_config": "piano",
         }
@@ -184,6 +199,14 @@ class AcordesApp(App):
     def _create_compendium_mode(self):
         """Create compendium mode widget."""
         return CompendiumMode(self.chord_library)
+
+    def _create_synth_mode(self):
+        """Create synth mode widget."""
+        selected = self.device_manager.get_selected_device()
+        if selected and not self.midi_handler.is_device_open():
+            self.midi_handler.open_device(selected)
+
+        return SynthMode(self.midi_handler)
 
     def on_unmount(self):
         """Clean up on exit."""

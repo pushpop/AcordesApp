@@ -11,8 +11,10 @@ class MIDIInputHandler:
         self.port: Optional[mido.ports.BaseInput] = None
         self.active_notes: Set[int] = set()
         self.notes_lock = Lock()
-        self._note_on_callback: Optional[Callable[[int], None]] = None
+        self._note_on_callback: Optional[Callable[[int, int], None]] = None
         self._note_off_callback: Optional[Callable[[int], None]] = None
+        self._pitch_bend_callback: Optional[Callable[[int], None]] = None
+        self._control_change_callback: Optional[Callable[[int, int], None]] = None
 
     def open_device(self, device_name: str) -> bool:
         """Open a MIDI input device.
@@ -44,16 +46,26 @@ class MIDIInputHandler:
         with self.notes_lock:
             self.active_notes.clear()
 
-    def set_callbacks(self, note_on: Callable[[int], None],
-                     note_off: Callable[[int], None]):
-        """Set callbacks for note events.
+    def set_callbacks(self, note_on: Callable[[int, int], None] = None,
+                     note_off: Callable[[int], None] = None,
+                     pitch_bend: Callable[[int], None] = None,
+                     control_change: Callable[[int, int], None] = None):
+        """Set callbacks for MIDI events.
 
         Args:
-            note_on: Callback function called when a note is pressed.
-            note_off: Callback function called when a note is released.
+            note_on: Callback function called when a note is pressed (note, velocity).
+            note_off: Callback function called when a note is released (note).
+            pitch_bend: Callback function called for pitch bend changes (value 0-16383).
+            control_change: Callback function called for CC messages (controller, value).
         """
-        self._note_on_callback = note_on
-        self._note_off_callback = note_off
+        if note_on is not None:
+            self._note_on_callback = note_on
+        if note_off is not None:
+            self._note_off_callback = note_off
+        if pitch_bend is not None:
+            self._pitch_bend_callback = pitch_bend
+        if control_change is not None:
+            self._control_change_callback = control_change
 
     def poll_messages(self):
         """Poll for pending MIDI messages (non-blocking).
@@ -66,19 +78,23 @@ class MIDIInputHandler:
         try:
             for msg in self.port.iter_pending():
                 if msg.type == 'note_on' and msg.velocity > 0:
-                    self._handle_note_on(msg.note)
+                    self._handle_note_on(msg.note, msg.velocity)
                 elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
                     self._handle_note_off(msg.note)
+                elif msg.type == 'pitchwheel':
+                    self._handle_pitch_bend(msg.pitch)
+                elif msg.type == 'control_change':
+                    self._handle_control_change(msg.control, msg.value)
         except Exception as e:
             print(f"Error polling MIDI messages: {e}")
 
-    def _handle_note_on(self, note: int):
-        """Handle NOTE_ON message."""
+    def _handle_note_on(self, note: int, velocity: int):
+        """Handle NOTE_ON message with velocity."""
         with self.notes_lock:
             self.active_notes.add(note)
 
         if self._note_on_callback:
-            self._note_on_callback(note)
+            self._note_on_callback(note, velocity)
 
     def _handle_note_off(self, note: int):
         """Handle NOTE_OFF message."""
@@ -87,6 +103,27 @@ class MIDIInputHandler:
 
         if self._note_off_callback:
             self._note_off_callback(note)
+
+    def _handle_pitch_bend(self, value: int):
+        """Handle PITCH_BEND message.
+
+        Args:
+            value: Pitch bend value from mido (-8192 to +8191, center = 0)
+        """
+        if self._pitch_bend_callback:
+            # Convert from mido format (-8192 to +8191) to MIDI format (0 to 16383)
+            midi_value = value + 8192
+            self._pitch_bend_callback(midi_value)
+
+    def _handle_control_change(self, controller: int, value: int):
+        """Handle CONTROL_CHANGE message.
+
+        Args:
+            controller: Controller number (0-127)
+            value: Controller value (0-127)
+        """
+        if self._control_change_callback:
+            self._control_change_callback(controller, value)
 
     def get_active_notes(self) -> Set[int]:
         """Get set of currently pressed notes.
