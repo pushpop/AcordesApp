@@ -3,6 +3,9 @@
 import os
 import sys
 
+# Suppress the Pygame "hello" message
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+
 # Note: On Windows, mido will auto-detect available MIDI backends
 # We don't force a specific backend to avoid DLL issues
 
@@ -22,6 +25,7 @@ from modes.config_mode import ConfigMode
 from modes.piano_mode import PianoMode
 from modes.compendium_mode import CompendiumMode
 from modes.synth_mode import SynthMode
+from modes.metronome_mode import MetronomeMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
@@ -44,6 +48,7 @@ class MainScreen(Screen):
         Binding("1", "show_piano", "Piano", show=True),
         Binding("2", "show_compendium", "Compendium", show=True),
         Binding("3", "show_synth", "Synth", show=True),
+        Binding("4", "show_metronome", "Metronome", show=True),
         Binding("c", "show_config", "Config", show=True),
         Binding("escape", "quit_app", "Quit", show=True),
     ]
@@ -93,6 +98,15 @@ class MainScreen(Screen):
         synth = self.app_context["create_synth"]()
         content.mount(synth)
         self.app_context["current_mode"] = "synth"
+        
+    def action_show_metronome(self):
+        """Show metronome mode."""
+        content = self.query_one("#content-area")
+        content.remove_children()
+
+        metronome = self.app_context["create_metronome"]()
+        content.mount(metronome)
+        self.app_context["current_mode"] = "metronome"
 
     def action_show_config(self):
         """Show config modal."""
@@ -114,6 +128,8 @@ class MainScreen(Screen):
                 self.action_show_piano()
             elif self.app_context["mode_before_config"] == "compendium":
                 self.action_show_compendium()
+            elif self.app_context["mode_before_config"] == "metronome":
+                self.action_show_metronome()
             else:
                 self.action_show_synth()
 
@@ -158,6 +174,7 @@ class AcordesApp(App):
             "create_piano": self._create_piano_mode,
             "create_compendium": self._create_compendium_mode,
             "create_synth": self._create_synth_mode,
+            "create_metronome": self._create_metronome_mode,
             "current_mode": "piano",
             "mode_before_config": "piano",
         }
@@ -208,9 +225,15 @@ class AcordesApp(App):
 
         return SynthMode(self.midi_handler)
 
+    def _create_metronome_mode(self):
+        """Create metronome mode widget."""
+        return MetronomeMode()
+
     def on_unmount(self):
         """Clean up on exit."""
         self.midi_handler.close_device()
+        # Clear the terminal screen
+        os.system('cls' if os.name == 'nt' else 'clear')
 
 
 def main():

@@ -5,6 +5,21 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-16
+
+### Added
+- **Metronome Mode**: A new, fully-featured, and musically aware metronome.
+  - **Visual Beat Bar**: A large, centered ASCII art bar displays the current beat in the measure. The number of blocks in the bar automatically matches the selected time signature.
+  - **Musically Coherent Time Signatures**: Users can cycle through a curated list of common simple (2/4, 3/4, 4/4) and compound (6/8, 9/8, 12/8) time signatures.
+  - **Correct Accentuation**: The metronome automatically plays a stronger accent on the musically correct beats for each signature (e.g., on beats 1 and 4 in 6/8 time), providing a more natural feel.
+  - **Italian Tempo Markings**: A label displays the traditional Italian name for the current tempo range (e.g., *Andante*, *Allegro*), which updates live as the BPM is changed.
+  - **Full Keyboard Control**: Start/Stop, tempo adjustment (50-300 BPM), and time signature cycling are all controlled via the keyboard.
+
+### Changed
+- **Application Exit Behavior**:
+  - The terminal screen is now automatically cleared upon quitting the application for a cleaner exit.
+  - The "Hello from the pygame community" message is now suppressed.
+
 ## [1.0.3] - 2026-02-15
 
 ### Fixed

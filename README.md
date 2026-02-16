@@ -2,34 +2,28 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.0.1**
+**Version 1.1.0**
 
-A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, and a monophonic synthesizer.
+A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a monophonic synthesizer, and a fully-featured metronome.
 
 ## Features
 
-- **Config Mode**: Display and select MIDI devices connected to your system
-- **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection
-  - 3-octave visual keyboard display with color-coded keys
-  - Real-time chord name display positioned above the keyboard
-  - **Musical Staff Display**: Side-by-side Bass Clef (F) and Treble Clef (G) notation
-  - Notes appear as yellow dots (●) on the staff as you play
-  - Sharp notes (♯) are clearly marked
-  - Automatic note distribution across both clefs based on pitch
-- **Synth Mode** *(NEW in v1.0.1)*: Monophonic synthesizer with real-time MIDI playback
-  - Three waveforms: Sine, Square, Triangle
-  - Mixer with volume control
-  - Low-pass filter with adjustable cutoff and resonance
-  - Envelope generator with Attack, Decay, and Intensity controls
-  - Interactive keyboard controls for all parameters
-  - Real-time audio synthesis using PyAudio
-- **Chord Compendium**: Reference guide with all chord types across all musical keys
+- **Config Mode**: Display and select MIDI devices connected to your system.
+- **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
+- **Synth Mode**: A 4-voice polyphonic synthesizer with real-time MIDI playback.
+- **Chord Compendium**: Reference guide with all chord types across all musical keys.
+- **Metronome Mode** *(NEW in v1.1.0)*: A highly customizable and musically aware metronome.
+  - **Visual Beat Bar**: A large, centered bar visually displays the current beat in the measure.
+  - **Selectable Time Signatures**: Cycle through common simple and compound time signatures (e.g., 2/4, 3/4, 4/4, 6/8, 9/8).
+  - **Musically Correct Accents**: Automatically plays a stronger accent on the correct beats for each time signature (e.g., on beats 1 and 4 in 6/8).
+  - **Italian Tempo Markings**: Displays the traditional name for the current tempo (e.g., *Andante*, *Allegro*).
+  - **Adjustable BPM**: Wide tempo range from 50 to 300 BPM.
 
 ## Requirements
 
 - Python 3.8+
 - MIDI input device (MIDI keyboard, controller, or virtual MIDI device)
-- PyAudio (optional, required for Synth Mode audio playback)
+- PyAudio & Pygame (for Synth and Metronome audio playback)
 
 ## Installation
 
@@ -111,6 +105,7 @@ python main.py
 - **1**: Switch to Piano Mode
 - **2**: Switch to Compendium Mode
 - **3**: Switch to Synth Mode
+- **4**: Switch to Metronome Mode
 - **C**: Open Config Mode
 - **Escape**: Quit application (with confirmation dialog)
 
@@ -127,6 +122,11 @@ python main.py
 - **E/D**: Increase/Decrease attack time
 - **R/F**: Increase/Decrease decay time
 - **T/G**: Increase/Decrease intensity
+
+#### Metronome Mode Controls
+- **P / Space**: Start or stop the metronome.
+- **↑ / ↓**: Increase or decrease the tempo (BPM).
+- **← / →**: Cycle through different time signatures.
 
 ### Modes
 
@@ -163,6 +163,12 @@ python main.py
 - **Envelope**: Shape sound with attack, decay, and intensity parameters
 - Live parameter adjustment while playing
 
+#### Metronome Mode *(NEW in v1.1.0)*
+- A large, centered visual "beat bar" shows the current beat in the measure.
+- Cycle through common time signatures like 2/4, 3/4, 4/4, 6/8, and more.
+- The metronome automatically applies the correct strong and weak accent patterns for each signature.
+- The traditional Italian tempo name for the current BPM is always visible.
+
 ## Project Structure
 
 ```
@@ -178,14 +184,15 @@ acordes/
 │   ├── config_mode.py           # MIDI device configuration
 │   ├── piano_mode.py            # Real-time piano display
 │   ├── compendium_mode.py       # Chord reference
-│   └── synth_mode.py            # Synthesizer interface (NEW in v1.0.1)
+│   ├── synth_mode.py            # Synthesizer interface
+│   └── metronome_mode.py        # Metronome interface (NEW in v1.1.0)
 ├── midi/                        # MIDI handling
 │   ├── device_manager.py        # Device detection
 │   └── input_handler.py         # MIDI input processing
 ├── music/                       # Music theory and synthesis
 │   ├── chord_detector.py        # Chord recognition (supports 9th, 11th, 13th chords)
 │   ├── chord_library.py         # Chord database
-│   └── synth_engine.py          # Audio synthesis engine (NEW in v1.0.1)
+│   └── synth_engine.py          # Audio synthesis engine
 ├── run.bat                      # Windows launcher (Command Prompt)
 ├── run.ps1                      # Windows launcher (PowerShell)
 ├── run.sh                       # Linux/macOS launcher
@@ -199,36 +206,38 @@ acordes/
 - **mido**: MIDI I/O library
 - **python-rtmidi**: Real-time MIDI backend
 - **mingus**: Music theory library
-- **PyAudio**: Real-time audio I/O (optional, for Synth Mode)
+- **PyAudio**: Real-time audio I/O
+- **Pygame**: Audio mixer for metronome sounds
 - **NumPy**: Numerical computing for audio synthesis
 
 ## Troubleshooting
 
-### Audio Not Available (Synth Mode)
+### Audio Not Available (Synth / Metronome Mode)
 
-If you see "Audio not available" in Synth Mode:
+If you have audio issues:
 
-1. Install PyAudio:
+1. Install PyAudio & Pygame:
    ```bash
-   pip install pyaudio
+   pip install pyaudio pygame
    ```
 
 2. On Windows, you may need to install it via pre-built wheels:
    ```bash
    pip install pipwin
    pipwin install pyaudio
+   pipwin install pygame
    ```
 
 3. On Linux:
    ```bash
-   sudo apt-get install portaudio19-dev python3-pyaudio
-   pip install pyaudio
+   sudo apt-get install portaudio19-dev python3-pyaudio python3-pygame
+   pip install pyaudio pygame
    ```
 
 4. On macOS:
    ```bash
-   brew install portaudio
-   pip install pyaudio
+   brew install portaudio sdl2 sdl2_mixer
+   pip install pyaudio pygame
    ```
 
 ### No MIDI Devices Found
