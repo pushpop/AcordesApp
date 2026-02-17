@@ -3,6 +3,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Header, Footer, Static, ListView, ListItem, Label
 from textual.binding import Binding
+from components.header_widget import HeaderWidget
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -29,14 +30,6 @@ class ConfigMode(Screen):
         border: thick #ffd700;
         background: #1a1a1a;
         padding: 1 2;
-    }
-
-    #title {
-        width: 100%;
-        content-align: center middle;
-        text-style: bold;
-        color: #ffd700;
-        margin-bottom: 1;
     }
 
     #device-list {
@@ -72,7 +65,7 @@ class ConfigMode(Screen):
         """Compose the config mode layout."""
         yield Header()
         with Vertical(id="config-container"):
-            yield Label("🎹 MIDI Device Configuration", id="title")
+            yield HeaderWidget(title="MIDI CONFIGURATION", subtitle="Select your input device")
             yield ListView(id="device-list")
             yield Label("", id="selected-device")
             yield Label(

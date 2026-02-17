@@ -1,6 +1,7 @@
 from textual.widgets import Static, Label
 from textual.containers import Vertical
 from textual.binding import Binding
+from components.header_widget import HeaderWidget
 import pygame
 import numpy as np
 
@@ -14,12 +15,6 @@ class MetronomeMode(Vertical):
     MetronomeMode {
         align: center middle;
         padding: 1;
-    }
-    #metronome-title {
-        width: 100%;
-        text-align: center;
-        padding-bottom: 1;
-        text-style: bold;
     }
     #metronome-display {
         width: 100%;
@@ -177,7 +172,7 @@ class MetronomeMode(Vertical):
         self.focus()
 
     def compose(self):
-        yield Label("Metronome", id="metronome-title")
+        yield HeaderWidget(title="METRONOME", subtitle="Keep the rhythm")
         yield Static(self._generate_beat_bar_art(-1), id="metronome-display")
         yield Label(self._get_tempo_marking(), id="tempo-mark-label")
         combined_art = self._generate_combined_art()

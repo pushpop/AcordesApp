@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.1.0**
+**Version 1.1.1**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a monophonic synthesizer, and a fully-featured metronome.
 
@@ -12,12 +12,25 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
 - **Synth Mode**: A 4-voice polyphonic synthesizer with real-time MIDI playback.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
-- **Metronome Mode** *(NEW in v1.1.0)*: A highly customizable and musically aware metronome.
+  - **Audio Playback** *(NEW in v1.1.1)*: Hear chords played as you browse.
+- **Metronome Mode**: A highly customizable and musically aware metronome.
   - **Visual Beat Bar**: A large, centered bar visually displays the current beat in the measure.
   - **Selectable Time Signatures**: Cycle through common simple and compound time signatures (e.g., 2/4, 3/4, 4/4, 6/8, 9/8).
   - **Musically Correct Accents**: Automatically plays a stronger accent on the correct beats for each time signature (e.g., on beats 1 and 4 in 6/8).
   - **Italian Tempo Markings**: Displays the traditional name for the current tempo (e.g., *Andante*, *Allegro*).
   - **Adjustable BPM**: Wide tempo range from 50 to 300 BPM.
+
+## What's New in v1.1.1
+
+- **Unified UI Headers**: All modes now use a consistent, centered header system via the `HeaderWidget`.
+- **Compendium Audio**: 
+  - Chords now play automatically as you navigate through the tree.
+  - Press **Space** to manually trigger a chord.
+  - Realistic "strumming" effect for chord playback.
+- **Performance Optimizations**: 
+  - Audio "warm-up" system eliminates startup lag.
+  - Refactored `PianoWidget` for better performance and consistency.
+- **Visual Improvements**: Subtitles are now properly centered across all screens.
 
 ## Requirements
 

@@ -20,12 +20,14 @@ from midi.device_manager import MIDIDeviceManager
 from midi.input_handler import MIDIInputHandler
 from music.chord_detector import ChordDetector
 from music.chord_library import ChordLibrary
+from music.synth_engine import SynthEngine
 
 from modes.config_mode import ConfigMode
 from modes.piano_mode import PianoMode
 from modes.compendium_mode import CompendiumMode
 from modes.synth_mode import SynthMode
 from modes.metronome_mode import MetronomeMode
+from modes.main_menu_mode import MainMenuMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
@@ -40,22 +42,25 @@ class MainScreen(Screen):
     #content-area {
         height: 100%;
         width: 100%;
-        align: left top;
+        align: center middle;
     }
     """
 
     BINDINGS = [
+        Binding("0", "show_main_menu", "Menu", show=True),
         Binding("1", "show_piano", "Piano", show=True),
         Binding("2", "show_compendium", "Compendium", show=True),
         Binding("3", "show_synth", "Synth", show=True),
         Binding("4", "show_metronome", "Metronome", show=True),
         Binding("c", "show_config", "Config", show=True),
+        Binding("backspace", "go_back", "Back", show=True),
         Binding("escape", "quit_app", "Quit", show=True),
     ]
 
     def __init__(self, app_context):
         super().__init__()
         self.app_context = app_context
+        self.mode_history = []
 
     def compose(self):
         """Compose the main screen layout."""
@@ -70,10 +75,55 @@ class MainScreen(Screen):
     def on_mount(self):
         """Called when mounted."""
         # Show initial mode
-        self.action_show_piano()
+        self.action_show_main_menu(save_history=False)
 
-    def action_show_piano(self):
+    def _record_history(self):
+        """Record current mode to history if it's different from the last entry."""
+        current = self.app_context.get("current_mode")
+        if current:
+            if not self.mode_history or self.mode_history[-1] != current:
+                self.mode_history.append(current)
+
+    def action_go_back(self):
+        """Go back to the previous mode."""
+        if not self.mode_history:
+            # If no history, just show main menu
+            if self.app_context.get("current_mode") != "main_menu":
+                self.action_show_main_menu(save_history=False)
+            return
+
+        previous_mode = self.mode_history.pop()
+        
+        # Dispatch to the appropriate show method without saving history again
+        if previous_mode == "main_menu":
+            self.action_show_main_menu(save_history=False)
+        elif previous_mode == "piano":
+            self.action_show_piano(save_history=False)
+        elif previous_mode == "compendium":
+            self.action_show_compendium(save_history=False)
+        elif previous_mode == "synth":
+            self.action_show_synth(save_history=False)
+        elif previous_mode == "metronome":
+            self.action_show_metronome(save_history=False)
+
+    def action_show_main_menu(self, save_history=True):
+        """Show main menu mode."""
+        if save_history:
+            self._record_history()
+
+        content = self.query_one("#content-area")
+        content.remove_children()
+
+        main_menu = self.app_context["create_main_menu"](self)
+        content.mount(main_menu)
+        self.app_context["current_mode"] = "main_menu"
+
+
+    def action_show_piano(self, save_history=True):
         """Show piano mode."""
+        if save_history:
+            self._record_history()
+
         content = self.query_one("#content-area")
         content.remove_children()
 
@@ -81,8 +131,11 @@ class MainScreen(Screen):
         content.mount(piano)
         self.app_context["current_mode"] = "piano"
 
-    def action_show_compendium(self):
+    def action_show_compendium(self, save_history=True):
         """Show compendium mode."""
+        if save_history:
+            self._record_history()
+
         content = self.query_one("#content-area")
         content.remove_children()
 
@@ -90,8 +143,11 @@ class MainScreen(Screen):
         content.mount(compendium)
         self.app_context["current_mode"] = "compendium"
 
-    def action_show_synth(self):
+    def action_show_synth(self, save_history=True):
         """Show synth mode."""
+        if save_history:
+            self._record_history()
+
         content = self.query_one("#content-area")
         content.remove_children()
 
@@ -99,8 +155,11 @@ class MainScreen(Screen):
         content.mount(synth)
         self.app_context["current_mode"] = "synth"
         
-    def action_show_metronome(self):
+    def action_show_metronome(self, save_history=True):
         """Show metronome mode."""
+        if save_history:
+            self._record_history()
+
         content = self.query_one("#content-area")
         content.remove_children()
 
@@ -124,14 +183,17 @@ class MainScreen(Screen):
                 self.app_context["midi_handler"].open_device(selected)
 
             # Return to previous mode
-            if self.app_context["mode_before_config"] == "piano":
-                self.action_show_piano()
-            elif self.app_context["mode_before_config"] == "compendium":
-                self.action_show_compendium()
-            elif self.app_context["mode_before_config"] == "metronome":
-                self.action_show_metronome()
-            else:
-                self.action_show_synth()
+            previous_mode = self.app_context.get("mode_before_config", "main_menu")
+            if previous_mode == "piano":
+                self.action_show_piano(save_history=False)
+            elif previous_mode == "compendium":
+                self.action_show_compendium(save_history=False)
+            elif previous_mode == "synth":
+                self.action_show_synth(save_history=False)
+            elif previous_mode == "metronome":
+                self.action_show_metronome(save_history=False)
+            else: # Defaults to main_menu
+                self.action_show_main_menu(save_history=False)
 
         config = ConfigMode(self.app_context["device_manager"])
         self.app.push_screen(config, on_closed)
@@ -159,6 +221,10 @@ class AcordesApp(App):
         self.midi_handler = MIDIInputHandler()
         self.chord_detector = ChordDetector()
         self.chord_library = ChordLibrary()
+        self.synth_engine = SynthEngine()
+
+        # Pre-load/Warm-up audio system
+        self.synth_engine.warm_up()
 
         # Auto-open saved MIDI device
         selected_device = self.device_manager.get_selected_device()
@@ -171,12 +237,14 @@ class AcordesApp(App):
             "midi_handler": self.midi_handler,
             "chord_detector": self.chord_detector,
             "chord_library": self.chord_library,
+            "synth_engine": self.synth_engine,
+            "create_main_menu": self._create_main_menu_mode,
             "create_piano": self._create_piano_mode,
             "create_compendium": self._create_compendium_mode,
             "create_synth": self._create_synth_mode,
             "create_metronome": self._create_metronome_mode,
-            "current_mode": "piano",
-            "mode_before_config": "piano",
+            "current_mode": "main_menu",
+            "mode_before_config": "main_menu",
         }
 
     def on_mount(self):
@@ -205,17 +273,21 @@ class AcordesApp(App):
         else:
             self.sub_title = "⚠ No MIDI device selected (press C to configure)"
 
+    def _create_main_menu_mode(self, main_screen):
+        """Create main menu widget."""
+        return MainMenuMode(main_screen)
+
     def _create_piano_mode(self):
         """Create piano mode widget."""
         selected = self.device_manager.get_selected_device()
         if selected and not self.midi_handler.is_device_open():
             self.midi_handler.open_device(selected)
 
-        return PianoMode(self.midi_handler, self.chord_detector)
+        return PianoMode(self.midi_handler, self.chord_detector, self.synth_engine)
 
     def _create_compendium_mode(self):
         """Create compendium mode widget."""
-        return CompendiumMode(self.chord_library)
+        return CompendiumMode(self.chord_library, self.synth_engine)
 
     def _create_synth_mode(self):
         """Create synth mode widget."""

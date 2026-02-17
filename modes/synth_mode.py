@@ -6,6 +6,7 @@ from textual.binding import Binding
 from typing import TYPE_CHECKING, Set, Optional
 
 from music.synth_engine import SynthEngine
+from components.header_widget import HeaderWidget
 
 if TYPE_CHECKING:
     from midi.input_handler import MIDIInputHandler
@@ -48,22 +49,6 @@ class SynthMode(Widget):
         padding: 0;
         margin: 0;
         align: center top;
-    }
-
-    #title {
-        width: 100%;
-        height: auto;
-        text-align: center;
-        color: #00ff00;
-    }
-
-    #status {
-        width: 100%;
-        height: auto;
-        text-align: center;
-        padding: 0;
-        color: #666666;
-        text-style: italic;
     }
 
     #synth-container {
@@ -216,12 +201,13 @@ class SynthMode(Widget):
 
     def compose(self):
         """Compose the synth mode layout."""
-        # Title and status at top - centered
-        with Center():
-            yield Label(self._get_synth_ascii(), id="title")
-        with Center():
-            self.status_display = Label(self._get_status_text(), id="status")
-            yield self.status_display
+        # Header section
+        self.header = HeaderWidget(
+            title="S Y N T H   M O D E",
+            subtitle=self._get_status_text(),
+            is_big=False
+        )
+        yield self.header
 
         # One line spacing before synth controls
         yield Label("")
@@ -260,7 +246,7 @@ class SynthMode(Widget):
                     log_min = math.log10(20.0)
                     log_max = math.log10(20000.0)
                     normalized = (log_cutoff - log_min) / (log_max - log_min)
-                    freq_str = f"{int(self.cutoff)}Hz"
+                    freq_str = f"{self.cutoff:.3f} Hz"
                     self.cutoff_display = Label(
                         self._format_slider_with_value(normalized, 0.0, 1.0, freq_str),
                         classes="control-value",
@@ -386,12 +372,12 @@ class SynthMode(Widget):
         self.current_note = note
         self.synth_engine.note_on(note, velocity)
 
-        # Update status display with velocity
-        if self.status_display:
+        # Update header status with velocity
+        if hasattr(self, "header"):
             note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
             octave = (note // 12) - 1
             note_name = note_names[note % 12]
-            self.status_display.update(f"🎵 Playing: {note_name}{octave} (MIDI {note}) • Vel: {velocity}")
+            self.header.update_subtitle(f"🎵 Playing: {note_name}{octave} (MIDI {note}) • Vel: {velocity}")
 
     def _on_note_off(self, note: int):
         """Callback for MIDI note off events."""
@@ -402,9 +388,9 @@ class SynthMode(Widget):
         if self.current_note == note:
             self.current_note = None
 
-            # Update status display
-            if self.status_display:
-                self.status_display.update(self._get_status_text())
+            # Update header status
+            if hasattr(self, "header"):
+                self.header.update_subtitle(self._get_status_text())
 
     def _on_pitch_bend(self, value: int):
         """Callback for MIDI pitch bend events."""
@@ -425,10 +411,6 @@ class SynthMode(Widget):
                 return "⚠ No MIDI device connected - Select one in Config Mode"
         else:
             return "⚠ Audio not available (install pyaudio: pip install pyaudio)"
-
-    def _get_synth_ascii(self) -> str:
-        """Get the SYNTH ASCII art in compact style."""
-        return "╔───────────────────────────────────────────────╗\n│          S Y N T H   M O D E                  │\n╚───────────────────────────────────────────────╝"
 
     def _create_section_box(self, title: str, width: int = 28) -> str:
         """Create a box header with title."""
@@ -668,11 +650,12 @@ class SynthMode(Widget):
             log_max = math.log10(20000.0)
             normalized = (log_cutoff - log_min) / (log_max - log_min)
 
-            # Format frequency display nicely
+            # Format frequency display with 3 decimal precision
+            # Professional standard for audio frequency representation
             if self.cutoff >= 1000:
-                freq_str = f"{self.cutoff/1000:.1f}kHz"
+                freq_str = f"{self.cutoff/1000:.3f} kHz"
             else:
-                freq_str = f"{int(self.cutoff)}Hz"
+                freq_str = f"{self.cutoff:.3f} Hz"
 
             self.cutoff_display.update(
                 self._format_slider_with_value(normalized, 0.0, 1.0, freq_str)

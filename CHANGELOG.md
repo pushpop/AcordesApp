@@ -5,6 +5,40 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-17
+
+### Added
+- **Unified Header System**: Introduced `HeaderWidget` in `components/header_widget.py` for consistent visual branding across all modes.
+  - Supports both large ASCII art titles and modern boxed titles.
+  - Centered subtitle/status labels for better readability.
+  - Dynamic status updates (e.g., MIDI connection status, currently playing note/velocity).
+- **Chord Playback in Compendium**:
+  - Automatically plays the selected chord when navigating through the Chord Compendium tree.
+  - Manual playback triggered with **SPACE** key.
+  - Implemented musical "strum" effect (staggered note onset) for a more natural sound.
+  - Smart note-to-MIDI conversion logic handling sharps, flats, and octave offsets.
+- **Audio "Warm-up" System**: 
+  - Added `warm_up()` method to `SynthEngine` to prime PyAudio buffers during application startup.
+  - Eliminates initial "hiccups" or lag when the first note is played in any mode.
+
+### Changed
+- **Piano Logic Refactor**: 
+  - Unified all piano rendering into a single, reusable `PianoWidget`.
+  - Removed redundant ASCII rendering code from `PianoMode`.
+  - `PianoWidget` now features the enhanced "tall key" design with rich coloring.
+- **Improved Compendium Navigation**:
+  - Rebound **SPACE** to "Play Chord" (was Expand All).
+  - Rebound **E** to "Expand All".
+  - Audio now triggers on highlight (`on_tree_node_highlighted`) for immediate feedback.
+- **Synth Engine Integration**:
+  - `PianoMode` now features full real-time audio playback using the `SynthEngine` for all MIDI input.
+  - Improved `play_chord` responsiveness using `threading.Timer` for precise release timing.
+
+### Fixed
+- Fixed several Python syntax and indentation errors introduced during refactoring.
+- Centered all header subtitles which were previously left-aligned.
+- Resolved audio latency issues during initial mode activation.
+
 ## [1.1.0] - 2026-02-16
 
 ### Added
