@@ -101,6 +101,8 @@ class PianoMode(Widget):
         self.piano_widget = None
         self.chord_display_widget = None
         self.staff_widget = None
+        # Track last displayed note set — only redraw when it actually changes
+        self._last_displayed_notes: Set[int] = set()
 
     def compose(self):
         """Compose the piano mode layout."""
@@ -155,9 +157,11 @@ class PianoMode(Widget):
         """Poll for MIDI messages."""
         if self.midi_handler.is_device_open():
             self.midi_handler.poll_messages()
-            # Update display with current notes
+            # Only redraw when the active note set actually changes
             active_notes = self.midi_handler.get_active_notes()
-            self._update_display(active_notes)
+            if active_notes != self._last_displayed_notes:
+                self._last_displayed_notes = active_notes
+                self._update_display(active_notes)
 
     def _on_note_on(self, note: int, velocity: int):
         """Callback for note on events with velocity."""
@@ -173,10 +177,6 @@ class PianoMode(Widget):
 
     def _update_display(self, notes: Set[int]):
         """Update the piano and chord display."""
-        # Update header status if needed
-        if hasattr(self, "header"):
-            self.header.update_subtitle(self._get_status_text())
-
         # Update piano widget
         if self.piano_widget:
             self.piano_widget.update_notes(notes)

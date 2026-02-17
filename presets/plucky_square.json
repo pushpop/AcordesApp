@@ -1,0 +1,13 @@
+{
+  "name": "Plucky Square",
+  "waveform": "square",
+  "octave": 0,
+  "amp_level": 0.65,
+  "cutoff": 3500.0,
+  "resonance": 0.25,
+  "attack": 0.002,
+  "decay": 0.18,
+  "sustain": 0.1,
+  "release": 0.12,
+  "intensity": 0.85
+}

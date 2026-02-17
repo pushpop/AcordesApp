@@ -1,0 +1,13 @@
+{
+  "name": "Bright Saw Lead",
+  "waveform": "sawtooth",
+  "octave": 0,
+  "amp_level": 0.7,
+  "cutoff": 8000.0,
+  "resonance": 0.4,
+  "attack": 0.005,
+  "decay": 0.25,
+  "sustain": 0.65,
+  "release": 0.1,
+  "intensity": 0.9
+}

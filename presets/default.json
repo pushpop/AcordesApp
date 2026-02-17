@@ -1,0 +1,13 @@
+{
+  "name": "Default",
+  "waveform": "sine",
+  "octave": 0,
+  "amp_level": 0.75,
+  "cutoff": 2000.0,
+  "resonance": 0.3,
+  "attack": 0.01,
+  "decay": 0.2,
+  "sustain": 0.7,
+  "release": 0.05,
+  "intensity": 0.8
+}

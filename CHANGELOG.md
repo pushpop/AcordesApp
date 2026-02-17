@@ -5,6 +5,46 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-17
+
+### Added
+- **Synth Preset System** (`music/preset_manager.py` — new module):
+  - 10 factory presets covering a wide sonic range: `default`, `warm_pad`, `bright_saw_lead`, `deep_bass`, `soft_strings`, `church_organ`, `glass_bells`, `hollow_reed`, `plucky_square`, `vintage_synth`.
+  - Presets stored as individual JSON files in `presets/` — easy to share, back up, or hand-edit.
+  - Two-tier ordering: factory presets sorted alphabetically, user presets appended in creation order (newest always at end).
+  - Save a new preset at any time with **Ctrl+N** — gets a randomly generated bilingual (English + European Portuguese) musical name (e.g. *amber reed*, *escuro sino*, *vazio echo*).
+  - Update / overwrite the currently loaded preset with **Ctrl+S**.
+  - Cycle through all presets with **,** (previous) and **.** (next).
+  - Preset bar above the synth boxes shows `[index/total] Preset Name` with a `*` dirty marker after any parameter change.
+  - Over ~1 500 unique bilingual name combinations from curated adjective + noun word banks.
+- **Synth State Persistence**:
+  - All synth parameters autosaved to `config.json` (`synth_state` key) on every change.
+  - Last active preset filename stored in `config.json` (`last_synth_preset` key) and restored on next launch.
+  - Restore priority on startup: last preset file → `synth_state` fallback → hardcoded defaults.
+- **Synth Randomizer** (`-` key):
+  - Generates a complete random patch using musically weighted distributions:
+    - Waveform: equal probability across all four types.
+    - Octave: weighted towards 8' (centre) for playability.
+    - Cutoff: log-uniform 200 Hz–18 kHz for natural timbral variety.
+    - Resonance: weighted 50/35/15% across subtle / moderate / resonant ranges.
+    - Attack & Decay: log-uniform 1 ms–2 s; Release: log-uniform 10 ms–3 s.
+    - Sustain: weighted 25/35/40% across percussive / expressive / pad ranges.
+    - Amplitude: uniform 50–95%; Intensity: uniform 40–100%.
+  - Immediately marks state dirty and autosaves parameters.
+
+### Changed
+- **`config_manager.py`**: Added `get_last_preset()`, `set_last_preset()`, `get_synth_state()`, `set_synth_state()` methods; `_default_config()` now includes `last_synth_preset` and `synth_state` keys.
+- **`modes/synth_mode.py`**: Full integration of `PresetManager` and `ConfigManager`; constructor now accepts the shared `SynthEngine` and `ConfigManager` instead of creating its own engine.
+- **`main.py`**: `_create_synth_mode()` now passes the shared `synth_engine` and `config_manager` to `SynthMode`, resolving the double-engine bug.
+
+### Fixed
+- **Piano Mode audio glitches when MIDI keys are held**:
+  - Root cause: `_poll_midi` unconditionally called `_update_display` every 10 ms (100×/second), causing heavy Textual render work (piano widget, chord display, staff widget) to compete with the PyAudio audio callback thread.
+  - Fix: added change-detection guard (`_last_displayed_notes`) — display updates only when the active note set actually changes.
+  - Removed `header.update_subtitle()` from the polling hot loop (MIDI connection status never changes during play).
+- **Double SynthEngine bug**: `SynthMode` was previously instantiating its own private `SynthEngine`, independent of the shared instance used by `PianoMode` and `CompendiumMode`. Now all modes share a single engine via `app_context`.
+- **New user presets appearing alphabetically instead of at the end**: `PresetManager._reload()` now uses a two-tier sort so user presets always append in creation-time order after the factory set.
+
 ## [1.1.1] - 2026-02-17
 
 ### Added

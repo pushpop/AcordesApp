@@ -2,17 +2,20 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.1.1**
+**Version 1.2.0**
 
-A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a monophonic synthesizer, and a fully-featured metronome.
+A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
 ## Features
 
 - **Config Mode**: Display and select MIDI devices connected to your system.
 - **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
 - **Synth Mode**: A 4-voice polyphonic synthesizer with real-time MIDI playback.
+  - **Preset System** *(NEW in v1.2.0)*: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
+  - **State Persistence** *(NEW in v1.2.0)*: Synth parameters survive mode switches and app restarts.
+  - **Randomizer** *(NEW in v1.2.0)*: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
-  - **Audio Playback** *(NEW in v1.1.1)*: Hear chords played as you browse.
+  - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
   - **Visual Beat Bar**: A large, centered bar visually displays the current beat in the measure.
   - **Selectable Time Signatures**: Cycle through common simple and compound time signatures (e.g., 2/4, 3/4, 4/4, 6/8, 9/8).
@@ -20,17 +23,29 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - **Italian Tempo Markings**: Displays the traditional name for the current tempo (e.g., *Andante*, *Allegro*).
   - **Adjustable BPM**: Wide tempo range from 50 to 300 BPM.
 
-## What's New in v1.1.1
+## What's New in v1.2.0
 
-- **Unified UI Headers**: All modes now use a consistent, centered header system via the `HeaderWidget`.
-- **Compendium Audio**: 
-  - Chords now play automatically as you navigate through the tree.
-  - Press **Space** to manually trigger a chord.
-  - Realistic "strumming" effect for chord playback.
-- **Performance Optimizations**: 
-  - Audio "warm-up" system eliminates startup lag.
-  - Refactored `PianoWidget` for better performance and consistency.
-- **Visual Improvements**: Subtitles are now properly centered across all screens.
+- **Synth Preset System**:
+  - 10 factory presets covering a wide range of sounds (warm pad, bright saw, deep bass, glass bells, church organ, and more).
+  - Save unlimited user presets with randomly generated bilingual (English + European Portuguese) musical names (e.g., *amber reed*, *escuro sino*, *vazio echo*).
+  - Presets stored as individual JSON files in `presets/` — easy to share and back up.
+  - Cycle through presets with **,** (previous) and **.** (next).
+  - **Ctrl+N**: Save current parameters as a new preset.
+  - **Ctrl+S**: Overwrite / update the currently loaded preset.
+  - Preset bar always shows `[index/total] Preset Name` with a `*` dirty marker after any parameter change.
+- **State Persistence**:
+  - All synth parameters are autosaved to `config.json` on every change.
+  - The last active preset is remembered and restored on the next app launch.
+  - Switching to another mode and back restores parameters exactly as left.
+- **Randomizer (`-` key)**:
+  - Generates a complete random patch using musically weighted distributions.
+  - Cutoff, attack, decay, and release use log-uniform scaling for natural timbral variety.
+  - Resonance and sustain weighted towards the most useful ranges.
+- **Piano Mode Performance Fix**:
+  - Eliminated audio glitches when MIDI keys are held by removing unconditional 100Hz UI redraws.
+  - Display now updates only when the active note set actually changes.
+- **Synth Engine Sharing Fix**:
+  - Resolved a bug where `SynthMode` was instantiating its own private `SynthEngine` instead of sharing the app-wide instance used by `PianoMode` and `CompendiumMode`.
 
 ## Requirements
 
@@ -128,13 +143,25 @@ python main.py
 - **Space**: Refresh device list (Config Mode only)
 
 #### Synth Mode Controls
-- **W**: Toggle waveform (Sine → Square → Triangle)
-- **↑/↓**: Adjust volume
-- **←/→**: Adjust filter cutoff frequency
-- **Q/A**: Increase/Decrease resonance
-- **E/D**: Increase/Decrease attack time
-- **R/F**: Increase/Decrease decay time
-- **T/G**: Increase/Decrease intensity
+
+**Presets:**
+- **,** / **.**: Previous / Next preset
+- **Ctrl+N**: Save current parameters as a new preset
+- **Ctrl+S**: Overwrite / update the current preset
+- **-**: Randomize all parameters (musically weighted)
+
+**Parameters:**
+- **W**: Toggle waveform (Sine → Square → Sawtooth → Triangle)
+- **S / X**: Octave transpose up / down (−2 to +2)
+- **↑ / ↓**: Adjust master volume
+- **← / →**: Adjust filter cutoff frequency
+- **Q / A**: Increase / Decrease resonance
+- **E / D**: Increase / Decrease attack time
+- **R / F**: Increase / Decrease decay time
+- **T / G**: Increase / Decrease sustain level
+- **Y / H**: Increase / Decrease release time
+- **U / J**: Increase / Decrease intensity
+- **Space**: Panic — silence all voices immediately
 
 #### Metronome Mode Controls
 - **P / Space**: Start or stop the metronome.
@@ -166,15 +193,17 @@ python main.py
 - 15+ chord types per key
 - View chord notes for reference
 
-#### Synth Mode *(NEW in v1.0.1)*
-- Monophonic synthesizer (plays one note at a time)
-- Real-time MIDI input with audio synthesis
-- Visual controls for all synth parameters
-- **Oscillator**: Choose between sine, square, or triangle waveforms
-- **Mixer**: Control output volume
-- **Filter**: Low-pass filter with cutoff (100Hz-5000Hz) and resonance controls
-- **Envelope**: Shape sound with attack, decay, and intensity parameters
-- Live parameter adjustment while playing
+#### Synth Mode
+- 4-voice polyphonic synthesizer with real-time MIDI playback
+- **Preset System**: 10 factory presets + unlimited user presets saved in `presets/`
+  - Cycle presets with `,` / `.`, save with **Ctrl+N**, update with **Ctrl+S**
+  - Presets remembered across mode switches and app restarts
+- **Randomizer**: Press `-` to instantly generate a new random patch
+- **Oscillator**: Sine, Square, Sawtooth, and Triangle waveforms with octave transpose
+- **Filter**: Low-pass filter with logarithmic cutoff (20Hz–20kHz) and resonance
+- **Envelope**: Full ADSR (Attack, Decay, Sustain, Release) + Intensity
+- **AMP**: Master volume with automatic waveform gain compensation
+- **MIDI Controllers**: Pitch bend (±2 semitones) and modulation wheel (CC1)
 
 #### Metronome Mode *(NEW in v1.1.0)*
 - A large, centered visual "beat bar" shows the current beat in the measure.
@@ -187,25 +216,33 @@ python main.py
 ```
 acordes/
 ├── main.py                      # Application entry point
-├── config_manager.py            # Configuration persistence
+├── config_manager.py            # Configuration persistence (MIDI device, synth state, last preset)
 ├── components/                  # UI widgets
 │   ├── piano_widget.py          # Visual piano keyboard
 │   ├── chord_display.py         # Chord name display
 │   ├── staff_widget.py          # Musical staff notation display
+│   ├── header_widget.py         # Unified header/title widget
 │   └── confirmation_dialog.py   # Quit confirmation
 ├── modes/                       # Screen modes
 │   ├── config_mode.py           # MIDI device configuration
 │   ├── piano_mode.py            # Real-time piano display
 │   ├── compendium_mode.py       # Chord reference
-│   ├── synth_mode.py            # Synthesizer interface
-│   └── metronome_mode.py        # Metronome interface (NEW in v1.1.0)
+│   ├── synth_mode.py            # Synthesizer interface with preset system
+│   ├── metronome_mode.py        # Metronome interface
+│   └── main_menu_mode.py        # Main menu
 ├── midi/                        # MIDI handling
 │   ├── device_manager.py        # Device detection
 │   └── input_handler.py         # MIDI input processing
 ├── music/                       # Music theory and synthesis
 │   ├── chord_detector.py        # Chord recognition (supports 9th, 11th, 13th chords)
 │   ├── chord_library.py         # Chord database
-│   └── synth_engine.py          # Audio synthesis engine
+│   ├── synth_engine.py          # 4-voice polyphonic audio synthesis engine
+│   └── preset_manager.py        # Synth preset load/save/cycle (NEW in v1.2.0)
+├── presets/                     # Synth preset JSON files (NEW in v1.2.0)
+│   ├── default.json             # Factory presets (10 total)
+│   ├── warm_pad.json
+│   ├── bright_saw_lead.json
+│   └── ...                      # User presets saved here automatically
 ├── run.bat                      # Windows launcher (Command Prompt)
 ├── run.ps1                      # Windows launcher (PowerShell)
 ├── run.sh                       # Linux/macOS launcher

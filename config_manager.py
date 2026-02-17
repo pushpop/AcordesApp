@@ -25,7 +25,9 @@ class ConfigManager:
     def _default_config(self) -> dict:
         """Return default configuration."""
         return {
-            "selected_midi_device": None
+            "selected_midi_device": None,
+            "last_synth_preset": None,
+            "synth_state": None,
         }
 
     def save_config(self):
@@ -36,6 +38,8 @@ class ConfigManager:
         except Exception as e:
             print(f"Error saving config: {e}")
 
+    # ── MIDI device ──────────────────────────────────────────────
+
     def get_selected_device(self) -> Optional[str]:
         """Get the saved MIDI device."""
         return self.config.get("selected_midi_device")
@@ -43,4 +47,24 @@ class ConfigManager:
     def set_selected_device(self, device_name: Optional[str]):
         """Save the selected MIDI device."""
         self.config["selected_midi_device"] = device_name
+        self.save_config()
+
+    # ── Synth preset persistence ─────────────────────────────────
+
+    def get_last_preset(self) -> Optional[str]:
+        """Return the filename of the last active preset, or None."""
+        return self.config.get("last_synth_preset")
+
+    def set_last_preset(self, filename: Optional[str]):
+        """Persist the filename of the currently active preset."""
+        self.config["last_synth_preset"] = filename
+        self.save_config()
+
+    def get_synth_state(self) -> Optional[dict]:
+        """Return the last auto-saved synth parameter state, or None."""
+        return self.config.get("synth_state")
+
+    def set_synth_state(self, params: dict):
+        """Persist current synth parameters (autosave on every change)."""
+        self.config["synth_state"] = params
         self.save_config()

@@ -238,6 +238,7 @@ class AcordesApp(App):
             "chord_detector": self.chord_detector,
             "chord_library": self.chord_library,
             "synth_engine": self.synth_engine,
+            "config_manager": self.config_manager,
             "create_main_menu": self._create_main_menu_mode,
             "create_piano": self._create_piano_mode,
             "create_compendium": self._create_compendium_mode,
@@ -295,7 +296,7 @@ class AcordesApp(App):
         if selected and not self.midi_handler.is_device_open():
             self.midi_handler.open_device(selected)
 
-        return SynthMode(self.midi_handler)
+        return SynthMode(self.midi_handler, self.synth_engine, self.config_manager)
 
     def _create_metronome_mode(self):
         """Create metronome mode widget."""

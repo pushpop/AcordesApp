@@ -1,0 +1,13 @@
+{
+  "name": "Church Organ",
+  "waveform": "square",
+  "octave": 0,
+  "amp_level": 0.72,
+  "cutoff": 5000.0,
+  "resonance": 0.05,
+  "attack": 0.001,
+  "decay": 0.05,
+  "sustain": 1.0,
+  "release": 0.08,
+  "intensity": 0.85
+}

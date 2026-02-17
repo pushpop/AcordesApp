@@ -1,0 +1,13 @@
+{
+  "name": "Warm Pad",
+  "waveform": "sine",
+  "octave": 0,
+  "amp_level": 0.7,
+  "cutoff": 800.0,
+  "resonance": 0.15,
+  "attack": 0.6,
+  "decay": 0.4,
+  "sustain": 0.8,
+  "release": 1.2,
+  "intensity": 0.75
+}

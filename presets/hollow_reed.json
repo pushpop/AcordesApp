@@ -1,0 +1,13 @@
+{
+  "name": "Hollow Reed",
+  "waveform": "sawtooth",
+  "octave": 0,
+  "amp_level": 0.68,
+  "cutoff": 1800.0,
+  "resonance": 0.65,
+  "attack": 0.03,
+  "decay": 0.35,
+  "sustain": 0.55,
+  "release": 0.4,
+  "intensity": 0.8
+}

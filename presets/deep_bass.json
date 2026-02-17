@@ -1,0 +1,13 @@
+{
+  "name": "Deep Bass",
+  "waveform": "sine",
+  "octave": -2,
+  "amp_level": 0.8,
+  "cutoff": 400.0,
+  "resonance": 0.1,
+  "attack": 0.005,
+  "decay": 0.3,
+  "sustain": 0.85,
+  "release": 0.2,
+  "intensity": 0.95
+}

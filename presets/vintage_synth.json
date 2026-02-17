@@ -1,0 +1,13 @@
+{
+  "name": "Vintage Synth",
+  "waveform": "square",
+  "octave": 0,
+  "amp_level": 0.7,
+  "cutoff": 2500.0,
+  "resonance": 0.35,
+  "attack": 0.25,
+  "decay": 0.5,
+  "sustain": 0.6,
+  "release": 0.9,
+  "intensity": 0.82
+}
