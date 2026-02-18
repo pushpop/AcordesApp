@@ -142,10 +142,6 @@ class PianoMode(Widget):
             note_off=self._on_note_off
         )
 
-    def on_unmount(self):
-        """Release all held notes when leaving Piano mode to prevent stuck voices."""
-        self.synth_engine.all_notes_off()
-
         # Initialize chord display
         if self.chord_display_widget:
             self.chord_display_widget.update_display(None, [])
@@ -156,6 +152,10 @@ class PianoMode(Widget):
 
         # Start polling for MIDI messages
         self.set_interval(0.01, self._poll_midi)  # Poll every 10ms
+
+    def on_unmount(self):
+        """Release all held notes when leaving Piano mode to prevent stuck voices."""
+        self.synth_engine.all_notes_off()
 
     def _poll_midi(self):
         """Poll for MIDI messages."""
