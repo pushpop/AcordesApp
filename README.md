@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.3.0**
+**Version 1.4.0**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
@@ -11,19 +11,48 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Config Mode**: Display and select MIDI devices connected to your system.
 - **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
 - **Synth Mode**: An 8-voice polyphonic synthesizer with real-time MIDI playback.
-  - **CS-80 Emulation** *(NEW in v1.3.0)*: Precision emulation of the Yamaha CS-80 architecture.
+  - **CS-80 Emulation** *(v1.3.0)*: Precision emulation of the Yamaha CS-80 architecture.
     - **Dual Rank Architecture**: Two independent synthesis paths per note.
     - **Series Filtering**: High-Pass Filter (HPF) into Low-Pass Filter (LPF) per rank.
     - **Sine Reinforcement**: Post-filter pure sine wave for solid low-end.
     - **Global Sub-Oscillator (LFO)**: Modulates VCO (Pitch), VCF (Filter), and VCA (Volume) across all voices.
-  - **Performance Optimizations** *(NEW in v1.3.0)*: Full NumPy and SciPy vectorization for ultra-low CPU usage.
-  - **MIDI Expressivity** *(NEW in v1.3.0)*: Support for MIDI Note-Off (Release) Velocity.
-  - **Master Section** *(NEW in v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
+  - **Performance Optimizations** *(v1.3.0)*: Full NumPy and SciPy vectorization for ultra-low CPU usage.
+  - **MIDI Expressivity** *(v1.3.0)*: Support for MIDI Note-Off (Release) Velocity.
+  - **Master Section** *(v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
+  - **DSP Correctness & Click-Free Polyphony** *(NEW in v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
   - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
   - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
+
+## What's New in v1.4.0
+
+A focused DSP quality release — no new features, only fixes to audio engine correctness, polyphonic click elimination, and UI accuracy.
+
+### Audio Engine Correctness
+- **IIR Filter rebuilt**: Resonance feedback was warping the pole coefficient, causing instability at high resonance. Now uses the correct 1-pole topology — stable and musical at all settings.
+- **Sine waveform fixed**: The "warm sine" Taylor approximation was operating at `±π` (outside its convergence radius), producing heavy distortion. Replaced with `sin()` + 1% 2nd harmonic blend.
+- **Filter keyboard tracking corrected**: The octave transpose was being applied twice in filter tracking. Fixed to use the pre-octave base frequency.
+- **HPF/LPF cancellation guard**: Under certain velocity + tracking conditions the HPF could exceed the LPF, silencing the voice. HPF is now always capped at least one octave below the LPF.
+- **Sub-oscillator phase continuity**: The sine-reinforcement oscillator was restarting from a stale phase every buffer, producing a periodic click. Now uses a dedicated per-voice phase accumulator.
+- **Release time corrected**: A `/4` divisor in the release time constant was making release 4× shorter than the UI value. Removed — the slider now means what it says.
+- **Gain staging corrected**: Master Volume is now applied before `tanh()` soft-clipping so it controls drive into the clipper, not just output level.
+
+### Click-Free Polyphony
+- **Polyphony gain ramp**: The per-voice gain compensation (`1/√N`) previously jumped in a single buffer when voices were added or removed, causing an audible click. Now ramps smoothly over ~25 ms.
+- **Voice steal crossfade**: Extended from 3 ms (exponential) to 8 ms (linear) — stolen voices dissolve into new attacks without a pop.
+- **Sine wrap-point tick**: The old 2% sawtooth blend in "warm sine" caused a discontinuity at each phase-rollover, audible as a periodic tick on low notes. Replaced with a 2nd-harmonic sine blend.
+- **DC blocker reset on steal**: Filter and DC-blocker state from a stolen voice no longer bleeds into the new note's onset.
+
+### Stereo Image
+- **Symmetric pan spread**: All 8 voices now spread symmetrically around centre in equal steps (±15%, ±10%, ±6%, ±2%) — previously only voices 0–1 had meaningful stereo width.
+
+### UI Fixes
+- MIXER section Amp label corrected from `"Preset [up/down]"` to `"Amp [↑/↓]"`.
+- Envelope time display now shows milliseconds for all values below 1 s (was switching at 10 ms).
+
+---
 
 ## What's New in v1.3.0
 
@@ -191,7 +220,7 @@ python main.py
 - View chord notes for reference
 
 #### Synth Mode
-- 4-voice polyphonic synthesizer with real-time MIDI playback
+- 8-voice polyphonic synthesizer with real-time MIDI playback
 - **Preset System**: 10 factory presets + unlimited user presets saved in `presets/`
   - Cycle presets with `,` / `.`, save with **Ctrl+N**, update with **Ctrl+S**
   - Presets remembered across mode switches and app restarts
@@ -233,7 +262,7 @@ acordes/
 ├── music/                       # Music theory and synthesis
 │   ├── chord_detector.py        # Chord recognition (supports 9th, 11th, 13th chords)
 │   ├── chord_library.py         # Chord database
-│   ├── synth_engine.py          # 4-voice polyphonic audio synthesis engine
+│   ├── synth_engine.py          # 8-voice polyphonic audio synthesis engine
 │   └── preset_manager.py        # Synth preset load/save/cycle (NEW in v1.2.0)
 ├── presets/                     # Synth preset JSON files (NEW in v1.2.0)
 │   ├── default.json             # Factory presets (10 total)
