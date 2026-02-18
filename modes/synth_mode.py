@@ -293,7 +293,7 @@ class SynthMode(Widget):
             with Vertical(id="mixer-section"):
                 yield Label(self._section_top("MIXER"), classes="section-label")
                 yield Label(self._empty_line(), classes="section-label")
-                yield Label(self._box_line("Preset [up/down]"), classes="control-label")
+                yield Label(self._box_line("Amp [↑/↓]"), classes="control-label")
                 self.amp_display = Label(
                     self._fmt_slider(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"),
                     classes="control-value", id="amp-display")
@@ -710,7 +710,7 @@ class SynthMode(Widget):
         log_min = math.log10(0.001)
         log_max = math.log10(5.0)
         norm = (log_t - log_min) / (log_max - log_min)
-        label = f"{t * 1000:.0f}ms" if t < 0.01 else f"{t:.2f}s"
+        label = f"{t * 1000:.0f}ms" if t < 1.0 else f"{t:.2f}s"
         return self._fmt_slider(norm, 0.0, 1.0, label)
 
     def _fmt_cutoff(self) -> str:

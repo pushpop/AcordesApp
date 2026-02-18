@@ -42,8 +42,14 @@ class Voice:
 
         # Phase offset for polyphonic spread
         self.phase_offset = (voice_index * np.pi / 4.0) % (2 * np.pi)
-        pan_positions = [0.40, 0.60, 0.45, 0.55, 0.48, 0.52, 0.49, 0.51]
-        self.pan = pan_positions[voice_index] if voice_index < len(pan_positions) else 0.5
+        # Symmetric stereo spread: voices alternate L/R in equal steps from center.
+        # voice 0->0.35 (L), 1->0.65 (R), 2->0.40, 3->0.60, 4->0.44, 5->0.56, 6->0.48, 7->0.52
+        # All pairs are symmetric around 0.5 so the summed stereo image is centered.
+        spread_steps = [0.15, 0.10, 0.06, 0.02]
+        step = spread_steps[voice_index // 2] if voice_index // 2 < len(spread_steps) else 0.0
+        self.pan = 0.5 - step if voice_index % 2 == 0 else 0.5 + step
+        # Dedicated phase accumulator for the sine-reinforcement sub-oscillator
+        self.sine_phase = 0.0
 
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
@@ -55,7 +61,7 @@ class Voice:
         """Trigger a new note. Keeps oscillators free-running to prevent phase-jump clicks."""
         was_silent = not self.note_active and not self.is_releasing
         self.steal_start_level = self.last_envelope_level if not was_silent else 0.0
-        
+
         self.midi_note = midi_note
         self.base_frequency = frequency
         self.frequency = frequency
@@ -65,12 +71,14 @@ class Voice:
         self.envelope_time = 0.0
         self.age = 0.0
 
-        # RESET filter/DC memory ONLY if starting from silence
-        if was_silent:
+        # RESET filter/DC memory if starting from silence OR if this is a voice steal
+        # (same voice being retaken by a different note). Preserving stale filter/DC
+        # state from the stolen note would cause a DC sag at the start of the new note.
+        if True:  # always reset — free-running phase is preserved, states are not
             self.filter_state_lpf1 = self.filter_state_hpf1 = 0.0
             self.filter_state_lpf2 = self.filter_state_hpf2 = 0.0
             self.dc_blocker_x = self.dc_blocker_y = 0.0
-            # Note: self.phase is NOT reset here (Free-Running)
+            # Note: self.phase and self.sine_phase are NOT reset here (Free-Running)
 
     def release(self, attack: float, decay: float, sustain: float, intensity: float, release_velocity: float = 0.5):
         if self.note_active:
@@ -95,6 +103,7 @@ class Voice:
         self.filter_state_lpf2 = self.filter_state_hpf2 = 0.0
         self.dc_blocker_x = self.dc_blocker_y = 0.0
         self.last_envelope_level = 0.0
+        self.sine_phase = 0.0
 
 
 class SynthEngine:
@@ -186,15 +195,19 @@ class SynthEngine:
         t = np.arange(num_samples)
         phases = start_phase + t * phase_inc
         t_norm = (phases / (2 * np.pi)) % 1.0
-        if waveform == "pure_sine": samples = np.sin(phases)
+        if waveform == "pure_sine":
+            samples = np.sin(phases)
         elif waveform == "sine":
-            saw = 2.0 * t_norm - 1.0
-            x = saw * np.pi
-            sine_shaped = x - (x**3) / 6.0 + (x**5) / 120.0
-            samples = sine_shaped * 0.98 + saw * 0.02
-        elif waveform == "triangle": samples = 4.0 * np.abs(t_norm - 0.5) - 1.0
-        elif waveform == "square": samples = np.where(np.sin(phases) >= 0, 1.0, -1.0)
-        else: samples = 2.0 * t_norm - 1.0
+            # Vintage-warm sine: fundamental + 1% 2nd harmonic for subtle colour.
+            # Using sin(2*phase) instead of a sawtooth avoids the wrap discontinuity
+            # that caused a periodic tick once per cycle at the phase-rollover point.
+            samples = np.sin(phases) * 0.99 + np.sin(2.0 * phases) * 0.01
+        elif waveform == "triangle":
+            samples = 4.0 * np.abs(t_norm - 0.5) - 1.0
+        elif waveform == "square":
+            samples = np.where(np.sin(phases) >= 0, 1.0, -1.0)
+        else:
+            samples = 2.0 * t_norm - 1.0
         final_phase = (start_phase + num_samples * phase_inc) % (2 * np.pi)
         return samples.astype(np.float32), final_phase
 
@@ -206,8 +219,11 @@ class SynthEngine:
         times = voice.envelope_time + np.arange(num_samples) * dt
         envelope = np.zeros(num_samples, dtype=np.float32)
         if voice.is_releasing:
+            # rel_mod scales release time by note-off velocity (soft release -> longer tail).
+            # time_const is the RC time constant of the exponential decay — the /4 divisor
+            # that was here previously made releases sound 4x shorter than the UI indicated.
             rel_mod = 1.0 / (0.5 + voice.release_velocity)
-            time_const = max(0.005, (self.release * rel_mod) / 4.0)
+            time_const = max(0.005, self.release * rel_mod)
             envelope = voice.release_start_level * np.exp(-times / time_const)
             ANTI_R = 0.002
             if times[0] < ANTI_R:
@@ -225,10 +241,13 @@ class SynthEngine:
                 mask = times < ANTI_I
                 envelope[mask] *= (1.0 - np.exp(-10.0 * (times[mask]/ANTI_I)))
             if voice.steal_start_level > 0.001:
-                CROSS = 0.003
+                # 8ms linear crossfade from the stolen note's last level to the new
+                # attack — long enough to be inaudible, short enough not to smear the
+                # new note's transient.
+                CROSS = 0.008
                 if times[0] < CROSS:
                     mask = times < CROSS
-                    p = 1.0 - np.exp(-8.0 * (times[mask]/CROSS))
+                    p = times[mask] / CROSS          # linear 0->1 over 8ms
                     envelope[mask] = voice.steal_start_level * (1.0 - p) + envelope[mask] * p
                     if times[-1] >= CROSS: voice.steal_start_level = 0.0
             dec_end = self.attack + self.decay
@@ -243,29 +262,30 @@ class SynthEngine:
         return samples * envelope
 
     def _filter_process(self, samples: np.ndarray, cutoff: float, filter_type: str, prev_state: float, res: float = 0.0) -> tuple[np.ndarray, float]:
+        # Standard 1-pole IIR: alpha is the feed-forward gain, (1-alpha) is the feedback pole.
+        # Resonance is applied as negative feedback from the output subtracted from the input
+        # BEFORE the integrator — this is the correct topology for a resonant 1-pole LPF.
         alpha = np.clip(2 * np.pi * cutoff / self.sample_rate, 0.0, 1.0)
-        res_fb = res * 0.9
-        b, a = np.array([alpha], dtype=np.float32), np.array([1.0, -(1.0 - alpha + alpha * res_fb)], dtype=np.float32)
-        try:
-            from scipy import signal
-            out, zi = signal.lfilter(b, a, samples, zi=[prev_state])
-            return (out if filter_type == "lpf" else samples - out), zi[0]
-        except ImportError:
-            filtered = np.zeros_like(samples)
-            state, a1_comp = prev_state, (1.0 - alpha + alpha * res_fb)
-            for i in range(len(samples)):
-                state = alpha * samples[i] + a1_comp * state
-                filtered[i] = state if filter_type == "lpf" else samples[i] - state
-            return filtered, state
+        res_fb = res * 0.9  # keep well below 1.0 to stay stable
+        filtered = np.zeros_like(samples, dtype=np.float32)
+        state = float(prev_state)
+        for i in range(len(samples)):
+            inp = samples[i] - res_fb * state   # resonance feedback subtracted from input
+            state = alpha * inp + (1.0 - alpha) * state
+            filtered[i] = state if filter_type == "lpf" else samples[i] - state
+        return filtered, state
 
     def _apply_filter(self, voice: Voice, samples: np.ndarray, rank: int = 1, cutoff_mod: float = 1.0) -> np.ndarray:
         lpf_s = voice.filter_state_lpf1 if rank == 1 else voice.filter_state_lpf2
         hpf_s = voice.filter_state_hpf1 if rank == 1 else voice.filter_state_hpf2
-        f_oct = voice.frequency * (2.0 ** self.octave) if (voice.frequency and self.octave_enabled) else voice.frequency or 440.0
-        track_mult = 1.0 + 0.5 * (f_oct / 440.0 - 1.0)
+        # Use base_frequency (pre-octave) for keyboard tracking so the octave shift
+        # applied in the audio callback is not counted a second time here.
+        f_base = voice.base_frequency or 440.0
+        track_mult = 1.0 + 0.5 * (f_base / 440.0 - 1.0)
         vel_mult = 0.7 + (voice.velocity * 0.6)
         fl_lpf = np.clip(self.cutoff * cutoff_mod * track_mult * vel_mult, 20.0, 20000.0)
-        fl_hpf = np.clip(self.hpf_cutoff * cutoff_mod * track_mult * vel_mult, 20.0, 20000.0)
+        # Guard: HPF must always sit at least one octave below the LPF to avoid cancellation.
+        fl_hpf = np.clip(self.hpf_cutoff * track_mult * vel_mult, 20.0, fl_lpf / 2.0)
         samples, hpf_s = self._filter_process(samples, fl_hpf, "hpf", hpf_s, 0.0)
         filtered, lpf_s = self._filter_process(samples, fl_lpf, "lpf", lpf_s, self.resonance)
         if rank == 1: voice.filter_state_lpf1, voice.filter_state_hpf1 = lpf_s, hpf_s
@@ -318,8 +338,12 @@ class SynthEngine:
             else: self.master_volume = self.master_volume_target
             lfo_val = np.sin(self.lfo_phase)
             self.lfo_phase = (self.lfo_phase + 2 * np.pi * self.lfo_freq * frame_count / self.sample_rate) % (2 * np.pi)
-            vco_lfo, vcf_lfo, vca_lfo = 1.0 + (lfo_val * self.lfo_vco_mod * 0.05), 1.0 + (lfo_val * self.lfo_vcf_mod * 0.5), 1.0 + (lfo_val * self.lfo_vca_mod * 0.3)
-            mixed_l, mixed_r, active_count = np.zeros(frame_count, dtype=np.float32), np.zeros(frame_count, dtype=np.float32), 0
+            vco_lfo = 1.0 + (lfo_val * self.lfo_vco_mod * 0.05)
+            vcf_lfo = 1.0 + (lfo_val * self.lfo_vcf_mod * 0.5)
+            vca_lfo = 1.0 + (lfo_val * self.lfo_vca_mod * 0.3)
+            mixed_l = np.zeros(frame_count, dtype=np.float32)
+            mixed_r = np.zeros(frame_count, dtype=np.float32)
+            active_count = 0
             for v in self.voices:
                 if v.note_active or v.is_releasing:
                     p1_s, p2_s = v.phase, v.phase2
@@ -332,29 +356,39 @@ class SynthEngine:
                         s2, v.phase2 = self._generate_waveform(self.rank2_waveform, f2, frame_count, p2_s)
                         s2 = self._apply_filter(v, s2, rank=2, cutoff_mod=vcf_lfo)
                         v_samples = s1 * (1.0 - self.rank2_mix) + s2 * self.rank2_mix
-                    else: v_samples = s1
+                    else:
+                        v_samples = s1
                     if self.sine_mix > 0:
-                        ss, _ = self._generate_waveform("pure_sine", f1, frame_count, p1_s)
+                        # Use and advance the voice's dedicated sine_phase accumulator
+                        # so the sub-oscillator is phase-continuous across buffer boundaries.
+                        ss, v.sine_phase = self._generate_waveform("pure_sine", f1, frame_count, v.sine_phase)
                         v_samples += ss * self.sine_mix
                     v_samples = self._apply_envelope(v, v_samples, frame_count) * vca_lfo
                     v_samples = self._apply_dc_blocker(v, v_samples)
                     ang = v.pan * np.pi / 2
-                    mixed_l += v_samples * np.cos(ang); mixed_r += v_samples * np.sin(ang)
+                    mixed_l += v_samples * np.cos(ang)
+                    mixed_r += v_samples * np.sin(ang)
                     active_count += 1
             if active_count == 0:
                 self.master_gain_target = self.master_gain_current = 1.0
                 return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
             self.master_gain_target = 1.0 / np.sqrt(active_count) if active_count > 1 else 1.0
-            if self.master_gain_target < self.master_gain_current: self.master_gain_current = self.master_gain_current * 0.5 + self.master_gain_target * 0.5
-            else: self.master_gain_current = self.master_gain_current * 0.8 + self.master_gain_target * 0.2
+            # Use a single slow coefficient (0.98 per buffer ~25ms ramp) in both
+            # directions so voice additions/removals never produce a gain click.
+            self.master_gain_current = self.master_gain_current * 0.98 + self.master_gain_target * 0.02
             comp = 1.4 if self.waveform in ["sine", "pure_sine"] else (0.8 if self.waveform == "square" else 1.7)
-            final_gain = self.amp_level_current * comp * self.master_gain_current
-            mixed_l, mixed_r = np.tanh(mixed_l * final_gain * 0.9), np.tanh(mixed_r * final_gain * 0.9)
-            mixed_l, mixed_r = mixed_l * self.master_volume, mixed_r * self.master_volume
+            # master_volume is included in final_gain BEFORE tanh so it controls the
+            # drive into the soft-clipper — lowering master_volume reduces distortion,
+            # which is the musically correct and expected behaviour.
+            final_gain = self.amp_level_current * comp * self.master_gain_current * self.master_volume
+            mixed_l = np.tanh(mixed_l * final_gain * 0.9)
+            mixed_r = np.tanh(mixed_r * final_gain * 0.9)
             out = np.empty(frame_count * 2, dtype=np.int16)
-            out[0::2] = np.clip(mixed_l * 32767, -32767, 32767); out[1::2] = np.clip(mixed_r * 32767, -32767, 32767)
+            out[0::2] = np.clip(mixed_l * 32767, -32767, 32767)
+            out[1::2] = np.clip(mixed_r * 32767, -32767, 32767)
             return (out.tobytes(), pyaudio.paContinue)
-        except Exception as e: return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
+        except Exception as e:
+            return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
 
     def note_on(self, note: int, velocity: int = 127):
         self.held_notes.add(note)
