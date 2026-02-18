@@ -79,8 +79,11 @@ class MIDIInputHandler:
             for msg in self.port.iter_pending():
                 if msg.type == 'note_on' and msg.velocity > 0:
                     self._handle_note_on(msg.note, msg.velocity)
-                elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
-                    self._handle_note_off(msg.note)
+                elif msg.type == 'note_off':
+                    self._handle_note_off(msg.note, msg.velocity)
+                elif msg.type == 'note_on' and msg.velocity == 0:
+                    # Note on with velocity 0 is also a note off (MIDI spec)
+                    self._handle_note_off(msg.note, 0)
                 elif msg.type == 'pitchwheel':
                     self._handle_pitch_bend(msg.pitch)
                 elif msg.type == 'control_change':
@@ -96,13 +99,13 @@ class MIDIInputHandler:
         if self._note_on_callback:
             self._note_on_callback(note, velocity)
 
-    def _handle_note_off(self, note: int):
-        """Handle NOTE_OFF message."""
+    def _handle_note_off(self, note: int, velocity: int = 0):
+        """Handle NOTE_OFF message with optional release velocity."""
         with self.notes_lock:
             self.active_notes.discard(note)
 
         if self._note_off_callback:
-            self._note_off_callback(note)
+            self._note_off_callback(note, velocity)
 
     def _handle_pitch_bend(self, value: int):
         """Handle PITCH_BEND message.

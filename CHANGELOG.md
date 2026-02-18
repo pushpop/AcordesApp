@@ -5,6 +5,36 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-17
+
+### Added
+- **Yamaha CS-80 Precision Emulation**:
+  - **Dual Rank Architecture**: Each note triggers two independent synthesis paths (Rank I and Rank II) with individual waveform and filter settings.
+  - **Series Filtering**: Implemented hardware-accurate 12dB/oct series filtering (High-Pass Filter into Low-Pass Filter) per rank.
+  - **Sine Reinforcement**: Added a pure sine wave reinforcement path post-filter to maintain low-end body during aggressive filtering.
+  - **Global Sub-Oscillator (LFO)**: Central modulation bus controlling VCO (Pitch), VCF (Filter), and VCA (Volume) across all voices.
+- **Advanced MIDI Support**:
+  - **Note-Off (Release) Velocity**: Full support for MIDI release velocity, allowing the speed of key release to modulate the sound's decay/release characteristic.
+- **Master Section**:
+  - **Master Volume Control**: Post-saturation global output control using **[** and **]** shortcuts.
+  - **Smoothed Gain Protection**: Fast-acting gain ducking and smoothing to prevent clipping during polyphonic changes.
+
+### Changed
+- **8-Voice Polyphony**: Adjusted voice limit to 8 to match original CS-80 hardware specifications.
+- **MIXER UI Redesign**: Updated the synth interface with a dedicated MIXER section for Preset and Master levels.
+- **Waveform Selection**: Expanded to 5 waveforms, including a new **Pure Sine (PSIN)** alongside the original Warm Sine (SIN).
+- **Narrower Stereo Field**: Refined voice panning from wide 20/80 to a more centered 40/60 for a solid, hardware-like stereo image.
+
+### Optimized
+- **Full DSP Vectorization**: Eliminated Python loops in the audio callback. Oscillators, ADSR envelopes, filters, and DC blockers are now fully vectorized using NumPy and SciPy.
+- **Zero-Latency DC Blocking**: Refactored the DC blocker with high damping (0.999) and state initialization to eliminate "DC Crush" and tonality drift.
+- **Click-Free Performance**: Restored free-running oscillators and implemented buffer-boundary gain smoothing for perfectly clean transients.
+
+### Fixed
+- **Tonality Drift**: Resolved an issue where held notes changed timbre over time due to slow DC blocker settling.
+- **Attack Blast**: Fixed a volume spike occurring at note onset by implementing instant headroom protected gain adjustment.
+- **Settings Leak**: Fixed a bug where LFO and Rank II parameters would persist when switching between presets.
+
 ## [1.2.0] - 2026-02-17
 
 ### Added

@@ -33,6 +33,8 @@ class SynthMode(Widget):
         Binding("x", "adjust_octave('down')", "Oct-", show=False),
         Binding("up", "adjust_volume('up')", "Vol+", show=False),
         Binding("down", "adjust_volume('down')", "Vol-", show=False),
+        Binding("left_square_bracket", "adjust_master_volume('down')", "MVol-", show=False),
+        Binding("right_square_bracket", "adjust_master_volume('up')", "MVol+", show=False),
         Binding("left", "adjust_cutoff('left')", "Cut-", show=False),
         Binding("right", "adjust_cutoff('right')", "Cut+", show=False),
         Binding("q", "adjust_resonance('up')", "Res+", show=False),
@@ -185,10 +187,14 @@ class SynthMode(Widget):
         self.sustain    = params["sustain"]
         self.release    = params["release"]
         self.intensity  = params["intensity"]
+        
+        # GLOBAL MASTER VOLUME (Persisted but not in presets)
+        self.master_volume = self.config_manager.get_synth_state().get("master_volume", 1.0)
 
         self.waveform_display   = None
         self.octave_display     = None
         self.amp_display        = None
+        self.master_volume_display = None
         self.cutoff_display     = None
         self.resonance_display  = None
         self.attack_display     = None
@@ -285,21 +291,26 @@ class SynthMode(Widget):
                 yield Label(self._section_bottom(), classes="section-label")
 
             with Vertical(id="mixer-section"):
-                yield Label(self._section_top("AMP"), classes="section-label")
+                yield Label(self._section_top("MIXER"), classes="section-label")
                 yield Label(self._empty_line(), classes="section-label")
-                yield Label(self._box_line("Amp [up/down]"), classes="control-label")
-                yield Label(self._empty_line(), classes="section-label")
+                yield Label(self._box_line("Preset [up/down]"), classes="control-label")
                 self.amp_display = Label(
                     self._fmt_slider(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"),
                     classes="control-value", id="amp-display")
                 yield self.amp_display
+                yield Label(self._empty_line(), classes="section-label")
+                yield Label(self._box_line("Master [[ / ]]"), classes="control-label")
+                self.master_volume_display = Label(
+                    self._fmt_slider(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"),
+                    classes="control-value", id="master-volume-display")
+                yield self.master_volume_display
                 yield Label(self._empty_line(), classes="section-label")
                 yield Label(self._section_bottom(), classes="section-label")
 
         # ── CONTROLS HELP ────────────────────────────────────────────
         yield Static(
             "[bold #00ff00]PRESET:[/] [,] Prev  [.] Next  [Ctrl+N] Save New  [Ctrl+S] Update  "
-            "[bold #00ff00]SYNTH:[/] [W] Wave [S/X] Oct [↑/↓] Amp [←/→] Cut [Q/A] Res "
+            "[bold #00ff00]SYNTH:[/] [W] Wave [S/X] Oct [↑/↓] Amp [[/]] MVol [←/→] Cut [Q/A] Res "
             "[E/D] Atk [R/F] Dec [T/G] Sus [Y/H] Rel [U/J] Int  "
             "[bold yellow][-] 🎲 Randomize[/]  [SPACE] Panic",
             id="controls-help",
@@ -340,8 +351,8 @@ class SynthMode(Widget):
                 f"🎵 Playing: {name}{oct_} (MIDI {note}) • Vel: {velocity}"
             )
 
-    def _on_note_off(self, note: int):
-        self.synth_engine.note_off(note)
+    def _on_note_off(self, note: int, velocity: int = 0):
+        self.synth_engine.note_off(note, velocity)
         if self.current_note == note:
             self.current_note = None
             self._update_preset_ui()
@@ -369,6 +380,8 @@ class SynthMode(Widget):
 
     def action_save_preset_new(self):
         params = self._current_params()
+        # Remove master_volume from preset params
+        params.pop("master_volume", None)
         preset = self.preset_manager.save_new(params)
         self._current_preset = preset
         self._preset_index = self.preset_manager.find_index_by_filename(preset.filename)
@@ -385,6 +398,8 @@ class SynthMode(Widget):
             )
             return
         params = self._current_params()
+        # Remove master_volume from preset params
+        params.pop("master_volume", None)
         preset = self.preset_manager.save_overwrite(self._current_preset, params)
         self._current_preset = preset
         self._dirty = False
@@ -424,6 +439,7 @@ class SynthMode(Widget):
             waveform=self.waveform,
             octave=self.octave,
             amp_level=self.amp_level,
+            master_volume=self.master_volume,
             cutoff=self.cutoff,
             resonance=self.resonance,
             attack=self.attack,
@@ -438,6 +454,7 @@ class SynthMode(Widget):
             "waveform":  self.waveform,
             "octave":    self.octave,
             "amp_level": self.amp_level,
+            "master_volume": self.master_volume,
             "cutoff":    self.cutoff,
             "resonance": self.resonance,
             "attack":    self.attack,
@@ -465,11 +482,6 @@ class SynthMode(Widget):
         return "⚠ Audio not available (install pyaudio)"
 
     def _fmt_preset_bar(self) -> str:
-        """Render the preset bar content.
-
-        The surrounding box is drawn by CSS border on #preset-bar,
-        so this method returns only the inner text — no hand-drawn characters.
-        """
         total = self.preset_manager.count()
         if self._current_preset and total:
             idx = self._preset_index + 1
@@ -491,15 +503,12 @@ class SynthMode(Widget):
             )
 
     def _update_preset_ui(self):
-        """Refresh both the preset bar and the header subtitle."""
-        # Update preset bar widget
         try:
             bar = self.query_one("#preset-bar", Static)
             bar.update(self._fmt_preset_bar())
         except Exception:
             pass
 
-        # Update header subtitle
         if self.header:
             total = self.preset_manager.count()
             if self._current_preset and total:
@@ -516,7 +525,7 @@ class SynthMode(Widget):
     # ── Keyboard actions ─────────────────────────────────────────
 
     def action_toggle_waveform(self):
-        order = ["sine", "square", "sawtooth", "triangle"]
+        order = ["pure_sine", "sine", "square", "sawtooth", "triangle"]
         self.waveform = order[(order.index(self.waveform) + 1) % len(order)]
         self.synth_engine.update_parameters(waveform=self.waveform)
         if self.waveform_display:
@@ -540,6 +549,15 @@ class SynthMode(Widget):
                 self._fmt_slider(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%")
             )
         self._mark_dirty()
+        self._autosave_state()
+
+    def action_adjust_master_volume(self, direction: str = "up"):
+        self.master_volume = min(1.0, self.master_volume + 0.05) if direction == "up" else max(0.0, self.master_volume - 0.05)
+        self.synth_engine.update_parameters(master_volume=self.master_volume)
+        if self.master_volume_display:
+            self.master_volume_display.update(
+                self._fmt_slider(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%")
+            )
         self._autosave_state()
 
     def action_adjust_cutoff(self, direction: str = "right"):
@@ -608,46 +626,21 @@ class SynthMode(Widget):
 
     def action_randomize(self):
         """Roll the dice — generate musically useful random synth parameters."""
-
-        # Waveform — equal chance across all four
-        self.waveform = random.choice(["sine", "square", "sawtooth", "triangle"])
-
-        # Octave — weighted towards centre (8') for playability
+        self.waveform = random.choice(["pure_sine", "sine", "square", "sawtooth", "triangle"])
         self.octave = random.choices([-2, -1, 0, 1, 2], weights=[1, 2, 4, 2, 1])[0]
-
-        # Amp — stay in a reasonable range (50–95%)
         self.amp_level = round(random.uniform(0.50, 0.95), 2)
-
-        # Filter — log-distributed so low values aren't under-represented
-        # musical range: dark (200 Hz) → bright (18 kHz)
         self.cutoff = round(10 ** random.uniform(math.log10(200), math.log10(18000)), 1)
-
-        # Resonance — mostly subtle, occasionally spiky
         self.resonance = round(random.choices(
-            [random.uniform(0.0, 0.3),   # subtle
-             random.uniform(0.3, 0.65),  # moderate
-             random.uniform(0.65, 0.9)], # resonant
+            [random.uniform(0.0, 0.3), random.uniform(0.3, 0.65), random.uniform(0.65, 0.9)],
             weights=[50, 35, 15]
         )[0], 2)
-
-        # Attack — log-distributed: mostly fast, some slow pads
         self.attack = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
-
-        # Decay — log-distributed: 1 ms → 2 s
         self.decay = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
-
-        # Sustain — full range, slightly weighted towards held notes
         self.sustain = round(random.choices(
-            [random.uniform(0.0, 0.3),   # percussive / plucky
-             random.uniform(0.3, 0.7),   # expressive
-             random.uniform(0.7, 1.0)],  # pad / organ
+            [random.uniform(0.0, 0.3), random.uniform(0.3, 0.7), random.uniform(0.7, 1.0)],
             weights=[25, 35, 40]
         )[0], 2)
-
-        # Release — log-distributed: 10 ms → 3 s
         self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
-
-        # Intensity — keep it audible (40–100%)
         self.intensity = round(random.uniform(0.40, 1.0), 2)
 
         self._push_params_to_engine()
@@ -659,32 +652,17 @@ class SynthMode(Widget):
     # ── Display refresh ──────────────────────────────────────────
 
     def _refresh_all_displays(self):
-        if self.waveform_display:
-            self.waveform_display.update(self._fmt_waveform())
-        if self.octave_display:
-            self.octave_display.update(self._fmt_octave())
-        if self.cutoff_display:
-            self.cutoff_display.update(self._fmt_cutoff())
-        if self.resonance_display:
-            self.resonance_display.update(self._fmt_resonance())
-        if self.attack_display:
-            self.attack_display.update(self._fmt_time(self.attack))
-        if self.decay_display:
-            self.decay_display.update(self._fmt_time(self.decay))
-        if self.sustain_display:
-            self.sustain_display.update(
-                self._fmt_slider(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%")
-            )
-        if self.release_display:
-            self.release_display.update(self._fmt_time(self.release))
-        if self.intensity_display:
-            self.intensity_display.update(
-                self._fmt_slider(self.intensity, 0.0, 1.0, f"{int(self.intensity * 100)}%")
-            )
-        if self.amp_display:
-            self.amp_display.update(
-                self._fmt_slider(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%")
-            )
+        if self.waveform_display: self.waveform_display.update(self._fmt_waveform())
+        if self.octave_display: self.octave_display.update(self._fmt_octave())
+        if self.cutoff_display: self.cutoff_display.update(self._fmt_cutoff())
+        if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
+        if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
+        if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
+        if self.sustain_display: self.sustain_display.update(self._fmt_slider(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
+        if self.release_display: self.release_display.update(self._fmt_time(self.release))
+        if self.intensity_display: self.intensity_display.update(self._fmt_slider(self.intensity, 0.0, 1.0, f"{int(self.intensity * 100)}%"))
+        if self.amp_display: self.amp_display.update(self._fmt_slider(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
+        if self.master_volume_display: self.master_volume_display.update(self._fmt_slider(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"))
 
     # ── Box drawing helpers ──────────────────────────────────────
 
@@ -701,8 +679,7 @@ class SynthMode(Widget):
     def _box_line(self, content: str, width: int = 28) -> str:
         content = content.replace("│", "").strip()
         inner = width - 2
-        if len(content) > inner:
-            content = content[:inner]
+        if len(content) > inner: content = content[:inner]
         pad = inner - len(content)
         lp = pad // 2
         rp = pad - lp
@@ -712,13 +689,11 @@ class SynthMode(Widget):
         return f"[#00ff00]│{' ' * (width - 2)}│[/]"
 
     def _slider(self, value: float, min_val: float, max_val: float, width: int = 26) -> str:
-        norm = (value - min_val) / (max_val - min_val)
+        norm = (value - min_val) / (max_val - min_val) if max_val > min_val else 0.0
         filled = int(norm * width)
         empty = width - filled
-        if filled > 0 and empty > 0:
-            return "[#00ff00]" + "█" * filled + "[/][#333333]" + "░" * empty + "[/]"
-        elif filled == width:
-            return "[#00ff00]" + "█" * filled + "[/]"
+        if filled > 0 and empty > 0: return "[#00ff00]" + "█" * filled + "[/][#333333]" + "░" * empty + "[/]"
+        elif filled == width: return "[#00ff00]" + "█" * filled + "[/]"
         return "[#333333]" + "░" * empty + "[/]"
 
     def _fmt_slider(self, value: float, min_val: float, max_val: float, label: str) -> str:
@@ -731,21 +706,15 @@ class SynthMode(Widget):
         return f"[#00ff00]│{bar}│[/]\n[#00ff00]│{val_padded}│[/]"
 
     def _fmt_time(self, t: float) -> str:
-        log_t = math.log10(t)
+        log_t = math.log10(max(0.001, t))
         log_min = math.log10(0.001)
         log_max = math.log10(5.0)
         norm = (log_t - log_min) / (log_max - log_min)
         label = f"{t * 1000:.0f}ms" if t < 0.01 else f"{t:.2f}s"
-        bar = self._slider(norm, 0.0, 1.0)
-        total = 26
-        pad = total - len(label)
-        lp = pad // 2
-        rp = pad - lp
-        val_padded = " " * lp + label + " " * rp
-        return f"[#00ff00]│{bar}│[/]\n[#00ff00]│{val_padded}│[/]"
+        return self._fmt_slider(norm, 0.0, 1.0, label)
 
     def _fmt_cutoff(self) -> str:
-        log_c = math.log10(self.cutoff)
+        log_c = math.log10(max(20.0, self.cutoff))
         log_min = math.log10(20.0)
         log_max = math.log10(20000.0)
         norm = (log_c - log_min) / (log_max - log_min)
@@ -756,14 +725,12 @@ class SynthMode(Widget):
         return self._fmt_slider(self.resonance / 0.9, 0.0, 1.0, f"{int(self.resonance * 100)}%")
 
     def _fmt_waveform(self) -> str:
-        labels = {"sine": "SIN", "square": "SQR", "sawtooth": "SAW", "triangle": "TRI"}
+        labels = {"pure_sine": "PSIN", "sine": "SIN", "square": "SQR", "sawtooth": "SAW", "triangle": "TRI"}
         parts = []
         for key, tag in labels.items():
-            if self.waveform == key:
-                parts.append(f"[bold reverse]{tag}[/]")
-            else:
-                parts.append(tag)
-        line = "  ".join(parts)
+            if self.waveform == key: parts.append(f"[bold reverse]{tag}[/]")
+            else: parts.append(tag)
+        line = " ".join(parts)
         plain = re.sub(r'\[.*?\]', '', line)
         total = 26
         pad = total - len(plain)

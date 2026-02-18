@@ -210,11 +210,13 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
+    VERSION = "1.3.0"
     CSS = """
     """
 
     def __init__(self):
         super().__init__()
+        self.title = f"Acordes v{self.VERSION}"
         # Initialize config and components
         self.config_manager = ConfigManager()
         self.device_manager = MIDIDeviceManager(self.config_manager)

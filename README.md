@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.2.0**
+**Version 1.3.0**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
@@ -10,48 +10,45 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 
 - **Config Mode**: Display and select MIDI devices connected to your system.
 - **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
-- **Synth Mode**: A 4-voice polyphonic synthesizer with real-time MIDI playback.
-  - **Preset System** *(NEW in v1.2.0)*: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
-  - **State Persistence** *(NEW in v1.2.0)*: Synth parameters survive mode switches and app restarts.
-  - **Randomizer** *(NEW in v1.2.0)*: Generate musically useful random patches with a single key press.
+- **Synth Mode**: An 8-voice polyphonic synthesizer with real-time MIDI playback.
+  - **CS-80 Emulation** *(NEW in v1.3.0)*: Precision emulation of the Yamaha CS-80 architecture.
+    - **Dual Rank Architecture**: Two independent synthesis paths per note.
+    - **Series Filtering**: High-Pass Filter (HPF) into Low-Pass Filter (LPF) per rank.
+    - **Sine Reinforcement**: Post-filter pure sine wave for solid low-end.
+    - **Global Sub-Oscillator (LFO)**: Modulates VCO (Pitch), VCF (Filter), and VCA (Volume) across all voices.
+  - **Performance Optimizations** *(NEW in v1.3.0)*: Full NumPy and SciPy vectorization for ultra-low CPU usage.
+  - **MIDI Expressivity** *(NEW in v1.3.0)*: Support for MIDI Note-Off (Release) Velocity.
+  - **Master Section** *(NEW in v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
+  - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
+  - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
-  - **Visual Beat Bar**: A large, centered bar visually displays the current beat in the measure.
-  - **Selectable Time Signatures**: Cycle through common simple and compound time signatures (e.g., 2/4, 3/4, 4/4, 6/8, 9/8).
-  - **Musically Correct Accents**: Automatically plays a stronger accent on the correct beats for each time signature (e.g., on beats 1 and 4 in 6/8).
-  - **Italian Tempo Markings**: Displays the traditional name for the current tempo (e.g., *Andante*, *Allegro*).
-  - **Adjustable BPM**: Wide tempo range from 50 to 300 BPM.
 
-## What's New in v1.2.0
+## What's New in v1.3.0
 
-- **Synth Preset System**:
-  - 10 factory presets covering a wide range of sounds (warm pad, bright saw, deep bass, glass bells, church organ, and more).
-  - Save unlimited user presets with randomly generated bilingual (English + European Portuguese) musical names (e.g., *amber reed*, *escuro sino*, *vazio echo*).
-  - Presets stored as individual JSON files in `presets/` — easy to share and back up.
-  - Cycle through presets with **,** (previous) and **.** (next).
-  - **Ctrl+N**: Save current parameters as a new preset.
-  - **Ctrl+S**: Overwrite / update the currently loaded preset.
-  - Preset bar always shows `[index/total] Preset Name` with a `*` dirty marker after any parameter change.
-- **State Persistence**:
-  - All synth parameters are autosaved to `config.json` on every change.
-  - The last active preset is remembered and restored on the next app launch.
-  - Switching to another mode and back restores parameters exactly as left.
-- **Randomizer (`-` key)**:
-  - Generates a complete random patch using musically weighted distributions.
-  - Cutoff, attack, decay, and release use log-uniform scaling for natural timbral variety.
-  - Resonance and sustain weighted towards the most useful ranges.
-- **Piano Mode Performance Fix**:
-  - Eliminated audio glitches when MIDI keys are held by removing unconditional 100Hz UI redraws.
-  - Display now updates only when the active note set actually changes.
-- **Synth Engine Sharing Fix**:
-  - Resolved a bug where `SynthMode` was instantiating its own private `SynthEngine` instead of sharing the app-wide instance used by `PianoMode` and `CompendiumMode`.
+- **CS-80 Architecture**:
+  - Implemented the legendary Dual Rank system where each key triggers two independent synth engines.
+  - Added Series HPF -> LPF filtering for precise timbral windowing.
+  - Added Sine Reinforcement to maintain bass "heft" during aggressive filtering.
+  - Global Sub-Oscillator (LFO) for hardware-authentic modulation.
+- **Pro Audio Improvements**:
+  - **8-Voice Polyphony**: Strictly limited to 8 voices to match the original CS-80 hardware.
+  - **Vectorized DSP**: All oscillators, filters, and envelopes refactored with NumPy/SciPy for high performance.
+  - **Click-Free Performance**: Implemented free-running oscillators and smoothed gain transitions.
+  - **DC Blocker Refinement**: Eliminated "DC Crush" artifacts for rock-solid tonal stability.
+- **Master Section**:
+  - New Master Volume control (post-saturation) using **[** and **]** keys.
+  - Redesigned MIXER UI section showing both Preset and Master levels.
+- **MIDI Expressivity**:
+  - Full support for MIDI Release Velocity, allowing key release speed to modulate the sound.
 
 ## Requirements
 
 - Python 3.8+
 - MIDI input device (MIDI keyboard, controller, or virtual MIDI device)
-- PyAudio & Pygame (for Synth and Metronome audio playback)
+- PyAudio, SciPy & NumPy (for high-performance Synth playback)
+- Pygame (for Metronome audio playback)
 
 ## Installation
 

@@ -50,12 +50,22 @@ DEFAULT_PARAMS: dict = {
     "octave": 0,
     "amp_level": 0.75,
     "cutoff": 2000.0,
+    "hpf_cutoff": 20.0,
     "resonance": 0.3,
     "attack": 0.01,
     "decay": 0.2,
     "sustain": 0.7,
-    "release": 0.05,
+    "release": 0.1,
     "intensity": 0.8,
+    "rank2_enabled": False,
+    "rank2_waveform": "sawtooth",
+    "rank2_detune": 5.0,
+    "rank2_mix": 0.5,
+    "sine_mix": 0.0,
+    "lfo_freq": 1.0,
+    "lfo_vco_mod": 0.0,
+    "lfo_vcf_mod": 0.0,
+    "lfo_vca_mod": 0.0,
 }
 
 PARAM_KEYS = list(DEFAULT_PARAMS.keys())
