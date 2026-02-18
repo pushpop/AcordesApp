@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.4.0**
+**Version 1.4.1**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
@@ -19,12 +19,43 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - **Performance Optimizations** *(v1.3.0)*: Full NumPy and SciPy vectorization for ultra-low CPU usage.
   - **MIDI Expressivity** *(v1.3.0)*: Support for MIDI Note-Off (Release) Velocity.
   - **Master Section** *(v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
-  - **DSP Correctness & Click-Free Polyphony** *(NEW in v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
+  - **DSP Correctness & Click-Free Polyphony** *(v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
+  - **Audio Thread Priority & Race-Free Parameters** *(NEW in v1.4.1)*: OS-level audio thread scheduling (Windows/Linux/macOS) and thread-safe parameter routing via event queue eliminate remaining clicks and crackles during rapid playing and mode switching.
   - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
   - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
+
+## What's New in v1.4.1
+
+A focused audio reliability patch targeting the remaining click and crackle sources during rapid playing, mode switching, and parameter changes.
+
+### OS Audio Thread Priority
+The PortAudio callback thread is now given elevated OS scheduling priority at startup, preventing the Textual UI thread from starving it during widget rebuilds (mode switches). All three platforms are covered:
+- **Windows**: `SetPriorityClass(ABOVE_NORMAL_PRIORITY_CLASS)` — no admin rights required.
+- **Linux**: `SCHED_FIFO` real-time scheduling via `pthread_setschedparam` + `PR_SET_TIMERSLACK` for tighter timer granularity. Falls back to `os.nice(-10)` if permissions are insufficient.
+- **macOS**: Mach `thread_policy_set(THREAD_TIME_CONSTRAINT_POLICY)` — the same API used by Core Audio internally. Falls back to `os.nice(-10)` if the call fails.
+
+### Thread-Safe Parameter Updates
+`update_parameters()` and `all_notes_off()` previously wrote directly to shared attributes from the Textual UI thread while the audio callback read them simultaneously — a live data race on 25+ fields. Both now route through the existing MIDI event queue and are applied on the audio thread at the next buffer boundary, eliminating all cross-thread torn-read clicks when moving knobs or switching modes.
+
+### Gain Continuity Improvements
+- **Pre-counted voice polyphony**: Voice count is calculated before mixing so the gain ramp targets the correct value for the current buffer rather than lagging one buffer.
+- **Smooth silence decay**: `master_gain` now decays smoothly back to 1.0 during silence instead of snapping instantly, preventing a level spike on the first buffer of the next note.
+- **Faster gain tracking**: Smoothing coefficient tightened (`0.98 → 0.80`) so gain tracks voice-count changes within ~2 buffers (~10 ms).
+
+### Per-Voice Onset Ramp
+A 3 ms linear fade-in is applied to each voice's signal before the DC blocker on every new trigger. The DC blocker resets to zero at note onset — without this ramp, its differentiator output on the first samples can amplify large signal steps into a high-frequency click, especially with square and sawtooth waveforms at non-zero oscillator phases.
+
+### Envelope Refinements
+- **ANTI_I extended 2 ms → 5 ms**: Covers the full DC blocker settling window. Applied unconditionally within the onset window (previously skipped if the buffer boundary fell past 2 ms from note-on).
+- **ANTI_I repositioned after CROSS**: Stolen voices still crossfade from their pre-steal level; ANTI_I only attenuates, never raises, so both mechanisms compose correctly.
+
+### Piano Mode Fix
+Restored correct `on_mount` / `on_unmount` structure — a linter had moved `set_interval` and display initialisation into `on_unmount`, causing Piano Mode to have no sound or visual display on first visit.
+
+---
 
 ## What's New in v1.4.0
 

@@ -5,6 +5,24 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-02-18
+
+### Fixed
+- **OS audio thread priority** (`music/synth_engine.py`): PortAudio callback thread now receives elevated OS scheduling priority at startup to prevent the Textual UI thread from starving it during widget rebuilds (mode switches).
+  - **Windows**: `SetPriorityClass(ABOVE_NORMAL_PRIORITY_CLASS)` via `ctypes/kernel32` — no admin rights required.
+  - **Linux**: `SCHED_FIFO` real-time scheduling via `pthread_setschedparam` + `PR_SET_TIMERSLACK` (100 µs) for tighter sleep granularity. Falls back to `os.nice(-10)` without `CAP_SYS_NICE`.
+  - **macOS**: Mach `thread_policy_set(THREAD_TIME_CONSTRAINT_POLICY)` — the same API used by Core Audio. Falls back to `os.nice(-10)` on failure.
+  - All paths are silent on failure — audio still works, just with less OS scheduling protection.
+- **Thread-safe parameter routing** (`music/synth_engine.py`): `update_parameters()` and `all_notes_off()` now enqueue events rather than writing directly to shared attributes from the UI thread. Applied on the audio thread at the next buffer boundary, eliminating 25+ cross-thread data races that caused clicks when moving ADSR/filter knobs or switching modes while notes were playing.
+- **Per-sample master gain ramp** (`music/synth_engine.py`): Voice count is now pre-calculated before the mixing loop so `gain_ramp` (via `np.linspace`) targets the correct value for the current buffer — previously lagged one buffer behind, producing a residual step discontinuity on voice-count changes.
+- **Smooth silence gain decay** (`music/synth_engine.py`): `master_gain_current` now decays smoothly toward 1.0 during silence (coefficient 0.90/buffer) instead of hard-resetting, preventing a level spike on the first buffer after a silent gap. Smoothing coefficient tightened `0.98 → 0.80` so gain tracks voice-count changes within ~2 buffers (~10 ms).
+- **Per-voice onset ramp** (`music/synth_engine.py`): 3 ms linear fade-in applied to each voice's post-envelope signal before the DC blocker on every new trigger. Suppresses the DC blocker's differentiator startup transient (first-sample high-frequency click) that was most audible on square and sawtooth waveforms at non-zero oscillator phases.
+- **ANTI_I extended and repositioned** (`music/synth_engine.py`): Onset soft-start window extended from 2 ms to 5 ms to cover the DC blocker settling time. Moved to after the CROSS voice-steal crossfade so stolen voices still start from their pre-steal level — ANTI_I only attenuates, so both mechanisms compose cleanly.
+- **Voice steal filter zero** (`music/synth_engine.py`): Filter and DC blocker states are explicitly zeroed before `trigger()` on a stolen voice, preventing stale frequency-domain state from the old note from bleeding into the new note's first few output samples.
+- **Piano mode `on_mount`/`on_unmount`** (`modes/piano_mode.py`): Restored correct lifecycle structure — a linter had relocated `set_interval` and display initialisation into `on_unmount`, causing Piano Mode to show no display and produce no sound on first visit without a prior Synth Mode visit.
+- **Stereo centre for single notes** (`music/synth_engine.py`): Pan table reordered so voice 0 (always the first triggered for any single note) is at `pan=0.5` — previously `0.35`, causing a ~63% L/R power imbalance on solo notes. Subsequent voices spread symmetrically outward in pairs.
+- **tanh drive reduced** (`music/synth_engine.py`): `comp` multiplier lowered (`1.4 → 0.9` for sine) and post-tanh makeup gain added, keeping sustain-level signals in tanh's linear region. Eliminates the attack-peak/sustain-sag shape caused by differential saturation at different envelope stages.
+
 ## [1.3.0] - 2026-02-17
 
 ### Added
