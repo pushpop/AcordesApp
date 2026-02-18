@@ -119,53 +119,46 @@ class MainScreen(Screen):
         self.app_context["current_mode"] = "main_menu"
 
 
+    def _switch_mode(self, create_fn, mode_name: str):
+        """Central mode-switch helper.
+
+        Always silences the synth before swapping widgets so that any notes
+        held in the outgoing mode (Piano, Compendium, Synth) cannot latch into
+        the incoming mode.  The incoming mode's on_mount will re-register its
+        own MIDI callbacks, so there is no risk of the old callback firing after
+        the switch.
+        """
+        # Silence any notes that may still be held from the current mode.
+        self.app_context["synth_engine"].all_notes_off()
+
+        content = self.query_one("#content-area")
+        content.remove_children()
+        content.mount(create_fn())
+        self.app_context["current_mode"] = mode_name
+
     def action_show_piano(self, save_history=True):
         """Show piano mode."""
         if save_history:
             self._record_history()
-
-        content = self.query_one("#content-area")
-        content.remove_children()
-
-        piano = self.app_context["create_piano"]()
-        content.mount(piano)
-        self.app_context["current_mode"] = "piano"
+        self._switch_mode(self.app_context["create_piano"], "piano")
 
     def action_show_compendium(self, save_history=True):
         """Show compendium mode."""
         if save_history:
             self._record_history()
-
-        content = self.query_one("#content-area")
-        content.remove_children()
-
-        compendium = self.app_context["create_compendium"]()
-        content.mount(compendium)
-        self.app_context["current_mode"] = "compendium"
+        self._switch_mode(self.app_context["create_compendium"], "compendium")
 
     def action_show_synth(self, save_history=True):
         """Show synth mode."""
         if save_history:
             self._record_history()
+        self._switch_mode(self.app_context["create_synth"], "synth")
 
-        content = self.query_one("#content-area")
-        content.remove_children()
-
-        synth = self.app_context["create_synth"]()
-        content.mount(synth)
-        self.app_context["current_mode"] = "synth"
-        
     def action_show_metronome(self, save_history=True):
         """Show metronome mode."""
         if save_history:
             self._record_history()
-
-        content = self.query_one("#content-area")
-        content.remove_children()
-
-        metronome = self.app_context["create_metronome"]()
-        content.mount(metronome)
-        self.app_context["current_mode"] = "metronome"
+        self._switch_mode(self.app_context["create_metronome"], "metronome")
 
     def action_show_config(self):
         """Show config modal."""
@@ -175,6 +168,9 @@ class MainScreen(Screen):
         def on_closed(result):
             # Update footer
             self.app.update_sub_title()
+
+            # Silence any notes that may have been left held before config opened
+            self.app_context["synth_engine"].all_notes_off()
 
             # Reopen MIDI device
             selected = self.app_context["device_manager"].get_selected_device()

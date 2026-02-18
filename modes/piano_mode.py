@@ -142,6 +142,10 @@ class PianoMode(Widget):
             note_off=self._on_note_off
         )
 
+    def on_unmount(self):
+        """Release all held notes when leaving Piano mode to prevent stuck voices."""
+        self.synth_engine.all_notes_off()
+
         # Initialize chord display
         if self.chord_display_widget:
             self.chord_display_widget.update_display(None, [])
@@ -169,11 +173,11 @@ class PianoMode(Widget):
         # Play audio using synth engine
         self.synth_engine.note_on(note, velocity)
 
-    def _on_note_off(self, note: int):
+    def _on_note_off(self, note: int, velocity: int = 0):
         """Callback for note off events."""
         # Visual updates happen in _poll_midi
         # Stop audio using synth engine
-        self.synth_engine.note_off(note)
+        self.synth_engine.note_off(note, velocity)
 
     def _update_display(self, notes: Set[int]):
         """Update the piano and chord display."""
