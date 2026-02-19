@@ -59,7 +59,8 @@ class SynthMode(Widget):
         Binding("q", "param_down", "Param -", show=False),
         Binding("e", "param_up",   "Param +", show=False),
         # ── Focus-mode: randomize the currently highlighted parameter ──────
-        Binding("shift+minus", "randomize_focused", "🎲 Rnd param", show=False),
+        # Shift+Minus sends the '_' character; Textual maps it to "underscore".
+        Binding("underscore", "randomize_focused", "🎲 Rnd param", show=False),
         # ── Legacy global shortcuts (active only when no section focused) ──
         Binding("r", "adjust_resonance('up')",     "Res+",   show=False),
         Binding("f", "adjust_resonance('down')",   "Res-",   show=False),
@@ -1890,7 +1891,7 @@ class SynthMode(Widget):
             f"{plist}  "
             f"[bold #00ffff]A/D[/][dim]section  [/][bold #00ffff]W/S[/][dim]param  [/]"
             f"[bold #00ffff]Q[/][dim]-  [/][bold #00ffff]E[/][dim]+  [/]"
-            f"[bold #00ffff]Shift+[-][/][dim]rnd param  [/]"
+            f"[bold #00ffff]_[/][dim]rnd param  [/]"
             f"[bold #00ffff]{pname}[/]  "
             f"[dim],/.[/]preset  [dim]ESC[/]quit  [dim]↵[/]unfocus"
         )
