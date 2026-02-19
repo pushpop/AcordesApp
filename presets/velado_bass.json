@@ -1,0 +1,23 @@
+{
+  "name": "velado bass",
+  "waveform": "pure_sine",
+  "octave": 1,
+  "amp_level": 0.72,
+  "cutoff": 1474.1,
+  "hpf_cutoff": 20.0,
+  "resonance": 0.55,
+  "attack": 0.0012,
+  "decay": 0.0589,
+  "sustain": 0.57,
+  "release": 0.0193,
+  "intensity": 0.6,
+  "rank2_enabled": false,
+  "rank2_waveform": "sawtooth",
+  "rank2_detune": 5.0,
+  "rank2_mix": 0.5,
+  "sine_mix": 0.0,
+  "lfo_freq": 1.0,
+  "lfo_vco_mod": 0.0,
+  "lfo_vcf_mod": 0.0,
+  "lfo_vca_mod": 0.0
+}

@@ -1,0 +1,23 @@
+{
+  "name": "crystal drift",
+  "waveform": "pure_sine",
+  "octave": 0,
+  "amp_level": 0.56,
+  "cutoff": 7000.0,
+  "hpf_cutoff": 20.0,
+  "resonance": 0.31,
+  "attack": 0.0119,
+  "decay": 0.0093,
+  "sustain": 0.48,
+  "release": 0.4912,
+  "intensity": 0.7,
+  "rank2_enabled": false,
+  "rank2_waveform": "sawtooth",
+  "rank2_detune": 5.0,
+  "rank2_mix": 0.5,
+  "sine_mix": 0.0,
+  "lfo_freq": 1.0,
+  "lfo_vco_mod": 0.0,
+  "lfo_vcf_mod": 0.0,
+  "lfo_vca_mod": 0.0
+}

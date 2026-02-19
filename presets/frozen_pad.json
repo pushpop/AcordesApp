@@ -1,0 +1,23 @@
+{
+  "name": "frozen pad",
+  "waveform": "sine",
+  "octave": 2,
+  "amp_level": 0.93,
+  "cutoff": 1132.5,
+  "hpf_cutoff": 20.0,
+  "resonance": 0.18,
+  "attack": 0.0099,
+  "decay": 0.0534,
+  "sustain": 0.57,
+  "release": 0.0894,
+  "intensity": 0.62,
+  "rank2_enabled": false,
+  "rank2_waveform": "sawtooth",
+  "rank2_detune": 5.0,
+  "rank2_mix": 0.5,
+  "sine_mix": 0.0,
+  "lfo_freq": 1.0,
+  "lfo_vco_mod": 0.0,
+  "lfo_vcf_mod": 0.0,
+  "lfo_vca_mod": 0.0
+}

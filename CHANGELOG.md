@@ -5,6 +5,22 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-02-19
+
+### Changed
+- **Synth Mode focus navigation overhaul** (`modes/synth_mode.py`):
+  - Up/Down arrows now cross section row boundaries — pressing Up at the first param of a section jumps to the last param of the same column in the adjacent row. All 8 sections (including LFO, Chorus, FX, Arpeggio) are reachable without mouse.
+  - Added **Alt+Left / Alt+Right** bindings to decrease/increase the focused parameter value as an alternative to Q/W.
+  - **Q** now decreases and **W** increases the focused parameter (was Q increase / A decrease). In legacy (unfocused) mode, Q/W adjusts octave down/up.
+  - Added **,** (comma) and **.** (full\_stop) bindings for preset cycling — work in both focus and legacy modes.
+  - All letter-key legacy shortcuts (E/D, R/F, T/G, Y/H, U/J, O/L, etc.) are silently suppressed while in focus mode to prevent accidental edits during navigation.
+
+### Fixed
+- **Synth Mode `IndexError: list index out of range`** (`modes/synth_mode.py`): When navigating left/right between sections, the param index was not clamped to the new section's param count. `_set_focus` now clamps on every section change.
+- **Synth Mode Q/W (and Alt+←/→) had no effect in focus mode** (`modes/synth_mode.py`): The focus dispatch called the guarded `action_*` methods which immediately returned when focused. Extracted `_do_*` private helpers (no guard) for the actual engine mutations; `action_*` methods are now thin wrappers that guard then delegate; `_adjust_focused_param` calls `_do_*` directly.
+- **Escape did not open quit dialog when unfocused** (`modes/synth_mode.py`): `action_nav_escape` was consuming the key event even when there was nothing to unfocus. Now calls `self.screen.action_quit_app()` when not focused.
+- **`.` (full\_stop) preset-next binding had no effect** (`modes/synth_mode.py`): Textual 7.5 maps the `.` character to the key name `full_stop`, not `period`. Binding corrected.
+
 ## [1.4.1] - 2026-02-18
 
 ### Fixed

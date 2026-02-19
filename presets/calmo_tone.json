@@ -1,0 +1,23 @@
+{
+  "name": "calmo tone",
+  "waveform": "sine",
+  "octave": 1,
+  "amp_level": 0.55,
+  "cutoff": 395.0,
+  "hpf_cutoff": 20.0,
+  "resonance": 0.14,
+  "attack": 0.0621,
+  "decay": 0.3081,
+  "sustain": 0.85,
+  "release": 1.0902,
+  "intensity": 0.54,
+  "rank2_enabled": false,
+  "rank2_waveform": "sawtooth",
+  "rank2_detune": 5.0,
+  "rank2_mix": 0.5,
+  "sine_mix": 0.0,
+  "lfo_freq": 1.0,
+  "lfo_vco_mod": 0.0,
+  "lfo_vcf_mod": 0.0,
+  "lfo_vca_mod": 0.0
+}

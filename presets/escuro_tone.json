@@ -1,0 +1,23 @@
+{
+  "name": "escuro tone",
+  "waveform": "sawtooth",
+  "octave": -1,
+  "amp_level": 0.68,
+  "cutoff": 1397.4,
+  "hpf_cutoff": 20.0,
+  "resonance": 0.15,
+  "attack": 0.0355,
+  "decay": 0.0094,
+  "sustain": 0.31,
+  "release": 0.0303,
+  "intensity": 0.44,
+  "rank2_enabled": false,
+  "rank2_waveform": "sawtooth",
+  "rank2_detune": 5.0,
+  "rank2_mix": 0.5,
+  "sine_mix": 0.0,
+  "lfo_freq": 1.0,
+  "lfo_vco_mod": 0.0,
+  "lfo_vcf_mod": 0.0,
+  "lfo_vca_mod": 0.0
+}

@@ -206,7 +206,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.4.1"
+    VERSION = "1.4.2"
     CSS = """
     """
 

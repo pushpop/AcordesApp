@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.4.1**
+**Version 1.4.2**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
@@ -26,6 +26,38 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
+
+## What's New in v1.4.2
+
+A focused Synth Mode UX improvement — reworked keyboard navigation and parameter editing for a more ergonomic experience.
+
+### Synth Mode: Focus Navigation Overhaul
+- **Section focus navigation**: Press **Enter** to enter focus mode; arrow keys navigate between the 8 sections (left/right) and parameters within each section (up/down). Pressing **Enter** again or **Escape** exits focus mode.
+- **Cross-row navigation**: Up/Down arrows now cross row boundaries — pressing Up at the top of a section jumps to the bottom of the same column in the adjacent row, and vice versa. All 8 sections (including LFO, Chorus, FX, Arpeggio) are now reachable.
+- **Alt+←/→ adjustment**: While a parameter is focused, **Alt+Left** decreases and **Alt+Right** increases its value — an alternative to Q/W.
+- **Q/W value keys**: In focus mode, **Q** lowers and **W** raises the focused parameter. In legacy (unfocused) mode, Q/W adjusts octave.
+- **Comma / Full-stop preset cycling**: **,** cycles to the previous preset and **.** to the next — works in both focus and legacy modes.
+- **Legacy hotkey guard**: All letter-key shortcuts (E/D, R/F, T/G, etc.) are silently suppressed while in focus mode to prevent accidental edits.
+- **Escape behaviour fixed**: Escape while focused now exits focus; Escape while unfocused shows the quit confirmation dialog.
+
+### Synth Mode Controls (updated)
+
+**Focus mode:**
+- **Enter**: Enter / exit focus mode
+- **←/→**: Move between sections
+- **↑/↓**: Move between parameters (crosses row boundaries)
+- **Q** / **W**: Decrease / Increase focused parameter
+- **Alt+←** / **Alt+→**: Decrease / Increase focused parameter (alternative)
+
+**Legacy mode (unfocused):**
+- **,** / **.**: Previous / Next preset
+- **Q** / **W**: Octave down / up
+- **E/D**, **R/F**, **T/G**, **Y/H**, **U/J**, **O/L**: Filter, resonance, attack, decay, sustain, release, intensity
+- **[** / **]**: Master volume down / up
+- **-**: Randomize patch
+- **Space**: Panic (all notes off)
+
+---
 
 ## What's New in v1.4.1
 
@@ -201,24 +233,32 @@ python main.py
 
 #### Synth Mode Controls
 
-**Presets:**
+**Presets (both modes):**
 - **,** / **.**: Previous / Next preset
 - **Ctrl+N**: Save current parameters as a new preset
 - **Ctrl+S**: Overwrite / update the current preset
 - **-**: Randomize all parameters (musically weighted)
-
-**Parameters:**
-- **W**: Toggle waveform (Sine → Square → Sawtooth → Triangle)
-- **S / X**: Octave transpose up / down (−2 to +2)
-- **↑ / ↓**: Adjust master volume
-- **← / →**: Adjust filter cutoff frequency
-- **Q / A**: Increase / Decrease resonance
-- **E / D**: Increase / Decrease attack time
-- **R / F**: Increase / Decrease decay time
-- **T / G**: Increase / Decrease sustain level
-- **Y / H**: Increase / Decrease release time
-- **U / J**: Increase / Decrease intensity
 - **Space**: Panic — silence all voices immediately
+
+**Focus mode** (press Enter to activate):
+- **Enter** / **Escape**: Exit focus mode
+- **← / →**: Move between sections
+- **↑ / ↓**: Move between parameters (crosses section rows)
+- **Q** / **W**: Decrease / Increase focused parameter value
+- **Alt+←** / **Alt+→**: Decrease / Increase focused parameter value (alternative)
+
+**Legacy mode** (unfocused):
+- **Enter**: Enter focus mode
+- **Q / W**: Octave down / up
+- **E / D**: Filter cutoff down / up
+- **R / F**: Resonance down / up
+- **T / G**: Attack down / up
+- **Y / H**: Decay down / up
+- **U / J**: Sustain down / up
+- **I / K**: Release down / up
+- **O / L**: Intensity down / up
+- **[ / ]**: Master volume down / up
+- **↑ / ↓**: Amp level up / down
 
 #### Metronome Mode Controls
 - **P / Space**: Start or stop the metronome.
