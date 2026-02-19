@@ -45,18 +45,22 @@ class SynthMode(Widget):
         Binding("full_stop", "preset_next",         "Preset ►",        show=False),
         Binding("ctrl+n", "save_preset_new",      "Save New Preset", show=False),
         Binding("ctrl+s", "save_preset_overwrite","Update Preset",  show=False),
-        # ── Alt+Arrow — adjust focused parameter ──────────────────────────
-        Binding("alt+left",  "adjust_focused('down')", "Focused param -", show=False),
-        Binding("alt+right", "adjust_focused('up')",   "Focused param +", show=False),
+        # ── Focus-mode navigation (WASD) ──────────────────────────────────
+        # W/S/A/D navigate the section grid only when in focus mode.
+        # They are silently ignored when unfocused (no legacy fallback)
+        # so they don't collide with note input or other shortcuts.
+        Binding("w", "focus_nav_up",    "Focus nav ▲", show=False),
+        Binding("s", "focus_nav_down",  "Focus nav ▼", show=False),
+        Binding("a", "focus_nav_left",  "Focus nav ◄", show=False),
+        Binding("d", "focus_nav_right", "Focus nav ►", show=False),
         # ── Focus-mode value keys ──────────────────────────────────────────
-        # Q/W = increment/decrement the focused parameter
-        Binding("q", "param_down", "Param-", show=False),
-        Binding("w", "param_up",   "Param+", show=False),
+        # Q = decrease focused param, E = increase focused param.
+        # In legacy mode Q adjusts octave down, E adjusts cutoff up (guarded).
+        Binding("q", "param_down", "Param -", show=False),
+        Binding("e", "param_up",   "Param +", show=False),
+        # ── Focus-mode: randomize the currently highlighted parameter ──────
+        Binding("shift+minus", "randomize_focused", "🎲 Rnd param", show=False),
         # ── Legacy global shortcuts (active only when no section focused) ──
-        # w is reserved for param_down in focus mode; octave uses Q/W in legacy via param_up/down
-        Binding("s", "adjust_octave('down')",      "Oct-",   show=False),
-        Binding("e", "adjust_cutoff('up')",        "Cut+",   show=False),
-        Binding("d", "adjust_cutoff('down')",      "Cut-",   show=False),
         Binding("r", "adjust_resonance('up')",     "Res+",   show=False),
         Binding("f", "adjust_resonance('down')",   "Res-",   show=False),
         Binding("t", "adjust_attack('up')",        "Atk+",   show=False),
@@ -719,7 +723,31 @@ class SynthMode(Widget):
         else:
             self._set_focus(_SECTION_GRID[0][0], 0)
 
-    # ── Q / A  →  param_up / param_down ──────────────────────────
+    # ── WASD — focus-only navigation (silently ignored when unfocused) ────
+
+    def action_focus_nav_up(self):
+        """W — move highlight up within focused section (focus mode only)."""
+        if self._focused():
+            self.action_nav_up()
+
+    def action_focus_nav_down(self):
+        """S — move highlight down within focused section (focus mode only)."""
+        if self._focused():
+            self.action_nav_down()
+
+    def action_focus_nav_left(self):
+        """A — move to section on the left (focus mode only)."""
+        if self._focused():
+            self.action_nav_left()
+
+    def action_focus_nav_right(self):
+        """D — move to section on the right (focus mode only)."""
+        if self._focused():
+            self.action_nav_right()
+
+    # ── Q / E  →  param_down / param_up (focus mode) ─────────────
+    # Legacy unfocused fallback: Q = octave down, E = cutoff up.
+    # In focus mode both keys adjust the highlighted parameter instead.
 
     def action_adjust_focused(self, direction: str = "up"):
         """Alt+Left/Right — adjust the currently focused parameter."""
@@ -727,12 +755,14 @@ class SynthMode(Widget):
             self._adjust_focused_param(direction)
 
     def action_param_up(self):
+        """E — increase focused param in focus mode; cutoff up in legacy mode."""
         if self._focused():
             self._adjust_focused_param("up")
         else:
-            self._do_adjust_octave("up")
+            self._do_adjust_cutoff("up")
 
     def action_param_down(self):
+        """Q — decrease focused param in focus mode; octave down in legacy mode."""
         if self._focused():
             self._adjust_focused_param("down")
         else:
@@ -1323,6 +1353,160 @@ class SynthMode(Widget):
         self._autosave_state()
         self.app.notify("🎲 Randomized!", timeout=2)
 
+    def action_randomize_focused(self):
+        """Shift+Minus — randomize only the currently highlighted parameter.
+
+        Each parameter type picks a value from a musically useful range
+        using the same distributions as the full randomize action.
+        Only active in focus mode — silently ignored when unfocused.
+        """
+        if not self._focused():
+            return
+        sec   = self._focus_section
+        pidx  = self._focus_param
+        params = self._SECTION_PARAMS.get(sec, [])
+        if not params or pidx >= len(params):
+            return
+        name = params[pidx]
+
+        # ── Oscillator ────────────────────────────────────────────
+        if sec == "oscillator":
+            if name == "Wave":
+                self.waveform = random.choice(["pure_sine", "sine", "square", "sawtooth", "triangle"])
+                self.synth_engine.update_parameters(waveform=self.waveform)
+                if self.waveform_display: self.waveform_display.update(self._fmt_waveform())
+                if self.waveform_shape_display: self.waveform_shape_display.update(self._fmt_waveform_shape())
+            elif name == "Octave":
+                self.octave = random.choices([-2, -1, 0, 1, 2], weights=[1, 2, 4, 2, 1])[0]
+                self.synth_engine.update_parameters(octave=self.octave)
+                if self.octave_display: self.octave_display.update(self._fmt_octave())
+        # ── Filter ────────────────────────────────────────────────
+        elif sec == "filter":
+            if name == "Cutoff":
+                self.cutoff = round(10 ** random.uniform(math.log10(200), math.log10(18000)), 1)
+                self.synth_engine.update_parameters(cutoff=self.cutoff)
+                if self.cutoff_display: self.cutoff_display.update(self._fmt_cutoff())
+            elif name == "Resonance":
+                self.resonance = round(random.choices(
+                    [random.uniform(0.0, 0.3), random.uniform(0.3, 0.65), random.uniform(0.65, 0.9)],
+                    weights=[50, 35, 15])[0], 2)
+                self.synth_engine.update_parameters(resonance=self.resonance)
+                if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
+            elif name == "Type":
+                self.filter_mode = random.choice(["ladder", "svf"])
+                self.synth_engine.update_parameters(filter_mode=self.filter_mode)
+                if self.filter_mode_display: self.filter_mode_display.update(self._fmt_filter_mode())
+        # ── Envelope ──────────────────────────────────────────────
+        elif sec == "envelope":
+            if name == "Attack":
+                self.attack = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
+                self.synth_engine.update_parameters(attack=self.attack)
+                if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
+            elif name == "Decay":
+                self.decay = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
+                self.synth_engine.update_parameters(decay=self.decay)
+                if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
+            elif name == "Sustain":
+                self.sustain = round(random.choices(
+                    [random.uniform(0.0, 0.3), random.uniform(0.3, 0.7), random.uniform(0.7, 1.0)],
+                    weights=[25, 35, 40])[0], 2)
+                self.synth_engine.update_parameters(sustain=self.sustain)
+                if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
+            elif name == "Release":
+                self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
+                self.synth_engine.update_parameters(release=self.release)
+                if self.release_display: self.release_display.update(self._fmt_time(self.release))
+            elif name == "Intensity":
+                self.intensity = round(random.uniform(0.40, 1.0), 2)
+                self.synth_engine.update_parameters(intensity=self.intensity)
+                if self.intensity_display: self.intensity_display.update(self._fmt_knob(self.intensity, 0.0, 1.0, f"{int(self.intensity * 100)}%"))
+        # ── LFO ───────────────────────────────────────────────────
+        elif sec == "lfo":
+            if name == "Rate":
+                self.lfo_freq = round(10 ** random.uniform(math.log10(0.05), math.log10(20.0)), 3)
+                self.synth_engine.update_parameters(lfo_freq=self.lfo_freq)
+                if self.lfo_rate_display: self.lfo_rate_display.update(self._fmt_lfo_rate())
+            elif name == "Depth":
+                self.lfo_depth = round(random.uniform(0.0, 1.0), 2)
+                self.synth_engine.update_parameters(lfo_depth=self.lfo_depth)
+                if self.lfo_depth_display: self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
+            elif name == "Shape":
+                self.lfo_shape = random.choice(["sine", "triangle", "square", "sample_hold"])
+                self.synth_engine.update_parameters(lfo_shape=self.lfo_shape)
+                if self.lfo_shape_display: self.lfo_shape_display.update(self._fmt_lfo_shape())
+            elif name == "Target":
+                self.lfo_target = random.choice(["all", "vco", "vcf", "vca"])
+                self.synth_engine.update_parameters(lfo_target=self.lfo_target)
+                if self.lfo_target_display: self.lfo_target_display.update(self._fmt_lfo_target())
+        # ── Chorus ────────────────────────────────────────────────
+        elif sec == "chorus":
+            if name == "Rate":
+                self.chorus_rate = round(10 ** random.uniform(math.log10(0.1), math.log10(10.0)), 2)
+                self.synth_engine.update_parameters(chorus_rate=self.chorus_rate)
+                if self.chorus_rate_display: self.chorus_rate_display.update(self._fmt_chorus_rate())
+            elif name == "Depth":
+                self.chorus_depth = round(random.uniform(0.0, 1.0), 2)
+                self.synth_engine.update_parameters(chorus_depth=self.chorus_depth)
+                if self.chorus_depth_display: self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
+            elif name == "Mix":
+                self.chorus_mix = round(random.uniform(0.0, 0.8), 2)
+                self.synth_engine.update_parameters(chorus_mix=self.chorus_mix)
+                if self.chorus_mix_display: self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
+            elif name == "Voices":
+                self.chorus_voices = random.randint(1, 4)
+                self.synth_engine.update_parameters(chorus_voices=self.chorus_voices)
+                if self.chorus_voices_display: self.chorus_voices_display.update(self._fmt_chorus_voices())
+        # ── FX Delay ──────────────────────────────────────────────
+        elif sec == "fx":
+            if name == "Delay Time":
+                self.delay_time = round(random.uniform(0.05, 2.0), 3)
+                self.synth_engine.update_parameters(delay_time=self.delay_time)
+                if self.delay_time_display: self.delay_time_display.update(self._fmt_delay_time())
+            elif name == "Delay Fdbk":
+                self.delay_feedback = round(random.uniform(0.0, 0.85), 2)
+                self.synth_engine.update_parameters(delay_feedback=self.delay_feedback)
+                if self.delay_feedback_display: self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
+            elif name == "Delay Mix":
+                self.delay_mix = round(random.uniform(0.0, 0.8), 2)
+                self.synth_engine.update_parameters(delay_mix=self.delay_mix)
+                if self.delay_mix_display: self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
+            # Rev Size is a placeholder — no-op
+        # ── Arpeggio ──────────────────────────────────────────────
+        elif sec == "arpeggio":
+            if name == "Mode":
+                self.arp_mode = random.choice(["up", "down", "up_down", "random"])
+                self.synth_engine.update_parameters(arp_mode=self.arp_mode)
+                if self.arp_mode_display: self.arp_mode_display.update(self._fmt_arp_mode())
+            elif name == "BPM":
+                self.arp_bpm = float(random.randrange(60, 181, 5))
+                self.config_manager.set_bpm(int(self.arp_bpm))
+                self.synth_engine.update_parameters(arp_bpm=self.arp_bpm)
+                if self.arp_bpm_display: self.arp_bpm_display.update(self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"))
+            elif name == "Gate":
+                self.arp_gate = round(random.uniform(0.1, 0.95), 2)
+                self.synth_engine.update_parameters(arp_gate=self.arp_gate)
+                if self.arp_gate_display: self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
+            elif name == "Range":
+                self.arp_range = random.randint(1, 4)
+                self.synth_engine.update_parameters(arp_range=self.arp_range)
+                if self.arp_range_display: self.arp_range_display.update(self._fmt_arp_range())
+            elif name == "ON/OFF":
+                self._do_toggle_arp_enabled()   # toggle is more useful than random bool
+        # ── Mixer ─────────────────────────────────────────────────
+        elif sec == "mixer":
+            if name == "Amp":
+                self.amp_level = round(random.uniform(0.5, 0.95), 2)
+                self.synth_engine.update_parameters(amp_level=self.amp_level)
+                if self.amp_display: self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
+            elif name == "Master Vol":
+                self.master_volume = round(random.uniform(0.5, 1.0), 2)
+                self.synth_engine.update_parameters(master_volume=self.master_volume)
+                if self.master_volume_display: self.master_volume_display.update(self._fmt_knob(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"))
+
+        self._mark_dirty()
+        self._autosave_state()
+        self.app.notify(f"🎲 {name} randomized!", timeout=1)
+
     # ── Display refresh ──────────────────────────────────────────
 
     def _refresh_all_displays(self):
@@ -1687,8 +1871,7 @@ class SynthMode(Widget):
         if not self._focused():
             return (
                 "[#00aa00]PRESET[/] [dim],/.[/]cycle [dim]Ctrl+N/S[/]save  "
-                "[#00aa00]OSC[/] [dim]Q/W[/]oct  "
-                "[#00aa00]FLT[/] [dim]E/D[/]cut [dim]R/F[/]res  "
+                "[#00aa00]FLT[/] [dim]R/F[/]res  "
                 "[#00aa00]ENV[/] [dim]T/G[/]atk [dim]Y/H[/]dec [dim]U/J[/]sus [dim]I/K[/]rel [dim]O/L[/]int  "
                 "[#00aa00]MIX[/] [dim][][/]mvol  "
                 "[#00aa00]FOCUS[/] [dim]↵[/]enter  "
@@ -1705,8 +1888,10 @@ class SynthMode(Widget):
         return (
             f"[bold #00ffff]◈ {sec.upper()}[/]  "
             f"{plist}  "
-            f"[dim]←/→[/]section  [dim]↑/↓[/]param  "
-            f"[bold #00ffff]Q[/][dim]-/[/][bold #00ffff]W[/][dim]+[/] or [bold #00ffff]Alt+←/→[/]  [bold #00ffff]{pname}[/] ±  "
+            f"[bold #00ffff]A/D[/][dim]section  [/][bold #00ffff]W/S[/][dim]param  [/]"
+            f"[bold #00ffff]Q[/][dim]-  [/][bold #00ffff]E[/][dim]+  [/]"
+            f"[bold #00ffff]Shift+[-][/][dim]rnd param  [/]"
+            f"[bold #00ffff]{pname}[/]  "
             f"[dim],/.[/]preset  [dim]ESC[/]quit  [dim]↵[/]unfocus"
         )
 
