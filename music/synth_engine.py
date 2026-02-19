@@ -266,6 +266,16 @@ class SynthEngine:
         self._mute_ramp_fadein    = 0   # samples of fade-in still pending
         self._MUTE_RAMP_LEN       = 384
 
+        # FX tail drain counter — keeps the audio callback alive (not early-returning
+        # silence) while Delay / Chorus ring buffers still have audible wet content.
+        # Set to the maximum possible tail length (delay_max_seconds * feedback_decay)
+        # whenever a note is triggered; decremented by frame_count each buffer when
+        # active_count == 0.  0 means "no tail to drain — safe to output silence."
+        # Max tail = 2s delay × ~10 echoes at 0.9 feedback ≈ 20s, but we cap at 10s
+        # (480000 samples) to avoid infinite draining if feedback is maxed.
+        self._fx_tail_samples = 0        # samples remaining to drain after all voices silent
+        self._FX_TAIL_MAX     = int(self.sample_rate * 10.0)   # 10s ceiling
+
         self.pitch_bend = 0.0
         self.pitch_bend_target = 0.0
         self.pitch_bend_smoothing = 0.85
@@ -824,6 +834,8 @@ class SynthEngine:
                 # Also clear arpeggiator state.
                 self._arp_held_notes.clear(); self._arp_sequence.clear()
                 self._arp_note_playing = None; self._arp_sample_counter = 0
+                # Stop FX tail drain immediately — panic/all_notes_off means silence NOW.
+                self._fx_tail_samples = 0
             elif e['type'] == 'mute_gate':
                 # Arm a short output fade-out so that instantly-applied params
                 # (waveform, octave, envelope) from action_randomize don't click.
@@ -877,6 +889,16 @@ class SynthEngine:
         # Examples: 440 Hz → 3ms (unchanged); 110 Hz → 13.5ms; 55 Hz → 27ms.
         period_ms = (1000.0 / freq) if freq > 0 else 3.0
         onset_ms_for_note = max(3.0, min(30.0, period_ms * 1.5))
+
+        # Arm the FX tail drain counter so the audio callback continues processing
+        # Delay and Chorus ring buffers even after all voices finish their release
+        # envelope.  The value is set to _FX_TAIL_MAX (10s) here and decremented
+        # in _audio_callback when active_count==0; it stops the early-return-to-
+        # silence guard from firing while the delay echo or chorus tail is still
+        # audible.  Setting it on EVERY note_on ensures re-trigger after silence
+        # arms fresh headroom for the FX tail.
+        self._fx_tail_samples = self._FX_TAIL_MAX
+
         for v in self.voices:
             if v.midi_note == note and v.note_active:
                 v.trigger(note, freq, vel)
@@ -1014,7 +1036,21 @@ class SynthEngine:
                 # to 1.0, so the first buffer of the new note always started too loud).
                 self.master_gain_target = 1.0
                 self.master_gain_current = self.master_gain_current * 0.90 + 1.0 * 0.10
-                return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
+
+                # FX tail drain: if Delay or Chorus are active and their ring buffers
+                # still contain audible wet content, we must NOT early-return here.
+                # Returning silence at this point would cut off the delay/chorus tails
+                # even though the ring buffers still hold the echo/reverb signal.
+                # Instead we fall through with mixed_l/mixed_r = zero — the voice loop
+                # below produces nothing, but the Chorus and Delay DSP blocks will read
+                # from their ring buffers and output the remaining wet tails naturally.
+                # _fx_tail_samples is set to a generous ceiling whenever a voice is
+                # triggered (in _trigger_note) and decremented here while draining so
+                # the callback returns to silence naturally once the tail expires.
+                if self._fx_tail_samples <= 0:
+                    return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
+                self._fx_tail_samples = max(0, self._fx_tail_samples - frame_count)
+                # Fall through: voices produce silence, FX blocks drain their buffers.
 
             self.master_gain_target = 1.0 / np.sqrt(active_count) if active_count > 1 else 1.0
             # Snapshot gain AFTER the target is known but BEFORE smoothing,
