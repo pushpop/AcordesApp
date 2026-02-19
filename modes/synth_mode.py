@@ -235,7 +235,7 @@ class SynthMode(Widget):
     # n_params tells nav_up/down how many steps before wrapping.
     _SECTION_PARAMS = {
         "oscillator": ["Wave", "Octave"],
-        "filter":     ["Cutoff", "Resonance"],
+        "filter":     ["Cutoff", "Resonance", "Type"],
         "envelope":   ["Attack", "Decay", "Sustain", "Release", "Intensity"],
         "lfo":        ["Rate", "Depth", "Shape", "Target"],
         "chorus":     ["Rate", "Depth", "Mix", "Voices"],
@@ -265,7 +265,8 @@ class SynthMode(Widget):
         self.octave     = params["octave"]
         self.amp_level  = params["amp_level"]
         self.cutoff     = params["cutoff"]
-        self.resonance  = params["resonance"]
+        self.resonance   = params["resonance"]
+        self.filter_mode = params.get("filter_mode", "ladder")
         self.attack     = params["attack"]
         self.decay      = params["decay"]
         self.sustain    = params["sustain"]
@@ -289,6 +290,7 @@ class SynthMode(Widget):
         self.master_volume_display  = None
         self.cutoff_display         = None
         self.resonance_display      = None
+        self.filter_mode_display    = None
         self.attack_display         = None
         self.decay_display          = None
         self.sustain_display        = None
@@ -363,6 +365,10 @@ class SynthMode(Widget):
                     yield Label(self._row_label("Resonance", ""), classes="control-label", id="lbl-filter-1")
                     self.resonance_display = Label(self._fmt_resonance(), classes="control-value", id="resonance-display")
                     yield self.resonance_display
+                    yield Label(self._row_sep(), classes="control-label")
+                    yield Label(self._row_label("Type", ""), classes="control-label", id="lbl-filter-2")
+                    self.filter_mode_display = Label(self._fmt_filter_mode(), classes="control-value", id="filter-mode-display")
+                    yield self.filter_mode_display
                     yield Label(self._section_bottom(), classes="section-label")
 
                 # ── ENVELOPE ─────────────────────────────────────────────
@@ -688,6 +694,7 @@ class SynthMode(Widget):
         elif sec == "filter":
             if name == "Cutoff":      self._do_adjust_cutoff(direction)
             elif name == "Resonance": self._do_adjust_resonance(direction)
+            elif name == "Type":      self._do_toggle_filter_mode(direction)
         # ENVELOPE
         elif sec == "envelope":
             if name == "Attack":      self._do_adjust_attack(direction)
@@ -751,6 +758,16 @@ class SynthMode(Widget):
         self.synth_engine.update_parameters(resonance=self.resonance)
         if self.resonance_display:
             self.resonance_display.update(self._fmt_resonance())
+        self._mark_dirty()
+        self._autosave_state()
+
+    def _do_toggle_filter_mode(self, direction: str = "up"):
+        modes = ["ladder", "svf"]
+        idx = modes.index(self.filter_mode) if self.filter_mode in modes else 0
+        self.filter_mode = modes[(idx + 1) % len(modes)]
+        self.synth_engine.update_parameters(filter_mode=self.filter_mode)
+        if self.filter_mode_display:
+            self.filter_mode_display.update(self._fmt_filter_mode())
         self._mark_dirty()
         self._autosave_state()
 
@@ -853,8 +870,9 @@ class SynthMode(Widget):
         self.octave     = params.get("octave",    self.octave)
         self.amp_level  = params.get("amp_level", self.amp_level)
         self.cutoff     = params.get("cutoff",    self.cutoff)
-        self.resonance  = params.get("resonance", self.resonance)
-        self.attack     = params.get("attack",    self.attack)
+        self.resonance   = params.get("resonance",   self.resonance)
+        self.filter_mode = params.get("filter_mode", self.filter_mode)
+        self.attack      = params.get("attack",      self.attack)
         self.decay      = params.get("decay",     self.decay)
         self.sustain    = params.get("sustain",   self.sustain)
         self.release    = params.get("release",   self.release)
@@ -870,6 +888,7 @@ class SynthMode(Widget):
             master_volume=self.master_volume,
             cutoff=self.cutoff,
             resonance=self.resonance,
+            filter_mode=self.filter_mode,
             attack=self.attack,
             decay=self.decay,
             sustain=self.sustain,
@@ -885,6 +904,7 @@ class SynthMode(Widget):
             "master_volume": self.master_volume,
             "cutoff":        self.cutoff,
             "resonance":     self.resonance,
+            "filter_mode":   self.filter_mode,
             "attack":        self.attack,
             "decay":         self.decay,
             "sustain":       self.sustain,
@@ -1014,6 +1034,12 @@ class SynthMode(Widget):
         self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
         self.intensity = round(random.uniform(0.40, 1.0), 2)
 
+        # Enqueue mute gate BEFORE the param update so the engine fades out
+        # before the new waveform/octave/envelope params take effect — this
+        # prevents a click on any currently held notes.  Both events are drained
+        # in the same _process_midi_events() call, so the fade-in that follows
+        # plays back with the new params already active.
+        self.synth_engine.midi_event_queue.put({'type': 'mute_gate'})
         self._push_params_to_engine()
         self._refresh_all_displays()
         self._mark_dirty()
@@ -1028,6 +1054,7 @@ class SynthMode(Widget):
         if self.octave_display: self.octave_display.update(self._fmt_octave())
         if self.cutoff_display: self.cutoff_display.update(self._fmt_cutoff())
         if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
+        if self.filter_mode_display: self.filter_mode_display.update(self._fmt_filter_mode())
         if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
         if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
         if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
@@ -1125,6 +1152,22 @@ class SynthMode(Widget):
 
     def _fmt_resonance(self) -> str:
         return self._fmt_knob(self.resonance / 0.9, 0.0, 1.0, f"{int(self.resonance * 100)}%")
+
+    def _fmt_filter_mode(self) -> str:
+        """Selector display for filter type: LADR | SVF."""
+        options = [("ladder", "LADR"), ("svf", "SVF")]
+        parts = []
+        for key, tag in options:
+            if self.filter_mode == key:
+                parts.append(f"[bold #00ff00 reverse]{tag}[/]")
+            else:
+                parts.append(f"[#446644]{tag}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(tag for _, tag in options)
+        pad   = max(0, self._W - len(plain) - 2)
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
 
     # ── Waveform selector and shape display ───────────────────────
 

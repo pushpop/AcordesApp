@@ -5,6 +5,17 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-02-19
+
+### Fixed
+- **Low-frequency onset thump** (`music/synth_engine.py`): Sine waveform at octave=-2 with short attack produced an audible thump on note onset. Root cause: the DC blocker (coeff=0.999, pole at 2.4 Hz) has a ~66 ms settling time at 55 Hz, but the onset ramp was a fixed 3 ms — covering less than 1/6 of a 55 Hz cycle.
+  - **Frequency-adaptive `ONSET_RAMP`**: Duration now computed as `max(3ms, min(30ms, 1.5 × period_ms))` per voice, stored in `voice.onset_ms` set at trigger time. At 55 Hz: 27 ms; at 440 Hz: 3 ms (unchanged — no regression at mid/high frequencies).
+  - **Frequency-adaptive `ANTI_I`**: Envelope soft-start window in `_apply_envelope` now reads `voice.onset_ms / 1000.0` instead of the hardcoded 5 ms constant, matching the onset ramp duration so the exponential attenuation covers the DC blocker's full settling window.
+  - **Adaptive DC blocker coefficient** (`_apply_dc_blocker`): Coefficient is now computed per-voice based on `voice.frequency` — `0.9990` above 100 Hz (pole 2.4 Hz, standard behaviour), linearly interpolated to `0.9997` below 50 Hz (pole ≈ 0.7 Hz). This reduces phase distortion at very low fundamentals; combined with the longer onset ramp, the onset transient is fully hidden.
+- **Randomize click on held notes** (`music/synth_engine.py`, `modes/synth_mode.py`): Pressing `-` (randomize) while a note was held caused an audible click because `waveform`, `octave`, and envelope parameters (`attack`, `decay`, `sustain`, `release`) were applied via `setattr` instantly on the next audio buffer — creating mid-note frequency, waveshape, and amplitude discontinuities.
+  - **Output mute gate** (`_mute_ramp_remaining` / `_mute_ramp_fadein` / `_MUTE_RAMP_LEN=384`): A new `'mute_gate'` event type arms a ~8 ms (384-sample) fade-out ramp on the mixed output. When the fade-out completes, a matching fade-in is automatically queued. Both the `mute_gate` and `param_update` events are drained in the same `_process_midi_events()` call, so the new params are applied under silence and the fade-in plays with the new waveform/octave already active.
+  - `action_randomize` now enqueues `{'type': 'mute_gate'}` before `_push_params_to_engine()` so the gate is always armed before any parameter changes land on the audio thread.
+
 ## [1.4.2] - 2026-02-19
 
 ### Changed

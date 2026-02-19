@@ -52,6 +52,7 @@ DEFAULT_PARAMS: dict = {
     "cutoff": 2000.0,
     "hpf_cutoff": 20.0,
     "resonance": 0.3,
+    "filter_mode": "ladder",
     "attack": 0.01,
     "decay": 0.2,
     "sustain": 0.7,

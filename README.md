@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.4.2**
+**Version 1.4.3**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
 
@@ -20,42 +20,30 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - **MIDI Expressivity** *(v1.3.0)*: Support for MIDI Note-Off (Release) Velocity.
   - **Master Section** *(v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
   - **DSP Correctness & Click-Free Polyphony** *(v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
-  - **Audio Thread Priority & Race-Free Parameters** *(NEW in v1.4.1)*: OS-level audio thread scheduling (Windows/Linux/macOS) and thread-safe parameter routing via event queue eliminate remaining clicks and crackles during rapid playing and mode switching.
+  - **Audio Thread Priority & Race-Free Parameters** *(v1.4.1)*: OS-level audio thread scheduling (Windows/Linux/macOS) and thread-safe parameter routing via event queue eliminate remaining clicks and crackles during rapid playing and mode switching.
+  - **Low-Frequency Onset & Randomize Click Suppression** *(NEW in v1.4.3)*: Frequency-adaptive onset ramp, ANTI_I window, and DC blocker coefficient eliminate onset thumps on very low notes; output mute gate suppresses clicks during randomize on held notes.
   - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
   - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome.
 
-## What's New in v1.4.2
+## What's New in v1.4.3
 
-A focused Synth Mode UX improvement — reworked keyboard navigation and parameter editing for a more ergonomic experience.
+A DSP quality patch focused on two categories of audible artifacts in the synth engine.
 
-### Synth Mode: Focus Navigation Overhaul
-- **Section focus navigation**: Press **Enter** to enter focus mode; arrow keys navigate between the 8 sections (left/right) and parameters within each section (up/down). Pressing **Enter** again or **Escape** exits focus mode.
-- **Cross-row navigation**: Up/Down arrows now cross row boundaries — pressing Up at the top of a section jumps to the bottom of the same column in the adjacent row, and vice versa. All 8 sections (including LFO, Chorus, FX, Arpeggio) are now reachable.
-- **Alt+←/→ adjustment**: While a parameter is focused, **Alt+Left** decreases and **Alt+Right** increases its value — an alternative to Q/W.
-- **Q/W value keys**: In focus mode, **Q** lowers and **W** raises the focused parameter. In legacy (unfocused) mode, Q/W adjusts octave.
-- **Comma / Full-stop preset cycling**: **,** cycles to the previous preset and **.** to the next — works in both focus and legacy modes.
-- **Legacy hotkey guard**: All letter-key shortcuts (E/D, R/F, T/G, etc.) are silently suppressed while in focus mode to prevent accidental edits.
-- **Escape behaviour fixed**: Escape while focused now exits focus; Escape while unfocused shows the quit confirmation dialog.
+### Low-Frequency Onset Thump Elimination
+Very low notes (sine, octave=-2, short attack) previously produced an audible thump on onset because the DC blocker's settling transient (≥66 ms at 55 Hz) was far longer than the fixed 3 ms onset ramp.
 
-### Synth Mode Controls (updated)
+- **Frequency-adaptive onset ramp** (`ONSET_RAMP`): Duration now scales with the note's fundamental period — `1.5 × period_ms`, clamped [3 ms, 30 ms]. At 55 Hz (octave=-2) this is 27 ms; at 440 Hz it stays 3 ms (no regression).
+- **Frequency-adaptive ANTI_I**: The envelope soft-start window matches the onset ramp duration, so the envelope attenuation covers the full DC blocker settling period at low frequencies.
+- **Adaptive DC blocker coefficient**: The pole frequency now adapts to the voice's fundamental — `coeff=0.9990` above 100 Hz (standard 2.4 Hz pole), linearly interpolated to `coeff=0.9997` below 50 Hz (0.7 Hz pole). This reduces phase distortion at very low fundamentals without affecting mid/high notes.
 
-**Focus mode:**
-- **Enter**: Enter / exit focus mode
-- **←/→**: Move between sections
-- **↑/↓**: Move between parameters (crosses row boundaries)
-- **Q** / **W**: Decrease / Increase focused parameter
-- **Alt+←** / **Alt+→**: Decrease / Increase focused parameter (alternative)
+### Randomize Click Suppression
+Pressing `-` (randomize) while holding notes previously caused an audible click because `waveform`, `octave`, and envelope parameters were applied instantly via `setattr` mid-note.
 
-**Legacy mode (unfocused):**
-- **,** / **.**: Previous / Next preset
-- **Q** / **W**: Octave down / up
-- **E/D**, **R/F**, **T/G**, **Y/H**, **U/J**, **O/L**: Filter, resonance, attack, decay, sustain, release, intensity
-- **[** / **]**: Master volume down / up
-- **-**: Randomize patch
-- **Space**: Panic (all notes off)
+- **Output mute gate** (`mute_gate` event): A ~8 ms (384-sample) fade-out/fade-in gate is enqueued before the parameter update. The engine fades to silence before the new waveform/octave/envelope take effect, then fades back in — eliminating the discontinuity transient on held notes.
+- Rapid repeated randomize presses re-arm the gate cleanly; randomize during silence is inaudible.
 
 ---
 
