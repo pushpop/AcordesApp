@@ -231,16 +231,16 @@ class SynthMode(Widget):
     """
 
     # ── Section parameter definitions ─────────────────────────────────────────
-    # Each entry: (display_name, n_params)
-    # n_params tells nav_up/down how many steps before wrapping.
+    # Each entry: display label for the param row.
+    # nav_up/down steps through these; dispatch in _adjust_focused_param uses the name.
     _SECTION_PARAMS = {
         "oscillator": ["Wave", "Octave"],
         "filter":     ["Cutoff", "Resonance", "Type"],
         "envelope":   ["Attack", "Decay", "Sustain", "Release", "Intensity"],
         "lfo":        ["Rate", "Depth", "Shape", "Target"],
         "chorus":     ["Rate", "Depth", "Mix", "Voices"],
-        "fx":         ["Reverb Size", "Reverb Mix", "Delay Time", "Delay Fdbk"],
-        "arpeggio":   ["Mode", "Rate", "Gate", "Range"],
+        "fx":         ["Delay Time", "Delay Fdbk", "Delay Mix", "Rev Size"],
+        "arpeggio":   ["Mode", "BPM", "Gate", "Range", "ON/OFF"],
         "mixer":      ["Amp", "Master Vol"],
     }
 
@@ -273,8 +273,34 @@ class SynthMode(Widget):
         self.release    = params["release"]
         self.intensity  = params["intensity"]
 
+        # ── LFO extended ─────────────────────────────────────────────────────
+        self.lfo_freq   = params.get("lfo_freq",   1.0)
+        self.lfo_depth  = params.get("lfo_depth",  0.0)
+        self.lfo_shape  = params.get("lfo_shape",  "sine")
+        self.lfo_target = params.get("lfo_target", "all")
+
+        # ── FX Delay ─────────────────────────────────────────────────────────
+        self.delay_time     = params.get("delay_time",     0.25)
+        self.delay_feedback = params.get("delay_feedback", 0.3)
+        self.delay_mix      = params.get("delay_mix",      0.0)
+
+        # ── Chorus ───────────────────────────────────────────────────────────
+        self.chorus_rate   = params.get("chorus_rate",   0.5)
+        self.chorus_depth  = params.get("chorus_depth",  0.0)
+        self.chorus_mix    = params.get("chorus_mix",    0.0)
+        self.chorus_voices = params.get("chorus_voices", 2)
+
+        # ── Arpeggiator ──────────────────────────────────────────────────────
+        # BPM lives in config_manager (shared with MetronomeMode), not in presets
+        self.arp_bpm     = float(self.config_manager.get_bpm())
+        self.arp_enabled = params.get("arp_enabled", False)
+        self.arp_mode    = params.get("arp_mode",    "up")
+        self.arp_gate    = params.get("arp_gate",    0.5)
+        self.arp_range   = params.get("arp_range",   1)
+
         # GLOBAL MASTER VOLUME (Persisted but not in presets)
-        self.master_volume = self.config_manager.get_synth_state().get("master_volume", 1.0)
+        saved_state = self.config_manager.get_synth_state()
+        self.master_volume = saved_state.get("master_volume", 1.0) if saved_state else 1.0
 
         # ── Focus state ──────────────────────────────────────────────────────
         # _focus_section: which section is currently focused (None = global mode)
@@ -296,6 +322,26 @@ class SynthMode(Widget):
         self.sustain_display        = None
         self.release_display        = None
         self.intensity_display      = None
+        # LFO displays
+        self.lfo_rate_display    = None
+        self.lfo_depth_display   = None
+        self.lfo_shape_display   = None
+        self.lfo_target_display  = None
+        # Chorus displays
+        self.chorus_rate_display   = None
+        self.chorus_depth_display  = None
+        self.chorus_mix_display    = None
+        self.chorus_voices_display = None
+        # FX Delay displays
+        self.delay_time_display     = None
+        self.delay_feedback_display = None
+        self.delay_mix_display      = None
+        # Arpeggio displays
+        self.arp_mode_display    = None
+        self.arp_bpm_display     = None
+        self.arp_gate_display    = None
+        self.arp_range_display   = None
+        self.arp_enabled_display = None
         self.header                 = None
         self.controls_help          = None
         self.current_note: Optional[int] = None
@@ -404,14 +450,18 @@ class SynthMode(Widget):
                     self._section_header_ids["lfo"] = "hdr-lfo"
                     yield hdr
                     yield Label(self._row_label("Rate", ""), classes="control-label", id="lbl-lfo-0")
-                    yield Label(self._fmt_knob(0.2, 0.0, 1.0, "0.20 Hz"), classes="control-value")
+                    self.lfo_rate_display = Label(self._fmt_lfo_rate(), classes="control-value", id="lfo-rate-display")
+                    yield self.lfo_rate_display
                     yield Label(self._row_label("Depth", ""), classes="control-label", id="lbl-lfo-1")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
+                    self.lfo_depth_display = Label(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"), classes="control-value", id="lfo-depth-display")
+                    yield self.lfo_depth_display
                     yield Label(self._row_sep(), classes="control-label")
                     yield Label(self._row_label("Shape", ""), classes="control-label", id="lbl-lfo-2")
-                    yield Label(self._fmt_dummy_selector(["SIN", "TRI", "S&H", "SQR"], 0), classes="control-value")
+                    self.lfo_shape_display = Label(self._fmt_lfo_shape(), classes="control-value", id="lfo-shape-display")
+                    yield self.lfo_shape_display
                     yield Label(self._row_label("Target", ""), classes="control-label", id="lbl-lfo-3")
-                    yield Label(self._fmt_dummy_selector(["VCO", "VCF", "VCA"], 1), classes="control-value")
+                    self.lfo_target_display = Label(self._fmt_lfo_target(), classes="control-value", id="lfo-target-display")
+                    yield self.lfo_target_display
                     yield Label(self._section_bottom(), classes="section-label")
 
             # ── ROW 2: CHORUS · FX · ARPEGGIO · MIXER ───────────────────
@@ -423,14 +473,18 @@ class SynthMode(Widget):
                     self._section_header_ids["chorus"] = "hdr-chorus"
                     yield hdr
                     yield Label(self._row_label("Rate", ""), classes="control-label", id="lbl-chorus-0")
-                    yield Label(self._fmt_knob(0.3, 0.0, 1.0, "0.30 Hz"), classes="control-value")
+                    self.chorus_rate_display = Label(self._fmt_chorus_rate(), classes="control-value", id="chorus-rate-display")
+                    yield self.chorus_rate_display
                     yield Label(self._row_label("Depth", ""), classes="control-label", id="lbl-chorus-1")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
+                    self.chorus_depth_display = Label(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"), classes="control-value", id="chorus-depth-display")
+                    yield self.chorus_depth_display
                     yield Label(self._row_sep(), classes="control-label")
                     yield Label(self._row_label("Mix", ""), classes="control-label", id="lbl-chorus-2")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
+                    self.chorus_mix_display = Label(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"), classes="control-value", id="chorus-mix-display")
+                    yield self.chorus_mix_display
                     yield Label(self._row_label("Voices", ""), classes="control-label", id="lbl-chorus-3")
-                    yield Label(self._fmt_dummy_selector(["1", "2", "3", "4"], 2), classes="control-value")
+                    self.chorus_voices_display = Label(self._fmt_chorus_voices(), classes="control-value", id="chorus-voices-display")
+                    yield self.chorus_voices_display
                     yield Label(self._section_bottom(), classes="section-label")
 
                 # ── FX ───────────────────────────────────────────────────
@@ -438,15 +492,18 @@ class SynthMode(Widget):
                     hdr = Label(self._section_top("FX", False), classes="section-label", id="hdr-fx")
                     self._section_header_ids["fx"] = "hdr-fx"
                     yield hdr
-                    yield Label(self._row_label("Reverb Size", ""), classes="control-label", id="lbl-fx-0")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
-                    yield Label(self._row_label("Reverb Mix", ""), classes="control-label", id="lbl-fx-1")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
+                    yield Label(self._row_label("Delay Time", ""), classes="control-label", id="lbl-fx-0")
+                    self.delay_time_display = Label(self._fmt_delay_time(), classes="control-value", id="delay-time-display")
+                    yield self.delay_time_display
+                    yield Label(self._row_label("Delay Fdbk", ""), classes="control-label", id="lbl-fx-1")
+                    self.delay_feedback_display = Label(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"), classes="control-value", id="delay-feedback-display")
+                    yield self.delay_feedback_display
                     yield Label(self._row_sep(), classes="control-label")
-                    yield Label(self._row_label("Delay Time", ""), classes="control-label", id="lbl-fx-2")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "250ms"), classes="control-value")
-                    yield Label(self._row_label("Delay Fdbk", ""), classes="control-label", id="lbl-fx-3")
-                    yield Label(self._fmt_knob(0.0, 0.0, 1.0, "0%"), classes="control-value")
+                    yield Label(self._row_label("Delay Mix", ""), classes="control-label", id="lbl-fx-2")
+                    self.delay_mix_display = Label(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"), classes="control-value", id="delay-mix-display")
+                    yield self.delay_mix_display
+                    yield Label(self._row_label("Rev Size", ""), classes="control-label", id="lbl-fx-3")
+                    yield Label(self._fmt_disabled_param("future"), classes="control-value")
                     yield Label(self._section_bottom(), classes="section-label")
 
                 # ── ARPEGGIO ─────────────────────────────────────────────
@@ -455,14 +512,21 @@ class SynthMode(Widget):
                     self._section_header_ids["arpeggio"] = "hdr-arpeggio"
                     yield hdr
                     yield Label(self._row_label("Mode", ""), classes="control-label", id="lbl-arpeggio-0")
-                    yield Label(self._fmt_dummy_selector(["UP", "DN", "U+D", "RND"], 0), classes="control-value")
-                    yield Label(self._row_label("Rate", ""), classes="control-label", id="lbl-arpeggio-1")
-                    yield Label(self._fmt_knob(0.5, 0.0, 1.0, "120 BPM"), classes="control-value")
+                    self.arp_mode_display = Label(self._fmt_arp_mode(), classes="control-value", id="arp-mode-display")
+                    yield self.arp_mode_display
+                    yield Label(self._row_label("BPM", ""), classes="control-label", id="lbl-arpeggio-1")
+                    self.arp_bpm_display = Label(self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"), classes="control-value", id="arp-bpm-display")
+                    yield self.arp_bpm_display
                     yield Label(self._row_sep(), classes="control-label")
                     yield Label(self._row_label("Gate", ""), classes="control-label", id="lbl-arpeggio-2")
-                    yield Label(self._fmt_knob(0.5, 0.0, 1.0, "50%"), classes="control-value")
+                    self.arp_gate_display = Label(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"), classes="control-value", id="arp-gate-display")
+                    yield self.arp_gate_display
                     yield Label(self._row_label("Range", ""), classes="control-label", id="lbl-arpeggio-3")
-                    yield Label(self._fmt_dummy_selector(["1", "2", "3", "4"], 1), classes="control-value")
+                    self.arp_range_display = Label(self._fmt_arp_range(), classes="control-value", id="arp-range-display")
+                    yield self.arp_range_display
+                    yield Label(self._row_label("ON/OFF", ""), classes="control-label", id="lbl-arpeggio-4")
+                    self.arp_enabled_display = Label(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"), classes="control-value", id="arp-enabled-display")
+                    yield self.arp_enabled_display
                     yield Label(self._section_bottom(), classes="section-label")
 
                 # ── MIXER ────────────────────────────────────────────────
@@ -706,7 +770,31 @@ class SynthMode(Widget):
         elif sec == "mixer":
             if name == "Amp":          self._do_adjust_volume(direction)
             elif name == "Master Vol": self._do_adjust_master_volume(direction)
-        # Dummy sections — not yet wired, silently ignore
+        # LFO
+        elif sec == "lfo":
+            if name == "Rate":    self._do_adjust_lfo_rate(direction)
+            elif name == "Depth": self._do_adjust_lfo_depth(direction)
+            elif name == "Shape": self._do_cycle_lfo_shape(direction)
+            elif name == "Target": self._do_cycle_lfo_target(direction)
+        # CHORUS
+        elif sec == "chorus":
+            if name == "Rate":    self._do_adjust_chorus_rate(direction)
+            elif name == "Depth": self._do_adjust_chorus_depth(direction)
+            elif name == "Mix":   self._do_adjust_chorus_mix(direction)
+            elif name == "Voices": self._do_adjust_chorus_voices(direction)
+        # FX DELAY
+        elif sec == "fx":
+            if name == "Delay Time":  self._do_adjust_delay_time(direction)
+            elif name == "Delay Fdbk": self._do_adjust_delay_feedback(direction)
+            elif name == "Delay Mix":  self._do_adjust_delay_mix(direction)
+            elif name == "Rev Size":   pass   # future placeholder — no-op
+        # ARPEGGIO
+        elif sec == "arpeggio":
+            if name == "Mode":    self._do_cycle_arp_mode(direction)
+            elif name == "BPM":   self._do_adjust_arp_bpm(direction)
+            elif name == "Gate":  self._do_adjust_arp_gate(direction)
+            elif name == "Range": self._do_adjust_arp_range(direction)
+            elif name == "ON/OFF": self._do_toggle_arp_enabled()
 
     # ── Core param mutators (no focus guard — used by focus dispatch) ─────────
 
@@ -811,6 +899,137 @@ class SynthMode(Widget):
         self._mark_dirty()
         self._autosave_state()
 
+    # ── LFO mutators ─────────────────────────────────────────────
+
+    def _do_adjust_lfo_rate(self, direction: str = "up"):
+        self.lfo_freq = min(20.0, self.lfo_freq * 1.2) if direction == "up" else max(0.05, self.lfo_freq / 1.2)
+        self.synth_engine.update_parameters(lfo_freq=self.lfo_freq)
+        if self.lfo_rate_display:
+            self.lfo_rate_display.update(self._fmt_lfo_rate())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_lfo_depth(self, direction: str = "up"):
+        self.lfo_depth = min(1.0, self.lfo_depth + 0.05) if direction == "up" else max(0.0, self.lfo_depth - 0.05)
+        self.synth_engine.update_parameters(lfo_depth=self.lfo_depth)
+        if self.lfo_depth_display:
+            self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_cycle_lfo_shape(self, direction: str = "up"):
+        shapes = ["sine", "triangle", "square", "sample_hold"]
+        delta = 1 if direction == "up" else -1
+        idx = shapes.index(self.lfo_shape) if self.lfo_shape in shapes else 0
+        self.lfo_shape = shapes[(idx + delta) % len(shapes)]
+        self.synth_engine.update_parameters(lfo_shape=self.lfo_shape)
+        if self.lfo_shape_display:
+            self.lfo_shape_display.update(self._fmt_lfo_shape())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_cycle_lfo_target(self, direction: str = "up"):
+        targets = ["all", "vco", "vcf", "vca"]
+        delta = 1 if direction == "up" else -1
+        idx = targets.index(self.lfo_target) if self.lfo_target in targets else 0
+        self.lfo_target = targets[(idx + delta) % len(targets)]
+        self.synth_engine.update_parameters(lfo_target=self.lfo_target)
+        if self.lfo_target_display:
+            self.lfo_target_display.update(self._fmt_lfo_target())
+        self._mark_dirty(); self._autosave_state()
+
+    # ── Chorus mutators ───────────────────────────────────────────
+
+    def _do_adjust_chorus_rate(self, direction: str = "up"):
+        self.chorus_rate = min(10.0, self.chorus_rate * 1.2) if direction == "up" else max(0.1, self.chorus_rate / 1.2)
+        self.synth_engine.update_parameters(chorus_rate=self.chorus_rate)
+        if self.chorus_rate_display:
+            self.chorus_rate_display.update(self._fmt_chorus_rate())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_chorus_depth(self, direction: str = "up"):
+        self.chorus_depth = min(1.0, self.chorus_depth + 0.05) if direction == "up" else max(0.0, self.chorus_depth - 0.05)
+        self.synth_engine.update_parameters(chorus_depth=self.chorus_depth)
+        if self.chorus_depth_display:
+            self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_chorus_mix(self, direction: str = "up"):
+        self.chorus_mix = min(1.0, self.chorus_mix + 0.05) if direction == "up" else max(0.0, self.chorus_mix - 0.05)
+        self.synth_engine.update_parameters(chorus_mix=self.chorus_mix)
+        if self.chorus_mix_display:
+            self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_chorus_voices(self, direction: str = "up"):
+        self.chorus_voices = min(4, self.chorus_voices + 1) if direction == "up" else max(1, self.chorus_voices - 1)
+        self.synth_engine.update_parameters(chorus_voices=self.chorus_voices)
+        if self.chorus_voices_display:
+            self.chorus_voices_display.update(self._fmt_chorus_voices())
+        self._mark_dirty(); self._autosave_state()
+
+    # ── FX Delay mutators ─────────────────────────────────────────
+
+    def _do_adjust_delay_time(self, direction: str = "up"):
+        self.delay_time = min(2.0, self.delay_time + 0.025) if direction == "up" else max(0.05, self.delay_time - 0.025)
+        self.synth_engine.update_parameters(delay_time=self.delay_time)
+        if self.delay_time_display:
+            self.delay_time_display.update(self._fmt_delay_time())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_delay_feedback(self, direction: str = "up"):
+        self.delay_feedback = min(0.9, self.delay_feedback + 0.05) if direction == "up" else max(0.0, self.delay_feedback - 0.05)
+        self.synth_engine.update_parameters(delay_feedback=self.delay_feedback)
+        if self.delay_feedback_display:
+            self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_delay_mix(self, direction: str = "up"):
+        self.delay_mix = min(1.0, self.delay_mix + 0.05) if direction == "up" else max(0.0, self.delay_mix - 0.05)
+        self.synth_engine.update_parameters(delay_mix=self.delay_mix)
+        if self.delay_mix_display:
+            self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    # ── Arpeggio mutators ─────────────────────────────────────────
+
+    def _do_cycle_arp_mode(self, direction: str = "up"):
+        modes = ["up", "down", "up_down", "random"]
+        delta = 1 if direction == "up" else -1
+        idx = modes.index(self.arp_mode) if self.arp_mode in modes else 0
+        self.arp_mode = modes[(idx + delta) % len(modes)]
+        self.synth_engine.update_parameters(arp_mode=self.arp_mode)
+        if self.arp_mode_display:
+            self.arp_mode_display.update(self._fmt_arp_mode())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_arp_bpm(self, direction: str = "up"):
+        step = 5
+        self.arp_bpm = min(300.0, self.arp_bpm + step) if direction == "up" else max(50.0, self.arp_bpm - step)
+        self.config_manager.set_bpm(int(self.arp_bpm))
+        self.synth_engine.update_parameters(arp_bpm=self.arp_bpm)
+        if self.arp_bpm_display:
+            self.arp_bpm_display.update(self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_arp_gate(self, direction: str = "up"):
+        self.arp_gate = min(1.0, self.arp_gate + 0.05) if direction == "up" else max(0.05, self.arp_gate - 0.05)
+        self.synth_engine.update_parameters(arp_gate=self.arp_gate)
+        if self.arp_gate_display:
+            self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_arp_range(self, direction: str = "up"):
+        self.arp_range = min(4, self.arp_range + 1) if direction == "up" else max(1, self.arp_range - 1)
+        self.synth_engine.update_parameters(arp_range=self.arp_range)
+        if self.arp_range_display:
+            self.arp_range_display.update(self._fmt_arp_range())
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_toggle_arp_enabled(self):
+        self.arp_enabled = not self.arp_enabled
+        self.synth_engine.update_parameters(arp_enabled=self.arp_enabled)
+        if self.arp_enabled_display:
+            self.arp_enabled_display.update(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
+        self._mark_dirty(); self._autosave_state()
+
     # ── Preset actions ───────────────────────────────────────────
 
     def action_preset_next(self):
@@ -877,6 +1096,25 @@ class SynthMode(Widget):
         self.sustain    = params.get("sustain",   self.sustain)
         self.release    = params.get("release",   self.release)
         self.intensity  = params.get("intensity", self.intensity)
+        # LFO
+        self.lfo_freq   = params.get("lfo_freq",   self.lfo_freq)
+        self.lfo_depth  = params.get("lfo_depth",  self.lfo_depth)
+        self.lfo_shape  = params.get("lfo_shape",  self.lfo_shape)
+        self.lfo_target = params.get("lfo_target", self.lfo_target)
+        # FX Delay
+        self.delay_time     = params.get("delay_time",     self.delay_time)
+        self.delay_feedback = params.get("delay_feedback", self.delay_feedback)
+        self.delay_mix      = params.get("delay_mix",      self.delay_mix)
+        # Chorus
+        self.chorus_rate   = params.get("chorus_rate",   self.chorus_rate)
+        self.chorus_depth  = params.get("chorus_depth",  self.chorus_depth)
+        self.chorus_mix    = params.get("chorus_mix",    self.chorus_mix)
+        self.chorus_voices = params.get("chorus_voices", self.chorus_voices)
+        # Arpeggio (BPM from config_manager, not preset)
+        self.arp_enabled = params.get("arp_enabled", self.arp_enabled)
+        self.arp_mode    = params.get("arp_mode",    self.arp_mode)
+        self.arp_gate    = params.get("arp_gate",    self.arp_gate)
+        self.arp_range   = params.get("arp_range",   self.arp_range)
         self._push_params_to_engine()
         self._refresh_all_displays()
 
@@ -894,22 +1132,61 @@ class SynthMode(Widget):
             sustain=self.sustain,
             release=self.release,
             intensity=self.intensity,
+            # LFO
+            lfo_freq=self.lfo_freq,
+            lfo_depth=self.lfo_depth,
+            lfo_shape=self.lfo_shape,
+            lfo_target=self.lfo_target,
+            # FX Delay
+            delay_time=self.delay_time,
+            delay_feedback=self.delay_feedback,
+            delay_mix=self.delay_mix,
+            # Chorus
+            chorus_rate=self.chorus_rate,
+            chorus_depth=self.chorus_depth,
+            chorus_mix=self.chorus_mix,
+            chorus_voices=self.chorus_voices,
+            # Arpeggio
+            arp_bpm=self.arp_bpm,
+            arp_enabled=self.arp_enabled,
+            arp_mode=self.arp_mode,
+            arp_gate=self.arp_gate,
+            arp_range=self.arp_range,
         )
 
     def _current_params(self) -> dict:
         return {
-            "waveform":      self.waveform,
-            "octave":        self.octave,
-            "amp_level":     self.amp_level,
-            "master_volume": self.master_volume,
-            "cutoff":        self.cutoff,
-            "resonance":     self.resonance,
-            "filter_mode":   self.filter_mode,
-            "attack":        self.attack,
-            "decay":         self.decay,
-            "sustain":       self.sustain,
-            "release":       self.release,
-            "intensity":     self.intensity,
+            "waveform":        self.waveform,
+            "octave":          self.octave,
+            "amp_level":       self.amp_level,
+            "master_volume":   self.master_volume,
+            "cutoff":          self.cutoff,
+            "resonance":       self.resonance,
+            "filter_mode":     self.filter_mode,
+            "attack":          self.attack,
+            "decay":           self.decay,
+            "sustain":         self.sustain,
+            "release":         self.release,
+            "intensity":       self.intensity,
+            # LFO
+            "lfo_freq":        self.lfo_freq,
+            "lfo_depth":       self.lfo_depth,
+            "lfo_shape":       self.lfo_shape,
+            "lfo_target":      self.lfo_target,
+            # FX Delay
+            "delay_time":      self.delay_time,
+            "delay_feedback":  self.delay_feedback,
+            "delay_mix":       self.delay_mix,
+            # Chorus
+            "chorus_rate":     self.chorus_rate,
+            "chorus_depth":    self.chorus_depth,
+            "chorus_mix":      self.chorus_mix,
+            "chorus_voices":   self.chorus_voices,
+            # Arpeggio (BPM excluded — lives in config_manager)
+            "arp_enabled":     self.arp_enabled,
+            "arp_mode":        self.arp_mode,
+            "arp_gate":        self.arp_gate,
+            "arp_range":       self.arp_range,
         }
 
     def _mark_dirty(self):
@@ -1062,6 +1339,26 @@ class SynthMode(Widget):
         if self.intensity_display: self.intensity_display.update(self._fmt_knob(self.intensity, 0.0, 1.0, f"{int(self.intensity * 100)}%"))
         if self.amp_display: self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
         if self.master_volume_display: self.master_volume_display.update(self._fmt_knob(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"))
+        # LFO
+        if self.lfo_rate_display: self.lfo_rate_display.update(self._fmt_lfo_rate())
+        if self.lfo_depth_display: self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
+        if self.lfo_shape_display: self.lfo_shape_display.update(self._fmt_lfo_shape())
+        if self.lfo_target_display: self.lfo_target_display.update(self._fmt_lfo_target())
+        # Chorus
+        if self.chorus_rate_display: self.chorus_rate_display.update(self._fmt_chorus_rate())
+        if self.chorus_depth_display: self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
+        if self.chorus_mix_display: self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
+        if self.chorus_voices_display: self.chorus_voices_display.update(self._fmt_chorus_voices())
+        # FX Delay
+        if self.delay_time_display: self.delay_time_display.update(self._fmt_delay_time())
+        if self.delay_feedback_display: self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
+        if self.delay_mix_display: self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
+        # Arpeggio
+        if self.arp_mode_display: self.arp_mode_display.update(self._fmt_arp_mode())
+        if self.arp_bpm_display: self.arp_bpm_display.update(self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"))
+        if self.arp_gate_display: self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
+        if self.arp_range_display: self.arp_range_display.update(self._fmt_arp_range())
+        if self.arp_enabled_display: self.arp_enabled_display.update(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
 
     # ── Rendering helpers ────────────────────────────────────────
 
@@ -1214,6 +1511,129 @@ class SynthMode(Widget):
                 parts.append(f"[#446644]{opt}[/]")
         line  = " ".join(parts)
         plain = " ".join(options)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    # ── LFO formatters ────────────────────────────────────────────
+
+    def _fmt_lfo_rate(self) -> str:
+        # Log-scale knob: 0.05 Hz → 20 Hz
+        log_r = math.log10(max(0.05, self.lfo_freq))
+        log_min = math.log10(0.05)
+        log_max = math.log10(20.0)
+        norm = (log_r - log_min) / (log_max - log_min)
+        label = f"{self.lfo_freq:.2f} Hz"
+        return self._fmt_knob(norm, 0.0, 1.0, label)
+
+    def _fmt_lfo_shape(self) -> str:
+        entries = [("sine", "SIN"), ("triangle", "TRI"), ("square", "SQR"), ("sample_hold", "S&H")]
+        parts = []
+        for key, tag in entries:
+            if self.lfo_shape == key:
+                parts.append(f"[bold #00ff00 reverse]{tag}[/]")
+            else:
+                parts.append(f"[#446644]{tag}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(tag for _, tag in entries)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    def _fmt_lfo_target(self) -> str:
+        entries = [("all", "ALL"), ("vco", "VCO"), ("vcf", "VCF"), ("vca", "VCA")]
+        parts = []
+        for key, tag in entries:
+            if self.lfo_target == key:
+                parts.append(f"[bold #00ff00 reverse]{tag}[/]")
+            else:
+                parts.append(f"[#446644]{tag}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(tag for _, tag in entries)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    # ── Chorus formatters ──────────────────────────────────────────
+
+    def _fmt_chorus_rate(self) -> str:
+        log_r = math.log10(max(0.1, self.chorus_rate))
+        log_min = math.log10(0.1)
+        log_max = math.log10(10.0)
+        norm = (log_r - log_min) / (log_max - log_min)
+        return self._fmt_knob(norm, 0.0, 1.0, f"{self.chorus_rate:.2f} Hz")
+
+    def _fmt_chorus_voices(self) -> str:
+        options = ["1", "2", "3", "4"]
+        parts = []
+        for i, opt in enumerate(options):
+            if i + 1 == self.chorus_voices:
+                parts.append(f"[bold #00ff00 reverse]{opt}[/]")
+            else:
+                parts.append(f"[#446644]{opt}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(options)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    # ── FX Delay formatters ────────────────────────────────────────
+
+    def _fmt_delay_time(self) -> str:
+        norm = (self.delay_time - 0.05) / (2.0 - 0.05)
+        ms   = int(self.delay_time * 1000)
+        return self._fmt_knob(norm, 0.0, 1.0, f"{ms} ms")
+
+    def _fmt_disabled_param(self, reason: str = "future") -> str:
+        """Grey placeholder for params not yet implemented."""
+        lbl   = f"— {reason} —"
+        pad   = max(0, self._W - len(lbl))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}[dim #556655]{lbl}[/]{' ' * rp}[#00cc00]│[/]"
+
+    # ── Arpeggio formatters ────────────────────────────────────────
+
+    def _fmt_arp_mode(self) -> str:
+        entries = [("up", "UP"), ("down", "DN"), ("up_down", "U+D"), ("random", "RND")]
+        parts = []
+        for key, tag in entries:
+            if self.arp_mode == key:
+                parts.append(f"[bold #00ff00 reverse]{tag}[/]")
+            else:
+                parts.append(f"[#446644]{tag}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(tag for _, tag in entries)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    def _fmt_arp_range(self) -> str:
+        options = ["1", "2", "3", "4"]
+        parts = []
+        for i, opt in enumerate(options):
+            if i + 1 == self.arp_range:
+                parts.append(f"[bold #00ff00 reverse]{opt}[/]")
+            else:
+                parts.append(f"[#446644]{opt}[/]")
+        line  = " ".join(parts)
+        plain = " ".join(options)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    def _fmt_bool_toggle(self, value: bool, label_on: str, label_off: str) -> str:
+        """Green ON / dimmed OFF toggle display."""
+        on_part  = f"[bold #00ff00 reverse]{label_on}[/]"  if value else f"[#446644]{label_on}[/]"
+        off_part = f"[#446644]{label_off}[/]"              if value else f"[bold #ff6600 reverse]{label_off}[/]"
+        line  = f"{on_part}  {off_part}"
+        plain = f"{label_on}  {label_off}"
         pad   = max(0, self._W - len(plain))
         lp    = pad // 2
         rp    = pad - lp

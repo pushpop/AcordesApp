@@ -28,6 +28,7 @@ class ConfigManager:
             "selected_midi_device": None,
             "last_synth_preset": None,
             "synth_state": None,
+            "metronome_bpm": 120,
         }
 
     def save_config(self):
@@ -67,4 +68,15 @@ class ConfigManager:
     def set_synth_state(self, params: dict):
         """Persist current synth parameters (autosave on every change)."""
         self.config["synth_state"] = params
+        self.save_config()
+
+    # ── Shared BPM (Metronome ↔ Arpeggiator) ─────────────────────
+
+    def get_bpm(self) -> int:
+        """Return the shared metronome/arpeggiator BPM (default 120)."""
+        return int(self.config.get("metronome_bpm", 120))
+
+    def set_bpm(self, bpm: int):
+        """Persist the BPM and save. Clamped to [50, 300]."""
+        self.config["metronome_bpm"] = int(max(50, min(300, bpm)))
         self.save_config()

@@ -5,6 +5,7 @@ import ctypes
 import numpy as np
 import threading
 import queue
+import random as _rnd
 from typing import Optional, List
 
 # Check for PyAudio availability
@@ -186,6 +187,49 @@ class SynthEngine:
         self.lfo_vcf_mod = 0.0
         self.lfo_vca_mod = 0.0
         self.lfo_phase = 0.0
+        # LFO extended — shape + target routing + master depth
+        self.lfo_shape  = "sine"   # "sine" | "triangle" | "square" | "sample_hold"
+        self.lfo_target = "all"    # "vco"  | "vcf"       | "vca"    | "all"
+        self.lfo_depth  = 0.0      # 0.0–1.0 master depth
+        self._lfo_sh_value = 0.0   # S&H: current held random value
+
+        # ── FX Delay (stereo ring buffer, max 2 s) ───────────────────────
+        self.delay_time     = 0.25   # seconds
+        self.delay_feedback = 0.3    # 0.0–0.9
+        self.delay_mix      = 0.0    # 0.0–1.0 wet/dry (0 = bypass)
+        _dly_len = int(self.sample_rate * 2.0) + 1
+        self._delay_buf_l   = np.zeros(_dly_len, dtype=np.float32)
+        self._delay_buf_r   = np.zeros(_dly_len, dtype=np.float32)
+        self._delay_write   = 0
+        self._delay_samples = int(self.delay_time * self.sample_rate)
+
+        # ── Chorus (BBD-style, single shared ring, 4 tap phases) ────────
+        self.chorus_rate   = 0.5    # Hz, 0.1–10.0
+        self.chorus_depth  = 0.0    # 0.0–1.0 → 0–25ms sweep (0 = bypass)
+        self.chorus_mix    = 0.0    # 0.0–1.0 wet/dry (0 = bypass)
+        self.chorus_voices = 2      # 1–4 modulated taps
+        _cho_len = int(self.sample_rate * 0.030) + 2   # 30ms + guard
+        self._chorus_buf_l  = np.zeros(_cho_len, dtype=np.float32)
+        self._chorus_buf_r  = np.zeros(_cho_len, dtype=np.float32)
+        # Four LFO phases spread 90° apart for natural voice spread
+        self._chorus_phases = [i * (np.pi / 2.0) for i in range(4)]
+        self._chorus_write  = 0
+
+        # ── Arpeggiator (audio-callback driven clock) ────────────────────
+        self.arp_enabled  = False
+        self.arp_mode     = "up"    # "up" | "down" | "up_down" | "random"
+        self.arp_bpm      = 120.0
+        self.arp_gate     = 0.5     # 0.05–1.0 note-on fraction of step
+        self.arp_range    = 1       # 1–4 octave span
+        # Sequencer state — audio-thread only, no lock needed
+        self._arp_held_notes:     list          = []
+        self._arp_sequence:       list          = []
+        self._arp_index:          int           = 0
+        self._arp_step_samples:   int           = int(60.0 / 120.0 * self.sample_rate)
+        self._arp_sample_counter: int           = 0
+        self._arp_note_playing:   Optional[int] = None
+        self._arp_gate_samples:   int           = int(60.0 / 120.0 * self.sample_rate * 0.5)
+        self._arp_direction:      int           = 1   # +1 or -1 for up_down
 
         self.amp_level = 0.75
         self.amp_level_target = 0.75
@@ -369,6 +413,58 @@ class SynthEngine:
 
         except Exception:
             pass  # Non-fatal — never crash because of priority elevation failure
+
+    # ── Arpeggiator helpers (audio-thread only) ──────────────────────
+
+    def _arp_rebuild_sequence(self):
+        """Rebuild the expanded note list from held notes and octave range.
+        Sorted ascending, then octave-transposed copies are appended.
+        Called whenever held notes or arp_range changes.
+        """
+        if not self._arp_held_notes:
+            self._arp_sequence = []
+            return
+        base = sorted(set(self._arp_held_notes))
+        seq  = []
+        for shift in range(int(self.arp_range)):
+            for note in base:
+                t = note + shift * 12
+                if t <= 127:
+                    seq.append(t)
+        self._arp_sequence = seq
+        if seq:
+            self._arp_index = self._arp_index % len(seq)
+
+    def _arp_next_index(self) -> int:
+        """Advance sequencer direction state and return the next note index."""
+        n = len(self._arp_sequence)
+        if n == 0:
+            return 0
+        if self.arp_mode == "up":
+            idx = self._arp_index % n
+            self._arp_index = (self._arp_index + 1) % n
+        elif self.arp_mode == "down":
+            idx = (n - 1 - self._arp_index % n)
+            self._arp_index = (self._arp_index + 1) % n
+        elif self.arp_mode == "up_down":
+            idx = self._arp_index % n
+            nxt = self._arp_index + self._arp_direction
+            if nxt >= n:
+                self._arp_direction = -1
+                nxt = max(0, n - 2)
+            elif nxt < 0:
+                self._arp_direction = 1
+                nxt = min(1, n - 1)
+            self._arp_index = nxt
+        else:  # "random"
+            idx = _rnd.randrange(n)
+            self._arp_index = idx
+        return idx
+
+    def _arp_recalc_timing(self):
+        """Recompute step and gate sample counts from arp_bpm and arp_gate."""
+        self._arp_step_samples = max(1, int(60.0 / max(1.0, self.arp_bpm) * self.sample_rate))
+        self._arp_gate_samples = max(1, int(self._arp_step_samples * float(self.arp_gate)))
 
     def _midi_to_frequency(self, midi_note: int) -> float:
         return 440.0 * (2.0 ** ((midi_note - 69) / 12.0))
@@ -699,10 +795,35 @@ class SynthEngine:
                                     voice.filter_state_lpf1    = voice.filter_state_lpf1b   = 0.0
                                     voice.filter_state_lpf2    = voice.filter_state_lpf2b   = 0.0
                                 self._filter_ramp_remaining = self._FILTER_RAMP_LEN
+                            elif k == 'delay_time':
+                                # Recalculate integer sample count when delay time changes.
+                                self.delay_time    = float(v)
+                                self._delay_samples = max(1, min(
+                                    int(v * self.sample_rate),
+                                    len(self._delay_buf_l) - 1))
+                            elif k == 'arp_bpm':
+                                self.arp_bpm = float(v); self._arp_recalc_timing()
+                            elif k == 'arp_gate':
+                                self.arp_gate = float(v); self._arp_recalc_timing()
+                            elif k == 'arp_range':
+                                self.arp_range = int(v); self._arp_rebuild_sequence()
+                            elif k == 'arp_enabled':
+                                self.arp_enabled = bool(v)
+                                if not self.arp_enabled:
+                                    if self._arp_note_playing is not None:
+                                        self._release_note(self._arp_note_playing)
+                                        self._arp_note_playing = None
+                                self._arp_sample_counter = 0
+                            elif k == 'arp_mode':
+                                self.arp_mode = v
+                                self._arp_index = 0; self._arp_direction = 1
             elif e['type'] == 'all_notes_off':
                 # Reset voices on the audio thread — safe between DSP buffers.
                 for v in self.voices:
                     v.reset()
+                # Also clear arpeggiator state.
+                self._arp_held_notes.clear(); self._arp_sequence.clear()
+                self._arp_note_playing = None; self._arp_sample_counter = 0
             elif e['type'] == 'mute_gate':
                 # Arm a short output fade-out so that instantly-applied params
                 # (waveform, octave, envelope) from action_randomize don't click.
@@ -716,16 +837,36 @@ class SynthEngine:
                 pending_notes.append(e)
 
         # Second pass: process note events with the 3-per-buffer cap.
+        # When arp is enabled, note_on/note_off update the held-note list and
+        # rebuild the arp sequence rather than triggering voices directly.
         for e in pending_notes:
             if note_events_processed >= 3:
                 # Re-enqueue remaining note events for the next buffer.
                 self.midi_event_queue.put(e)
             else:
                 if e['type'] == 'note_on':
-                    self._trigger_note(e['note'], e['velocity'])
+                    if self.arp_enabled:
+                        n = e['note']
+                        if n not in self._arp_held_notes:
+                            self._arp_held_notes.append(n)
+                        self._arp_rebuild_sequence()
+                        self.held_notes.add(n)
+                    else:
+                        self._trigger_note(e['note'], e['velocity'])
                     note_events_processed += 1
                 elif e['type'] == 'note_off':
-                    self._release_note(e['note'], e.get('velocity', 0.5))
+                    n = e['note']
+                    if self.arp_enabled:
+                        if n in self._arp_held_notes:
+                            self._arp_held_notes.remove(n)
+                        self._arp_rebuild_sequence()
+                        # If all keys released, stop the current arp note
+                        if not self._arp_held_notes and self._arp_note_playing is not None:
+                            self._release_note(self._arp_note_playing)
+                            self._arp_note_playing = None
+                        self.held_notes.discard(n)
+                    else:
+                        self._release_note(e['note'], e.get('velocity', 0.5))
                     note_events_processed += 1
 
     def _trigger_note(self, note: int, vel: float):
@@ -797,13 +938,66 @@ class SynthEngine:
             else:
                 self.intensity_current = self.intensity_target
 
-            lfo_val = np.sin(self.lfo_phase)
-            self.lfo_phase = (self.lfo_phase + 2 * np.pi * self.lfo_freq * frame_count / self.sample_rate) % (2 * np.pi)
-            vco_lfo = 1.0 + (lfo_val * self.lfo_vco_mod * 0.05)
-            vcf_lfo = 1.0 + (lfo_val * self.lfo_vcf_mod * 0.5)
-            vca_lfo = 1.0 + (lfo_val * self.lfo_vca_mod * 0.3)
+            # ── LFO (shape-aware, single depth + target routing) ────────────
+            lfo_phase_prev = self.lfo_phase
+            lfo_phase_inc  = 2.0 * np.pi * self.lfo_freq * frame_count / self.sample_rate
+            self.lfo_phase = (self.lfo_phase + lfo_phase_inc) % (2.0 * np.pi)
+            if self.lfo_shape == "triangle":
+                t_norm = lfo_phase_prev / (2.0 * np.pi)
+                lfo_val = float(4.0 * abs(t_norm - 0.5) - 1.0)
+            elif self.lfo_shape == "square":
+                lfo_val = 1.0 if lfo_phase_prev < np.pi else -1.0
+            elif self.lfo_shape == "sample_hold":
+                # Phase wrap signals a new S&H period — sample a new random value.
+                # Safe check: if prev > current the modulo wrapped (lfo_freq is
+                # capped well below a full cycle per buffer so double-wrap can't happen).
+                if lfo_phase_prev > self.lfo_phase:
+                    self._lfo_sh_value = _rnd.uniform(-1.0, 1.0)
+                lfo_val = self._lfo_sh_value
+            else:  # "sine" (default)
+                lfo_val = float(np.sin(lfo_phase_prev))
+            # Route lfo_depth to the correct destination(s); legacy per-dest mods
+            # (lfo_vco_mod / lfo_vcf_mod / lfo_vca_mod) are retained for backward
+            # compat with old presets — new UI only writes lfo_depth + lfo_target.
+            d = float(self.lfo_depth)
+            if self.lfo_target == "vco":
+                vco_mod, vcf_mod, vca_mod = d, 0.0, 0.0
+            elif self.lfo_target == "vcf":
+                vco_mod, vcf_mod, vca_mod = 0.0, d, 0.0
+            elif self.lfo_target == "vca":
+                vco_mod, vcf_mod, vca_mod = 0.0, 0.0, d
+            else:  # "all"
+                vco_mod = vcf_mod = vca_mod = d
+            # Also blend in any legacy per-dest mods from old presets/API callers
+            vco_lfo = 1.0 + lfo_val * (vco_mod + self.lfo_vco_mod) * 0.05
+            vcf_lfo = 1.0 + lfo_val * (vcf_mod + self.lfo_vcf_mod) * 0.5
+            vca_lfo = 1.0 + lfo_val * (vca_mod + self.lfo_vca_mod) * 0.3
+
             mixed_l = np.zeros(frame_count, dtype=np.float32)
             mixed_r = np.zeros(frame_count, dtype=np.float32)
+
+            # ── Arpeggiator clock (audio-thread driven, sample-accurate) ────
+            # The counter advances by frame_count each buffer; when it reaches
+            # a step boundary we trigger the next note in the sequence and
+            # release the previous one at the gate boundary.  The remainder is
+            # carried over so the beat grid drifts by at most 1 sample over
+            # any number of steps (no cumulative phase error from integer
+            # rounding).
+            if self.arp_enabled and self._arp_sequence:
+                self._arp_sample_counter += frame_count
+                # Gate-off: release the playing note once the gate window expires
+                if (self._arp_note_playing is not None
+                        and self._arp_sample_counter > self._arp_gate_samples):
+                    self._release_note(self._arp_note_playing)
+                    self._arp_note_playing = None
+                # Step: fire the next note when a full step has elapsed
+                if self._arp_sample_counter >= self._arp_step_samples:
+                    # Carry the remainder so timing stays phase-accurate
+                    self._arp_sample_counter -= self._arp_step_samples
+                    idx  = self._arp_next_index()
+                    note = self._arp_sequence[idx]
+                    self._trigger_note(note, 1.0)
+                    self._arp_note_playing = note
 
             # Pre-count active voices BEFORE mixing so master_gain_target is
             # updated from the correct count and gain_ramp covers the full
@@ -881,6 +1075,59 @@ class SynthEngine:
                     ang = v.pan * np.pi / 2
                     mixed_l += v_samples * np.cos(ang)
                     mixed_r += v_samples * np.sin(ang)
+            # ── BBD-style Chorus (bypass when chorus_mix == 0) ───────────────
+            # All taps read from the same shared ring buffer. Four LFO phases
+            # spaced 90° apart (set at init) advance every sample by
+            # 2π * chorus_rate / sample_rate so the modulation is continuous
+            # across buffer boundaries. Base delay 0.5ms + depth-modulated swing
+            # up to ±25ms. wet/dry mix controls the blend.
+            if self.chorus_mix > 0.0:
+                n_voices  = int(np.clip(self.chorus_voices, 1, 4))
+                buf_len   = len(self._chorus_buf_l)
+                max_dly_s = self.sample_rate * 0.025   # 25 ms in samples
+                base_dly  = max(1, int(self.sample_rate * 0.0005))   # 0.5 ms base
+                phase_inc = 2.0 * np.pi * self.chorus_rate / self.sample_rate
+                cho_l = np.zeros(frame_count, dtype=np.float32)
+                cho_r = np.zeros(frame_count, dtype=np.float32)
+                for i in range(frame_count):
+                    wp = self._chorus_write % buf_len
+                    self._chorus_buf_l[wp] = mixed_l[i]
+                    self._chorus_buf_r[wp] = mixed_r[i]
+                    wet_l = wet_r = 0.0
+                    for vi in range(n_voices):
+                        self._chorus_phases[vi] = (self._chorus_phases[vi] + phase_inc) % (2.0 * np.pi)
+                        mod_smp = int(np.sin(self._chorus_phases[vi]) * self.chorus_depth * max_dly_s)
+                        rp = (wp - max(1, base_dly + mod_smp)) % buf_len
+                        wet_l += self._chorus_buf_l[rp]
+                        wet_r += self._chorus_buf_r[rp]
+                    self._chorus_write = (wp + 1) % buf_len
+                    scale = 1.0 / n_voices
+                    mx    = float(self.chorus_mix)
+                    cho_l[i] = mixed_l[i] * (1.0 - mx) + wet_l * scale * mx
+                    cho_r[i] = mixed_r[i] * (1.0 - mx) + wet_r * scale * mx
+                mixed_l = cho_l
+                mixed_r = cho_r
+
+            # ── FX Delay (stereo; bypass when delay_mix == 0) ─────────────────
+            # Per-sample feedback loop writes input + feedback into the ring
+            # buffer and reads back the delayed copy ds samples ago. Feedback
+            # coefficient controls echo density; mix blends wet on top of dry.
+            if self.delay_mix > 0.0:
+                buf_len = len(self._delay_buf_l)
+                dm  = float(self.delay_mix)
+                fb  = float(self.delay_feedback)
+                ds  = int(self._delay_samples)
+                for i in range(frame_count):
+                    wp  = self._delay_write % buf_len
+                    rp  = (wp - ds) % buf_len
+                    wet_l = self._delay_buf_l[rp]
+                    wet_r = self._delay_buf_r[rp]
+                    self._delay_buf_l[wp] = mixed_l[i] + fb * wet_l
+                    self._delay_buf_r[wp] = mixed_r[i] + fb * wet_r
+                    mixed_l[i] = mixed_l[i] * (1.0 - dm) + wet_l * dm
+                    mixed_r[i] = mixed_r[i] * (1.0 - dm) + wet_r * dm
+                    self._delay_write = (wp + 1) % buf_len
+
             # comp normalises waveform RMS to roughly the same perceived loudness.
             # Kept intentionally modest (≤1.0 for sine) so that at default amp_level
             # (0.75) and sustain (0.7) the pre-tanh drive stays below ~0.5 — well

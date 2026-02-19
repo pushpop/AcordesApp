@@ -2,9 +2,9 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.4.3**
+**Version 1.5.0**
 
-A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full preset system, and a fully-featured metronome.
+A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full signal-processing chain and preset system, and a fully-featured metronome.
 
 ## Features
 
@@ -21,12 +21,34 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - **Master Section** *(v1.3.0)*: Post-saturation Master Volume control with smooth gain protection.
   - **DSP Correctness & Click-Free Polyphony** *(v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
   - **Audio Thread Priority & Race-Free Parameters** *(v1.4.1)*: OS-level audio thread scheduling (Windows/Linux/macOS) and thread-safe parameter routing via event queue eliminate remaining clicks and crackles during rapid playing and mode switching.
-  - **Low-Frequency Onset & Randomize Click Suppression** *(NEW in v1.4.3)*: Frequency-adaptive onset ramp, ANTI_I window, and DC blocker coefficient eliminate onset thumps on very low notes; output mute gate suppresses clicks during randomize on held notes.
+  - **Low-Frequency Onset & Randomize Click Suppression** *(v1.4.3)*: Frequency-adaptive onset ramp, ANTI_I window, and DC blocker coefficient eliminate onset thumps on very low notes; output mute gate suppresses clicks during randomize on held notes.
+  - **LFO Shape & Target Routing** *(NEW in v1.5.0)*: SIN / TRI / SQR / S&H shapes with target routing to VCO, VCF, VCA, or ALL simultaneously.
+  - **FX Delay** *(NEW in v1.5.0)*: Stereo echo with adjustable time (50 ms – 2 s), feedback, and wet/dry mix.
+  - **BBD-style Chorus** *(NEW in v1.5.0)*: Tape-emulation chorus with 1–4 modulated delay taps, rate, depth, and wet/dry mix.
+  - **Arpeggiator** *(NEW in v1.5.0)*: Audio-callback-driven arpeggiator with UP / DOWN / UP+DOWN / RANDOM modes, BPM (shared with Metronome), gate length, and octave range 1–4.
   - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
   - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
-- **Metronome Mode**: A highly customizable and musically aware metronome.
+- **Metronome Mode**: A highly customizable and musically aware metronome. BPM now shared with the Arpeggiator.
+
+## What's New in v1.5.0
+
+A major signal-chain expansion adding four fully-interactive processing sections to the synthesizer.
+
+### LFO Shape & Target Routing
+The LFO section is now a complete modulation bus. Choose from **SIN** (sine), **TRI** (triangle), **SQR** (square), or **S&H** (sample & hold — a random value latched each period). Set `Depth` (master modulation amount) and route it to **ALL**, **VCO** (pitch vibrato), **VCF** (filter sweep), or **VCA** (tremolo).
+
+### FX Delay
+Stereo ping-pong delay with per-sample feedback loop. `Delay Time` (50 ms–2 s), `Delay Fdbk` (0–90%), and `Delay Mix` (dry/wet). Fully bypassed at mix=0 with zero CPU overhead. *Rev Size* placeholder shown in the UI for a future reverb implementation.
+
+### BBD-style Chorus
+Tape-emulation chorus with a single shared ring buffer and 1–4 modulated read taps (each 90° apart in LFO phase for natural stereo spread). Controls: `Rate` (0.1–10 Hz), `Depth` (0–25 ms modulation swing), `Mix` (wet/dry), `Voices` (1–4 taps). Bypassed at mix=0.
+
+### Arpeggiator
+Sample-accurate audio-callback arpeggiator. Hold any combination of keys; the arpeggiator cycles through them in the selected pattern. Modes: **UP**, **DOWN**, **UP+DOWN** (bounce), **RANDOM**. `BPM` is shared with the Metronome — change it in either mode and both update. `Gate` (5–100% note-on fraction per step), `Range` (1–4 octave span). Toggle on/off without losing held notes.
+
+---
 
 ## What's New in v1.4.3
 

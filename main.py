@@ -206,7 +206,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.4.3"
+    VERSION = "1.5.0"
     CSS = """
     """
 
@@ -298,7 +298,7 @@ class AcordesApp(App):
 
     def _create_metronome_mode(self):
         """Create metronome mode widget."""
-        return MetronomeMode()
+        return MetronomeMode(self.config_manager)
 
     def on_unmount(self):
         """Clean up on exit."""

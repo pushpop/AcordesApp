@@ -5,6 +5,34 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-19
+
+### Added
+- **LFO shape & target routing** (`music/synth_engine.py`, `modes/synth_mode.py`): LFO section upgraded from a single sine modulator to a full 4-shape, 4-target modulation bus.
+  - Shapes: **SIN** (sine), **TRI** (triangle), **SQR** (square), **S&H** (sample & hold — latches a new random value on each LFO period).
+  - Targets: **ALL**, **VCO** (pitch), **VCF** (filter), **VCA** (amplitude). Target routing replaces the old per-destination `lfo_vco_mod` / `lfo_vcf_mod` / `lfo_vca_mod` manual sliders while retaining backward compat with old presets.
+  - New params in `DEFAULT_PARAMS`: `lfo_shape`, `lfo_target`, `lfo_depth`.
+  - Phase-wrap S&H detection: uses `lfo_phase_prev > lfo_phase` (valid because the max increment per buffer at 20 Hz is ~0.67 rad, well below 2π).
+- **FX Delay** (`music/synth_engine.py`, `modes/synth_mode.py`): Stereo ping-pong echo with per-sample feedback loop.
+  - Parameters: `delay_time` (50 ms – 2 s), `delay_feedback` (0 – 0.9), `delay_mix` (0 – 1 wet/dry).
+  - Fully bypassed when `delay_mix == 0` — zero CPU cost when off.
+  - **Rev Size** placeholder shown in UI (greyed out, labelled "future") to reserve UI space for a future reverb implementation.
+- **BBD-style Chorus** (`music/synth_engine.py`, `modes/synth_mode.py`): Tape-emulation chorus with 1–4 modulated delay taps.
+  - Parameters: `chorus_rate` (0.1 – 10 Hz), `chorus_depth` (0 – 1 → 0–25 ms sweep), `chorus_mix` (0 – 1 wet/dry), `chorus_voices` (1–4 taps, phases 90° apart).
+  - Single shared ring buffer (30 ms); all taps read from different LFO-modulated offsets. Fully bypassed when `chorus_mix == 0`.
+- **Arpeggiator** (`music/synth_engine.py`, `modes/synth_mode.py`, `config_manager.py`, `modes/metronome_mode.py`): Audio-callback-driven polyphonic arpeggiator with sample-accurate timing.
+  - Modes: **UP**, **DOWN**, **UP+DOWN** (bounce), **RANDOM**.
+  - Parameters: `arp_bpm` (50–300, shared with Metronome), `arp_gate` (5–100% note-on fraction), `arp_range` (1–4 octave span), `arp_enabled` (on/off toggle).
+  - Step counter carries the remainder across buffer boundaries — no cumulative phase error.
+  - BPM is stored in `config_manager` (not in presets) so Metronome and Arpeggiator always stay in sync.
+- **Shared BPM** (`config_manager.py`, `modes/metronome_mode.py`, `main.py`): MetronomeMode now accepts `config_manager` as an optional constructor argument. BPM changes in Metronome write to `config_manager.set_bpm()`, and the Arpeggiator reads/writes the same key, so both modes share a single persistent BPM setting.
+
+### Changed
+- `SynthMode._SECTION_PARAMS["fx"]` updated: `["Delay Time", "Delay Fdbk", "Delay Mix", "Rev Size"]`.
+- `SynthMode._SECTION_PARAMS["arpeggio"]` updated: added `"ON/OFF"` toggle row (5 params total).
+- All four previously dummy sections (LFO, Chorus, FX, Arpeggio) are now fully interactive — every param is wired to the focus-navigation system (Enter → arrows → Q/W ± to adjust).
+- `action_randomize` does NOT randomise the new FX / Chorus / Arp params — it only rolls dice on the core synthesis chain (waveform, octave, ADSR, filter), keeping effects settings stable between randomize presses.
+
 ## [1.4.3] - 2026-02-19
 
 ### Fixed

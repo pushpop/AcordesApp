@@ -125,9 +125,10 @@ class MetronomeMode(Vertical):
         
         return "\n".join(combined_lines)
 
-    def __init__(self):
+    def __init__(self, config_manager=None):
         super().__init__()
-        self.tempo = 120
+        self.config_manager = config_manager
+        self.tempo = config_manager.get_bpm() if config_manager else 120
         try:
             self.time_signature_index = self.COMMON_TIME_SIGNATURES.index((4, 4))
         except ValueError:
@@ -217,12 +218,16 @@ class MetronomeMode(Vertical):
 
     def action_increase_tempo(self):
         self.tempo = min(self.MAX_BPM, self.tempo + 1)
+        if self.config_manager:
+            self.config_manager.set_bpm(self.tempo)
         self.query_one("#info-display").update(self._generate_combined_art())
         self.query_one("#tempo-mark-label").update(self._get_tempo_marking())
         self._update_timer()
 
     def action_decrease_tempo(self):
         self.tempo = max(self.MIN_BPM, self.tempo - 1)
+        if self.config_manager:
+            self.config_manager.set_bpm(self.tempo)
         self.query_one("#info-display").update(self._generate_combined_art())
         self.query_one("#tempo-mark-label").update(self._get_tempo_marking())
         self._update_timer()

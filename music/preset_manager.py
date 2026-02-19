@@ -67,6 +67,24 @@ DEFAULT_PARAMS: dict = {
     "lfo_vco_mod": 0.0,
     "lfo_vcf_mod": 0.0,
     "lfo_vca_mod": 0.0,
+    # LFO extended — shape selector, per-target routing, master depth
+    "lfo_shape":  "sine",   # "sine" | "triangle" | "square" | "sample_hold"
+    "lfo_target": "all",    # "vco"  | "vcf"       | "vca"    | "all"
+    "lfo_depth":  0.0,      # 0.0–1.0 master depth (scales mod to correct target)
+    # FX Delay
+    "delay_time":     0.25,  # seconds, 0.05–2.0
+    "delay_feedback": 0.3,   # 0.0–0.9
+    "delay_mix":      0.0,   # 0.0–1.0 wet/dry (0 = bypass)
+    # Chorus
+    "chorus_rate":   0.5,    # Hz, 0.1–10.0
+    "chorus_depth":  0.0,    # 0.0–1.0 → 0–25ms sweep depth (0 = bypass)
+    "chorus_mix":    0.0,    # 0.0–1.0 wet/dry (0 = bypass)
+    "chorus_voices": 2,      # int 1–4 modulated taps
+    # Arpeggiator (arp_bpm lives in config_manager, not in presets)
+    "arp_enabled": False,
+    "arp_mode":    "up",     # "up" | "down" | "up_down" | "random"
+    "arp_gate":    0.5,      # 0.05–1.0 note-on fraction of step
+    "arp_range":   1,        # 1–4 octave span
 }
 
 PARAM_KEYS = list(DEFAULT_PARAMS.keys())
