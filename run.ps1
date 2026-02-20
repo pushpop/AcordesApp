@@ -26,7 +26,7 @@ if (Get-Command "py" -ErrorAction SilentlyContinue) {
         }
     }
     if (-not $PythonCmd) {
-        # py launcher present but no preferred version — use its default
+        # py launcher present but no preferred version - use its default
         $PythonCmd  = "py"
         $PythonArgs = @()
     }
@@ -82,7 +82,7 @@ if ($PyMinor -lt 8) {
     exit 1
 }
 
-# Warn on Python 3.13+ — PyAudio and python-rtmidi have no wheels yet.
+# Warn on Python 3.13+ - PyAudio and python-rtmidi have no wheels yet.
 if ($PyMinor -ge 13) {
     Write-Host ""
     Write-Host " WARNING: Python 3.$PyMinor detected." -ForegroundColor Yellow
@@ -95,9 +95,9 @@ if ($PyMinor -ge 13) {
     Write-Host "   https://www.python.org/downloads/python-3.12.10/"
     Write-Host ""
     Write-Host " After installing 3.12, delete the venv\ folder and run this script"
-    Write-Host " again — it will automatically pick up Python 3.12."
+    Write-Host " again - it will automatically pick up Python 3.12."
     Write-Host ""
-    $null = Read-Host "Press Enter to attempt the install anyway, or Ctrl+C to cancel"
+    Read-Host "Press Enter to attempt the install anyway, or Ctrl+C to cancel"
 }
 
 # ── 3. Create venv if missing ─────────────────────────────────────────────────
