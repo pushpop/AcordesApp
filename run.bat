@@ -9,34 +9,50 @@ REM Strip trailing backslash
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
 set "VENV_DIR=%SCRIPT_DIR%\venv"
-set "PYTHON_EXE="
+set "PYTHON_CMD="
 
 REM ── 1. Locate Python ─────────────────────────────────────────────────────────
-REM Prefer 'py' launcher (installed with python.org installer) then 'python'.
+REM If the 'py' launcher is available, try preferred versions 3.12 then 3.11
+REM before falling back to whatever 'py' defaults to. This means users who
+REM have both Python 3.12 and 3.14 installed will automatically get 3.12,
+REM which has pre-built wheels for all dependencies.
 where py >nul 2>&1
 if %ERRORLEVEL%==0 (
-    set "PYTHON_CMD=py"
-) else (
-    where python >nul 2>&1
-    if %ERRORLEVEL%==0 (
-        set "PYTHON_CMD=python"
-    ) else (
-        echo.
-        echo  ERROR: Python was not found on PATH.
-        echo.
-        echo  Please install Python 3.11 or 3.12 from:
-        echo    https://www.python.org/downloads/
-        echo.
-        echo  Make sure to check "Add Python to PATH" during installation.
-        echo.
-        pause
-        exit /b 1
+    py -3.12 --version >nul 2>&1
+    if !ERRORLEVEL!==0 (
+        set "PYTHON_CMD=py -3.12"
+        goto :version_ok
     )
+    py -3.11 --version >nul 2>&1
+    if !ERRORLEVEL!==0 (
+        set "PYTHON_CMD=py -3.11"
+        goto :version_ok
+    )
+    REM No preferred version found — use py default and warn below if too new
+    set "PYTHON_CMD=py"
+    goto :version_ok
 )
 
+REM No py launcher — fall back to 'python'
+where python >nul 2>&1
+if %ERRORLEVEL%==0 (
+    set "PYTHON_CMD=python"
+    goto :version_ok
+)
+
+echo.
+echo  ERROR: Python was not found on PATH.
+echo.
+echo  Please install Python 3.12 from:
+echo    https://www.python.org/downloads/python-3.12.10/
+echo.
+echo  Make sure to check "Add Python to PATH" during installation.
+echo.
+pause
+exit /b 1
+
+:version_ok
 REM ── 2. Check Python version ───────────────────────────────────────────────────
-REM We need 3.8+, but PyAudio/rtmidi have no wheels for 3.13+ yet.
-REM Warn clearly rather than letting pip fail with cryptic errors.
 for /f "tokens=*" %%V in ('!PYTHON_CMD! -c "import sys; print(sys.version_info.major, sys.version_info.minor)" 2^>^&1') do set PY_VER=%%V
 
 for /f "tokens=1,2" %%A in ("!PY_VER!") do (
@@ -55,7 +71,7 @@ if "!PY_MAJOR!"=="" (
 
 if !PY_MAJOR! LSS 3 (
     echo.
-    echo  ERROR: Python 2 is not supported. Please install Python 3.11 or 3.12.
+    echo  ERROR: Python 2 is not supported. Please install Python 3.12.
     echo.
     pause
     exit /b 1
@@ -64,26 +80,28 @@ if !PY_MAJOR! LSS 3 (
 if !PY_MINOR! LSS 8 (
     echo.
     echo  ERROR: Python 3.!PY_MINOR! is too old. Minimum required: Python 3.8.
-    echo  Recommended: Python 3.11 or 3.12.
+    echo  Recommended: Python 3.12.
     echo.
     pause
     exit /b 1
 )
 
-REM Warn on Python 3.13+ — PyAudio and python-rtmidi may not have wheels yet.
+REM Warn on Python 3.13+ — PyAudio and python-rtmidi have no wheels yet.
 if !PY_MINOR! GEQ 13 (
     echo.
-    echo  WARNING: You are using Python 3.!PY_MINOR!.
+    echo  WARNING: Python 3.!PY_MINOR! detected.
     echo.
-    echo  Some dependencies (PyAudio, python-rtmidi) do not yet publish
-    echo  pre-built wheels for Python 3.13+. pip will try to compile them
-    echo  from source, which requires Visual Studio Build Tools.
+    echo  Dependencies PyAudio and python-rtmidi do not yet have pre-built
+    echo  wheels for Python 3.13+. pip will try to compile them from source,
+    echo  which requires the Visual Studio C++ Build Tools.
     echo.
-    echo  For the easiest experience, use Python 3.11 or 3.12 instead:
-    echo    https://www.python.org/downloads/
+    echo  Easiest fix: install Python 3.12 alongside your current version:
+    echo    https://www.python.org/downloads/python-3.12.10/
     echo.
-    echo  If you have Visual Studio Build Tools installed and want to proceed
-    echo  anyway, press any key to continue. Otherwise close this window.
+    echo  After installing 3.12, delete the venv\ folder and run this script
+    echo  again — it will automatically pick up Python 3.12.
+    echo.
+    echo  Press any key to attempt the install anyway, or close this window.
     echo.
     pause
 )
@@ -91,12 +109,11 @@ if !PY_MINOR! GEQ 13 (
 REM ── 3. Create venv if missing ─────────────────────────────────────────────────
 if not exist "%VENV_DIR%\Scripts\python.exe" (
     echo.
-    echo  Creating virtual environment...
+    echo  Creating virtual environment with !PYTHON_CMD! (Python 3.!PY_MINOR!)...
     !PYTHON_CMD! -m venv "%VENV_DIR%"
     if !ERRORLEVEL! NEQ 0 (
         echo.
         echo  ERROR: Failed to create virtual environment.
-        echo  Try running: !PYTHON_CMD! -m venv "%VENV_DIR%"
         echo.
         pause
         exit /b 1
@@ -113,21 +130,18 @@ if not exist "%VENV_DIR%\Scripts\python.exe" (
         echo  ERROR: Some dependencies failed to install.
         echo  ================================================================
         echo.
-        echo  Common causes on Windows:
+        echo  Common fixes:
         echo.
-        echo  1. PyAudio / python-rtmidi have no pre-built wheel for your
-        echo     Python version. Solution: use Python 3.11 or 3.12.
+        echo  1. Use Python 3.12 (has pre-built wheels for all dependencies):
+        echo       https://www.python.org/downloads/python-3.12.10/
+        echo     Then delete venv\ and run this script again.
         echo.
-        echo  2. Missing C++ compiler for source builds. Install from:
-        echo     https://visualstudio.microsoft.com/visual-cpp-build-tools/
-        echo.
-        echo  3. Try the manual fix for PyAudio:
-        echo     pip install pipwin
-        echo     pipwin install pyaudio
+        echo  2. Install Visual Studio C++ Build Tools for source compilation:
+        echo       https://visualstudio.microsoft.com/visual-cpp-build-tools/
         echo.
         echo  ================================================================
         echo.
-        REM Clean up the broken venv so next run retries from scratch.
+        REM Clean up so next run retries from scratch.
         rmdir /s /q "%VENV_DIR%"
         pause
         exit /b 1

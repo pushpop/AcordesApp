@@ -388,7 +388,8 @@ https://www.python.org/downloads/python-3.12.10/
 
 You can have multiple Python versions installed side-by-side. After installing
 3.12, delete the `venv/` folder and run `run.bat` / `run.ps1` again — the
-launcher will use `py -3.12` automatically if the `py` launcher is present.
+launcher automatically prefers Python 3.12 over 3.13/3.14 when both are
+installed (via the `py` launcher that ships with python.org installers).
 
 ### Audio Not Available (Synth / Metronome Mode)
 
