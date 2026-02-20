@@ -160,126 +160,115 @@ A focused DSP quality release — no new features, only fixes to audio engine co
 
 ## Installation
 
-1. Create a virtual environment and install dependencies:
+The launcher scripts handle everything automatically — just run them and they
+will create a virtual environment and install all dependencies on first launch.
 
-**Windows:**
-```cmd
-python -m venv venv
-venv\Scripts\pip.exe install -r requirements.txt
-```
-
-**Linux/macOS:**
-```bash
-python -m venv venv
-./venv/bin/pip install -r requirements.txt
-```
-
-## Usage
-
-Run the application using the virtual environment:
-
-### Windows
-
-**Option 1: Using the convenience script (Command Prompt)**
+**Windows (Command Prompt):**
 ```cmd
 run.bat
 ```
 
-**Option 1b: Using PowerShell**
+**Windows (PowerShell):**
 ```powershell
 .\run.ps1
 ```
 
-**Option 2: Direct invocation (adjust path based on your venv)**
-```cmd
-REM Native Windows venv
-venv\Scripts\python.exe main.py
-
-REM Git Bash/WSL-style venv
-venv\bin\python.exe main.py
-```
-
-**Option 3: Activate virtual environment first**
-```cmd
-REM Command Prompt (native Windows venv)
-venv\Scripts\activate
-python main.py
-
-REM PowerShell (native Windows venv)
-venv\Scripts\Activate.ps1
-python main.py
-
-REM Git Bash (Unix-style venv)
-source venv/bin/activate
-python main.py
-```
-
-### Linux/macOS
-
-**Option 1: Using the convenience script**
+**Linux / macOS:**
 ```bash
 ./run.sh
 ```
 
-**Option 2: Direct invocation**
-```bash
-./venv/bin/python main.py
-```
+> The Windows launchers prefer Python 3.12 or 3.11 automatically when both are
+> installed alongside a newer version. See the Troubleshooting section if
+> installation fails.
 
-**Option 3: Activate virtual environment first**
+## Usage
+
+### Running the app
+
+| Platform | Command |
+|---|---|
+| Windows (CMD) | `run.bat` |
+| Windows (PowerShell) | `.\run.ps1` |
+| Linux / macOS | `./run.sh` |
+
+Manual launch after the venv is set up:
 ```bash
-source venv/bin/activate
-python main.py
+# Windows
+venv\Scripts\python.exe main.py
+
+# Linux / macOS
+./venv/bin/python main.py
 ```
 
 ### Keyboard Controls
 
-#### Global Controls
-- **1**: Switch to Piano Mode
-- **2**: Switch to Compendium Mode
-- **3**: Switch to Synth Mode
-- **4**: Switch to Metronome Mode
-- **C**: Open Config Mode
-- **Escape**: Quit application (with confirmation dialog)
+#### Global
 
-#### Mode-Specific Controls
-- **Arrow Keys**: Navigate within Config and Compendium modes
-- **Enter**: Select/Expand items
-- **Space**: Refresh device list (Config Mode only)
+| Key | Action |
+|---|---|
+| **1** | Piano Mode |
+| **2** | Compendium Mode |
+| **3** | Synth Mode |
+| **4** | Metronome Mode |
+| **C** | Config Mode |
+| **Escape** | Quit (with confirmation) |
 
-#### Synth Mode Controls
+#### Synth Mode — Presets & Utility
 
-**Presets (both modes):**
-- **,** / **.**: Previous / Next preset
-- **Ctrl+N**: Save current parameters as a new preset
-- **Ctrl+S**: Overwrite / update the current preset
-- **-**: Randomize all parameters (musically weighted)
-- **Space**: Panic — silence all voices immediately
+| Key | Action |
+|---|---|
+| **,** / **.** | Previous / Next preset |
+| **Ctrl+N** | Save as new preset |
+| **Ctrl+S** | Overwrite current preset |
+| **-** | Randomize all parameters |
+| **Space** | Panic — silence all voices |
 
-**Focus mode** (press Enter to activate):
-- **Enter** / **Escape**: Exit focus mode
-- **← / →**: Move between sections
-- **↑ / ↓**: Move between parameters (crosses section rows)
-- **Q** / **W**: Decrease / Increase focused parameter value
-- **Alt+←** / **Alt+→**: Decrease / Increase focused parameter value (alternative)
+#### Synth Mode — Focus navigation (press Enter to enter / exit)
 
-**Legacy mode** (unfocused):
-- **Enter**: Enter focus mode
-- **Q / W**: Octave down / up
-- **E / D**: Filter cutoff down / up
-- **R / F**: Resonance down / up
-- **T / G**: Attack down / up
-- **Y / H**: Decay down / up
-- **U / J**: Sustain down / up
-- **I / K**: Release down / up
-- **O / L**: Intensity down / up
-- **[ / ]**: Master volume down / up
-- **↑ / ↓**: Amp level up / down
+In focus mode a parameter cell is highlighted. WASD moves the cursor;
+Q/E change the highlighted value.
 
-#### Metronome Mode Controls
-- **P / Space**: Start or stop the metronome.
-- **↑ / ↓**: Increase or decrease the tempo (BPM).
-- **← / →**: Cycle through different time signatures.
+| Key | Action |
+|---|---|
+| **Enter** | Enter / exit focus mode |
+| **Escape** | Exit focus mode |
+| **W / S** | Move cursor up / down |
+| **A / D** | Move cursor left / right |
+| **Q** | Decrease focused parameter |
+| **E** | Increase focused parameter |
+| **_** (Shift+−) | Randomize focused parameter |
+
+#### Synth Mode — Legacy keys (unfocused, no MIDI keyboard needed)
+
+| Key | Action |
+|---|---|
+| **Q / W** | Octave down / up |
+| **E / D** | Filter cutoff down / up |
+| **R / F** | Resonance down / up |
+| **T / G** | Attack down / up |
+| **Y / H** | Decay down / up |
+| **U / J** | Sustain down / up |
+| **I / K** | Release down / up |
+| **O / L** | Intensity down / up |
+| **[ / ]** | Master volume down / up |
+| **↑ / ↓** | Amp level up / down |
+
+#### Metronome Mode
+
+| Key | Action |
+|---|---|
+| **P / Space** | Start / stop |
+| **↑ / ↓** | Tempo up / down (BPM) |
+| **← / →** | Cycle time signature |
+
+#### Config / Compendium Mode
+
+| Key | Action |
+|---|---|
+| **Arrow Keys** | Navigate |
+| **Enter** | Select / expand |
+| **Space** | Refresh device list (Config only) |
 
 ### Modes
 
