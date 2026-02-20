@@ -147,10 +147,16 @@ A focused DSP quality release — no new features, only fixes to audio engine co
 
 ## Requirements
 
-- Python 3.8+
+- **Python 3.11 or 3.12 recommended** (see note below)
 - MIDI input device (MIDI keyboard, controller, or virtual MIDI device)
 - PyAudio, SciPy & NumPy (for high-performance Synth playback)
 - Pygame (for Metronome audio playback)
+
+> **Python version note:** PyAudio and python-rtmidi publish pre-built Windows
+> wheels only up to Python 3.12. On Python 3.13 or 3.14 pip will try to compile
+> these from source, which requires the Visual Studio Build Tools C++ compiler.
+> If you hit install errors, the easiest fix is to switch to Python 3.12:
+> https://www.python.org/downloads/
 
 ## Installation
 
@@ -369,31 +375,40 @@ acordes/
 
 ## Troubleshooting
 
+### Dependency install fails (Python 3.13 / 3.14)
+
+PyAudio and python-rtmidi do not yet publish pre-built wheels for Python 3.13+.
+`pip install` will attempt to compile them from C source, which requires the
+**Visual Studio Build Tools** (a free download from Microsoft). If you don't
+want to install a C compiler, the easiest solution is to use **Python 3.12**:
+
+```
+https://www.python.org/downloads/python-3.12.10/
+```
+
+You can have multiple Python versions installed side-by-side. After installing
+3.12, delete the `venv/` folder and run `run.bat` / `run.ps1` again — the
+launcher will use `py -3.12` automatically if the `py` launcher is present.
+
 ### Audio Not Available (Synth / Metronome Mode)
 
 If you have audio issues:
 
-1. Install PyAudio & Pygame:
+1. **Windows — PyAudio install fails:** try the pipwin method:
+   ```cmd
+   venv\Scripts\pip install pipwin
+   venv\Scripts\pipwin install pyaudio
+   ```
+
+2. **Linux:** install the PortAudio system library first:
    ```bash
+   sudo apt-get install portaudio19-dev python3-dev
    pip install pyaudio pygame
    ```
 
-2. On Windows, you may need to install it via pre-built wheels:
+3. **macOS:** install PortAudio via Homebrew first:
    ```bash
-   pip install pipwin
-   pipwin install pyaudio
-   pipwin install pygame
-   ```
-
-3. On Linux:
-   ```bash
-   sudo apt-get install portaudio19-dev python3-pyaudio python3-pygame
-   pip install pyaudio pygame
-   ```
-
-4. On macOS:
-   ```bash
-   brew install portaudio sdl2 sdl2_mixer
+   brew install portaudio
    pip install pyaudio pygame
    ```
 
