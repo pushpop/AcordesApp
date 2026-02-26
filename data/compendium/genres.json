@@ -1,0 +1,183 @@
+{
+  "items": [
+    {
+      "id": "jazz",
+      "name": "Jazz",
+      "category": "genres",
+      "description": "An American art form emphasizing improvisation, syncopation, and blues influences.",
+      "details": "Originated in New Orleans in the early 20th century. Combines African rhythms, European harmony, and American culture. Emphasizes individual expression and ensemble interaction.",
+      "examples": [
+        "Bebop: Charlie Parker, Dizzy Gillespie",
+        "Cool Jazz: Miles Davis, John Coltrane",
+        "Fusion: Herbie Hancock, Weather Report"
+      ],
+      "related": [
+        "blues",
+        "swing"
+      ],
+      "metadata": {
+        "era": "1900s-present",
+        "origin": "New Orleans, USA",
+        "key_characteristics": [
+          "improvisation",
+          "syncopation",
+          "swing",
+          "blues_influence"
+        ],
+        "instruments": [
+          "trumpet",
+          "saxophone",
+          "piano",
+          "bass",
+          "drums"
+        ]
+      }
+    },
+    {
+      "id": "blues",
+      "name": "Blues",
+      "category": "genres",
+      "description": "American music genre with roots in African American spirituals and work songs.",
+      "details": "Characterized by 12-bar chord progression, blues scale, and expressive bending. Central to rock, jazz, and R&B. About expressing emotion and hardship.",
+      "examples": [
+        "Robert Johnson",
+        "Muddy Waters",
+        "B.B. King",
+        "Stevie Ray Vaughan"
+      ],
+      "related": [
+        "jazz",
+        "rock"
+      ],
+      "metadata": {
+        "era": "1890s-present",
+        "origin": "Mississippi Delta, USA",
+        "key_characteristics": [
+          "12-bar progression",
+          "blues_scale",
+          "bending",
+          "call_and_response"
+        ],
+        "chord_progression": "I-IV-I-V-IV-I"
+      }
+    },
+    {
+      "id": "rock",
+      "name": "Rock",
+      "category": "genres",
+      "description": "Popular music genre characterized by guitars, strong rhythm, and youth culture.",
+      "details": "Emerged in the 1950s combining blues, country, and pop. Emphasizes electric guitar, drums, and vocals. Extremely diverse with countless subgenres.",
+      "examples": [
+        "Classic Rock: The Beatles, Led Zeppelin",
+        "Hard Rock: AC/DC, Aerosmith",
+        "Alternative: Nirvana, Radiohead"
+      ],
+      "related": [
+        "blues",
+        "pop"
+      ],
+      "metadata": {
+        "era": "1950s-present",
+        "origin": "United States",
+        "key_characteristics": [
+          "electric_guitar",
+          "strong_rhythm",
+          "youth_culture"
+        ],
+        "instruments": [
+          "electric_guitar",
+          "bass",
+          "drums",
+          "vocals"
+        ]
+      }
+    },
+    {
+      "id": "classical",
+      "name": "Classical",
+      "category": "genres",
+      "description": "Western art music tradition with written compositions and formal structure.",
+      "details": "Spans from Renaissance to contemporary classical. Emphasizes complex harmony, orchestration, and structured forms like sonata and symphony.",
+      "examples": [
+        "Baroque: Bach, Vivaldi",
+        "Classical: Mozart, Beethoven",
+        "Romantic: Chopin, Wagner"
+      ],
+      "related": [],
+      "metadata": {
+        "era": "1600s-present",
+        "key_characteristics": [
+          "written_composition",
+          "formal_structure",
+          "harmony",
+          "orchestration"
+        ],
+        "main_periods": [
+          "renaissance",
+          "baroque",
+          "classical",
+          "romantic",
+          "contemporary"
+        ]
+      }
+    },
+    {
+      "id": "pop",
+      "name": "Pop",
+      "category": "genres",
+      "description": "Contemporary commercial music designed for mass appeal and radio play.",
+      "details": "Emerged in the 1950s-60s. Characterized by catchy melodies, simple chord progressions, and relatable lyrics. Most commercially successful genre.",
+      "examples": [
+        "The Beatles",
+        "Michael Jackson",
+        "Taylor Swift",
+        "The Weeknd"
+      ],
+      "related": [
+        "rock",
+        "hip_hop"
+      ],
+      "metadata": {
+        "era": "1950s-present",
+        "key_characteristics": [
+          "catchy_melody",
+          "simple_harmony",
+          "radio_friendly"
+        ],
+        "typical_length": "3-4 minutes"
+      }
+    },
+    {
+      "id": "hip_hop",
+      "name": "Hip Hop / Rap",
+      "category": "genres",
+      "description": "Urban music genre emphasizing rhythmic spoken/sung lyrics over instrumental beats.",
+      "details": "Originated in the 1970s Bronx. Core elements: DJing, rapping, breaking, and graffiti art. Rhythm and wordplay are essential.",
+      "examples": [
+        "Old School: Grandmaster Flash, Run-DMC",
+        "Golden Age: Nas, Biggie, Wu-Tang",
+        "Modern: Drake, Kendrick Lamar"
+      ],
+      "related": [
+        "pop",
+        "r_and_b"
+      ],
+      "metadata": {
+        "era": "1970s-present",
+        "origin": "Bronx, New York",
+        "key_characteristics": [
+          "rhythm",
+          "wordplay",
+          "beats",
+          "sampling"
+        ],
+        "elements": [
+          "djing",
+          "rapping",
+          "breaking",
+          "graffiti"
+        ]
+      }
+    }
+  ]
+}

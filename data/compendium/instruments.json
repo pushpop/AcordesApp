@@ -1,0 +1,141 @@
+{
+  "items": [
+    {
+      "id": "piano",
+      "name": "Piano",
+      "category": "instruments",
+      "description": "A keyboard instrument with 88 keys spanning 7+ octaves.",
+      "details": "The piano is a percussion instrument with strings struck by hammers. Used across all genres - classical, jazz, pop, and more. Excellent for learning music theory.",
+      "examples": [
+        "Classical: Chopin, Debussy",
+        "Jazz: Bill Evans, Keith Jarrett",
+        "Pop: Elton John, Billy Joel"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "keyboard",
+        "range": "A0-C8",
+        "strings": true,
+        "polyphony": "unlimited",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "guitar",
+      "name": "Guitar (Acoustic/Electric)",
+      "category": "instruments",
+      "description": "A string instrument with typically 6 strings and 20+ frets.",
+      "details": "Acoustic and electric variants. Extremely versatile - used in blues, rock, jazz, folk, classical. Great for chord work and melody.",
+      "examples": [
+        "Rock: Jimi Hendrix, Eddie Van Halen",
+        "Jazz: Django Reinhardt, Wes Montgomery",
+        "Classical: Andr\u00e9s Segovia"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "strings",
+        "variants": [
+          "acoustic",
+          "electric",
+          "classical"
+        ],
+        "strings_count": 6,
+        "frets": "20-24",
+        "polyphony": "6",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "violin",
+      "name": "Violin",
+      "category": "instruments",
+      "description": "A bowed string instrument with 4 strings.",
+      "details": "One of the highest-pitched orchestral instruments. Essential in classical, baroque, and folk music. Also used in jazz and contemporary music.",
+      "examples": [
+        "Classical: Niccol\u00f2 Paganini",
+        "Jazz: Stephan Grappelli",
+        "Folk: Lindsey Stirling"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "strings",
+        "strings_count": 4,
+        "range": "G3-E7",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "drums",
+      "name": "Drums (Drum Kit)",
+      "category": "instruments",
+      "description": "A collection of percussion instruments including kick, snare, toms, hi-hat, and cymbals.",
+      "details": "The foundation of rhythm in rock, pop, jazz, and modern music. Requires coordination between all four limbs. Essential for timekeeping.",
+      "examples": [
+        "Rock: Keith Moon, John Bonham",
+        "Jazz: Art Blakey, Tony Williams",
+        "Pop: Ringo Starr, Travis Barker"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "percussion",
+        "components": [
+          "kick",
+          "snare",
+          "tom",
+          "hi-hat",
+          "crash",
+          "ride"
+        ],
+        "tuning": "pitch_variable",
+        "polyphony": "multiple",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "trumpet",
+      "name": "Trumpet",
+      "category": "instruments",
+      "description": "A brass instrument with 3 valves, known for bright, cutting tone.",
+      "details": "Essential in jazz, orchestral, and brass band music. Requires strong breath control and embouchure. Can play loud, cutting notes or soft, mellow ones.",
+      "examples": [
+        "Jazz: Miles Davis, Dizzy Gillespie",
+        "Classical: Maurice Andr\u00e9",
+        "Pop: Herb Alpert"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "brass",
+        "range": "F#3-B6",
+        "valves": 3,
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "bass",
+      "name": "Bass Guitar (Electric/Acoustic)",
+      "category": "instruments",
+      "description": "A string instrument with typically 4 strings, lower register than guitar.",
+      "details": "Provides the bridge between harmony and rhythm in most modern music. Electric bass is standard in rock, pop, funk, and jazz.",
+      "examples": [
+        "Rock: John Entwistle, John Paul Jones",
+        "Funk: James Jamerson, Victor Wooten",
+        "Jazz: Charles Mingus"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "strings",
+        "variants": [
+          "electric",
+          "acoustic",
+          "fretless"
+        ],
+        "strings_count": 4,
+        "range": "B0-D5",
+        "polyphony": "4",
+        "learning_curve": "medium"
+      }
+    }
+  ]
+}

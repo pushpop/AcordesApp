@@ -26,7 +26,7 @@ class MainMenuMode(Vertical):
     }
 
     #main-menu-buttons Button {
-        width: 16;
+        width: 24;
         height: 12;
         margin: 0 1;
         border: tall $primary;

@@ -1,0 +1,201 @@
+{
+  "items": [
+    {
+      "id": "major_scale",
+      "name": "Major Scale (Ionian)",
+      "category": "scales",
+      "description": "The most fundamental scale in Western music. Also known as the Ionian mode.",
+      "details": "The major scale consists of 7 notes with the pattern: W-W-H-W-W-W-H (W=whole step, H=half step). It's the basis for major keys and is widely used in all genres.",
+      "examples": [
+        "C major: C-D-E-F-G-A-B",
+        "G major: G-A-B-C-D-E-F#"
+      ],
+      "related": [
+        "dorian_mode",
+        "phrygian_mode",
+        "lydian_mode",
+        "mixolydian_mode",
+        "aeolian_mode",
+        "locrian_mode"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          2,
+          4,
+          5,
+          7,
+          9,
+          11
+        ],
+        "semitones": "2-2-1-2-2-2-1",
+        "modes_count": 7,
+        "relative_minor": "natural_minor"
+      }
+    },
+    {
+      "id": "natural_minor_scale",
+      "name": "Natural Minor Scale (Aeolian)",
+      "category": "scales",
+      "description": "The relative minor to the major scale. Also called the Aeolian mode.",
+      "details": "The natural minor scale has 7 notes with the pattern: W-H-W-W-H-W-W. It's the minor scale most used in classical and popular music.",
+      "examples": [
+        "A minor: A-B-C-D-E-F-G",
+        "E minor: E-F#-G-A-B-C-D"
+      ],
+      "related": [
+        "major_scale",
+        "harmonic_minor",
+        "melodic_minor"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          2,
+          3,
+          5,
+          7,
+          8,
+          10
+        ],
+        "semitones": "2-1-2-2-1-2-2",
+        "relative_major": "major_scale"
+      }
+    },
+    {
+      "id": "harmonic_minor",
+      "name": "Harmonic Minor Scale",
+      "category": "scales",
+      "description": "A minor scale with a raised 7th degree, creating a leading tone.",
+      "details": "Pattern: W-H-W-W-H-W+H-H. The raised 7th creates a leading tone that resolves to the root, making it useful for harmony but creating a distinctive sound.",
+      "examples": [
+        "A harmonic minor: A-B-C-D-E-F-G#",
+        "E harmonic minor: E-F#-G-A-B-C-D#"
+      ],
+      "related": [
+        "natural_minor_scale",
+        "melodic_minor"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          2,
+          3,
+          5,
+          7,
+          8,
+          11
+        ],
+        "semitones": "2-1-2-2-1-3-1"
+      }
+    },
+    {
+      "id": "melodic_minor",
+      "name": "Melodic Minor Scale",
+      "category": "scales",
+      "description": "A minor scale with raised 6th and 7th degrees in ascending order.",
+      "details": "Ascending: W-H-W-W-W-W-H. Descending: natural minor pattern. Used in classical melodies and jazz improvisation.",
+      "examples": [
+        "A melodic minor ascending: A-B-C-D-E-F#-G#",
+        "A melodic minor descending: A-G-F-E-D-C-B"
+      ],
+      "related": [
+        "natural_minor_scale",
+        "harmonic_minor"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          2,
+          3,
+          5,
+          7,
+          9,
+          11
+        ],
+        "semitones": "2-1-2-2-2-2-1"
+      }
+    },
+    {
+      "id": "pentatonic_major",
+      "name": "Major Pentatonic Scale",
+      "category": "scales",
+      "description": "A 5-note major scale with the 4th and 7th degrees removed.",
+      "details": "Pattern: W-W-W+H-W-W+H (5 notes). Very melodic and commonly used in folk music, blues, and contemporary music.",
+      "examples": [
+        "C major pentatonic: C-D-E-G-A",
+        "G major pentatonic: G-A-B-D-E"
+      ],
+      "related": [
+        "pentatonic_minor",
+        "major_scale"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          2,
+          4,
+          7,
+          9
+        ],
+        "semitones": "2-2-3-2-3",
+        "note_count": 5
+      }
+    },
+    {
+      "id": "pentatonic_minor",
+      "name": "Minor Pentatonic Scale",
+      "category": "scales",
+      "description": "A 5-note scale based on the natural minor with the 2nd and 6th degrees removed.",
+      "details": "Pattern: W+H-W-W-W+H-W (5 notes). Essential for blues, rock, and contemporary music. Very singable and expressive.",
+      "examples": [
+        "A minor pentatonic: A-C-D-E-G",
+        "E minor pentatonic: E-G-A-B-D"
+      ],
+      "related": [
+        "pentatonic_major",
+        "natural_minor_scale",
+        "blues_scale"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          3,
+          5,
+          7,
+          10
+        ],
+        "semitones": "3-2-2-3-2",
+        "note_count": 5
+      }
+    },
+    {
+      "id": "blues_scale",
+      "name": "Blues Scale",
+      "category": "scales",
+      "description": "A minor pentatonic with an added flat 5 (blue note).",
+      "details": "The 6-note scale includes the characteristic 'blue note' (flat 5). Used extensively in blues, rock, and jazz.",
+      "examples": [
+        "A blues: A-C-D-Eb-E-G",
+        "E blues: E-G-A-B-B-D"
+      ],
+      "related": [
+        "pentatonic_minor",
+        "blues_music"
+      ],
+      "metadata": {
+        "intervals": [
+          0,
+          3,
+          5,
+          6,
+          7,
+          10
+        ],
+        "semitones": "3-2-1-1-3-2",
+        "note_count": 6,
+        "blue_note": "flat_5"
+      }
+    }
+  ]
+}

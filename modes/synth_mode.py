@@ -348,7 +348,6 @@ class SynthMode(Widget):
         self.arp_range_display   = None
         self.arp_enabled_display = None
         self.header                 = None
-        self.controls_help          = None
         self.current_note: Optional[int] = None
 
         # IDs of the section-header Labels, keyed by section name.
@@ -552,10 +551,6 @@ class SynthMode(Widget):
                     yield self.master_volume_display
                     yield Label(self._section_bottom(), classes="section-label")
 
-        # ── CONTROLS HELP ────────────────────────────────────────────
-        self.controls_help = Static(self._fmt_help_bar(), id="controls-help")
-        yield self.controls_help
-
     # ── Lifecycle ────────────────────────────────────────────────
 
     def on_mount(self):
@@ -651,8 +646,8 @@ class SynthMode(Widget):
                 pass
 
     def _redraw_help_bar(self):
-        if self.controls_help:
-            self.controls_help.update(self._fmt_help_bar())
+        """No-op: help bar is now managed by MainScreen."""
+        pass
 
     def _grid_pos(self, section: str) -> tuple[int, int]:
         for r, row in enumerate(_SECTION_GRID):
@@ -1864,37 +1859,6 @@ class SynthMode(Widget):
         label_line = f"[#00cc00]│[/]{' ' * llp}[bold #aaffaa]{label}[/]{' ' * lrp}[#00cc00]│[/]"
 
         return f"{bar_line}\n{dots_line}\n{label_line}"
-
-    # ── Help bar ─────────────────────────────────────────────────
-
-    def _fmt_help_bar(self) -> str:
-        """Dynamic help bar — shows section-specific keys when focused."""
-        if not self._focused():
-            return (
-                "[#00aa00]PRESET[/] [dim],/.[/]cycle [dim]Ctrl+N/S[/]save  "
-                "[#00aa00]FLT[/] [dim]R/F[/]res  "
-                "[#00aa00]ENV[/] [dim]T/G[/]atk [dim]Y/H[/]dec [dim]U/J[/]sus [dim]I/K[/]rel [dim]O/L[/]int  "
-                "[#00aa00]MIX[/] [dim][][/]mvol  "
-                "[#00aa00]FOCUS[/] [dim]↵[/]enter  "
-                "[yellow][-][/]rnd  [dim]SPC[/]panic"
-            )
-        sec    = self._focus_section
-        params = self._SECTION_PARAMS.get(sec, [])
-        pidx   = self._focus_param
-        pname  = params[pidx] if params else "—"
-        plist  = "  ".join(
-            f"[bold #00ffff]{p}[/]" if i == pidx else f"[dim]{p}[/]"
-            for i, p in enumerate(params)
-        )
-        return (
-            f"[bold #00ffff]◈ {sec.upper()}[/]  "
-            f"{plist}  "
-            f"[bold #00ffff]A/D[/][dim]section  [/][bold #00ffff]W/S[/][dim]param  [/]"
-            f"[bold #00ffff]Q[/][dim]-  [/][bold #00ffff]E[/][dim]+  [/]"
-            f"[bold #00ffff]_[/][dim]rnd param  [/]"
-            f"[bold #00ffff]{pname}[/]  "
-            f"[dim],/.[/]preset  [dim]ESC[/]quit  [dim]↵[/]unfocus"
-        )
 
     # ── Preset bar ────────────────────────────────────────────────
 

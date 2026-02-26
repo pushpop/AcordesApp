@@ -179,10 +179,6 @@ class MetronomeMode(Vertical):
         combined_art = self._generate_combined_art()
         with Vertical(id="metronome-info"):
             yield Static(combined_art, id="info-display")
-        yield Label(
-            "Controls: [P/Space] Start/Stop | [Up/Down] Tempo | [Left/Right] Time Signature",
-            id="shortcuts-label"
-        )
 
     def _update_metronome(self):
         display = self.query_one("#metronome-display")

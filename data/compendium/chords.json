@@ -1,0 +1,4972 @@
+{
+  "items": [
+    {
+      "id": "C_major",
+      "name": "C Major",
+      "category": "chords",
+      "description": "A Major chord based on C.",
+      "details": "Notes: C, E, G. This is a major chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "C",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "C_minor",
+      "name": "C Minor",
+      "category": "chords",
+      "description": "A Minor chord based on C.",
+      "details": "Notes: C, Eb, G. This is a minor chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "C",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "C_diminished",
+      "name": "C Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on C.",
+      "details": "Notes: C, Eb, Gb. This is a diminished chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-Gb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "Gb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "C",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "C_augmented",
+      "name": "C Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on C.",
+      "details": "Notes: C, E, G#. This is a augmented chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "C",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "C_major_7th",
+      "name": "C Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on C.",
+      "details": "Notes: C, E, G, B. This is a major 7th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "C",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "C_minor_7th",
+      "name": "C Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on C.",
+      "details": "Notes: C, Eb, G, Bb. This is a minor 7th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-G-Bb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "G",
+          "Bb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "C",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "C_dominant_7th",
+      "name": "C Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on C.",
+      "details": "Notes: C, E, G, Bb. This is a dominant 7th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G-Bb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G",
+          "Bb"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "C",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "C_diminished_7th",
+      "name": "C Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on C.",
+      "details": "Notes: C, Eb, Gb, Bbb. This is a diminished 7th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-Gb-Bbb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "Gb",
+          "Bbb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "C",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "C_sus2",
+      "name": "C Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on C.",
+      "details": "Notes: C, D, G. This is a sus2 chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-D-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "D",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "C",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "C_sus4",
+      "name": "C Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on C.",
+      "details": "Notes: C, F, G. This is a sus4 chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-F-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "F",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "C",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "C_major_6th",
+      "name": "C Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on C.",
+      "details": "Notes: C, E, G, A. This is a major 6th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "C",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "C_minor_6th",
+      "name": "C Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on C.",
+      "details": "Notes: C, Eb, G, A. This is a minor 6th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-G-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "G",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "C",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "C_9th",
+      "name": "C 9th",
+      "category": "chords",
+      "description": "A 9th chord based on C.",
+      "details": "Notes: C, E, G, Bb, D. This is a 9th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G-Bb-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G",
+          "Bb",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "C",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "C_major_9th",
+      "name": "C Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on C.",
+      "details": "Notes: C, E, G, B, D. This is a major 9th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-E-G-B-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "E",
+          "G",
+          "B",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "C",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "C_minor_9th",
+      "name": "C Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on C.",
+      "details": "Notes: C, Eb, G, Bb, D. This is a minor 9th chord in the key of C.",
+      "examples": [
+        "Play as root voicing: C-Eb-G-Bb-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C",
+          "Eb",
+          "G",
+          "Bb",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "C",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "C#_major",
+      "name": "C# Major",
+      "category": "chords",
+      "description": "A Major chord based on C#.",
+      "details": "Notes: C#, E#, G#. This is a major chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "C#",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "C#_minor",
+      "name": "C# Minor",
+      "category": "chords",
+      "description": "A Minor chord based on C#.",
+      "details": "Notes: C#, E, G#. This is a minor chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "C#",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "C#_diminished",
+      "name": "C# Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on C#.",
+      "details": "Notes: C#, E, G. This is a diminished chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "C#",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "C#_augmented",
+      "name": "C# Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on C#.",
+      "details": "Notes: C#, E#, G##. This is a augmented chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "C#",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "C#_major_7th",
+      "name": "C# Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on C#.",
+      "details": "Notes: C#, E#, G#, B#. This is a major 7th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "C#",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "C#_minor_7th",
+      "name": "C# Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on C#.",
+      "details": "Notes: C#, E, G#, B. This is a minor 7th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G#-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G#",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "C#",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "C#_dominant_7th",
+      "name": "C# Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on C#.",
+      "details": "Notes: C#, E#, G#, B. This is a dominant 7th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "C#",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "C#_diminished_7th",
+      "name": "C# Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on C#.",
+      "details": "Notes: C#, E, G, Bb. This is a diminished 7th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G-Bb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G",
+          "Bb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "C#",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "C#_sus2",
+      "name": "C# Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on C#.",
+      "details": "Notes: C#, D#, G#. This is a sus2 chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-D#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "D#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "C#",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "C#_sus4",
+      "name": "C# Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on C#.",
+      "details": "Notes: C#, F#, G#. This is a sus4 chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-F#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "F#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "C#",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "C#_major_6th",
+      "name": "C# Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on C#.",
+      "details": "Notes: C#, E#, G#, A#. This is a major 6th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "C#",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "C#_minor_6th",
+      "name": "C# Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on C#.",
+      "details": "Notes: C#, E, G#, A#. This is a minor 6th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "C#",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "C#_9th",
+      "name": "C# 9th",
+      "category": "chords",
+      "description": "A 9th chord based on C#.",
+      "details": "Notes: C#, E#, G#, B, D#. This is a 9th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#-B-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#",
+          "B",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "C#",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "C#_major_9th",
+      "name": "C# Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on C#.",
+      "details": "Notes: C#, E#, G#, B#, D#. This is a major 9th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E#-G#-B#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E#",
+          "G#",
+          "B#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "C#",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "C#_minor_9th",
+      "name": "C# Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on C#.",
+      "details": "Notes: C#, E, G#, B, D#. This is a minor 9th chord in the key of C#.",
+      "examples": [
+        "Play as root voicing: C#-E-G#-B-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "C#",
+          "E",
+          "G#",
+          "B",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "C#",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "D_major",
+      "name": "D Major",
+      "category": "chords",
+      "description": "A Major chord based on D.",
+      "details": "Notes: D, F#, A. This is a major chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "D",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "D_minor",
+      "name": "D Minor",
+      "category": "chords",
+      "description": "A Minor chord based on D.",
+      "details": "Notes: D, F, A. This is a minor chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "D",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "D_diminished",
+      "name": "D Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on D.",
+      "details": "Notes: D, F, Ab. This is a diminished chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-Ab",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "Ab"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "D",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "D_augmented",
+      "name": "D Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on D.",
+      "details": "Notes: D, F#, A#. This is a augmented chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "D",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "D_major_7th",
+      "name": "D Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on D.",
+      "details": "Notes: D, F#, A, C#. This is a major 7th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "D",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "D_minor_7th",
+      "name": "D Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on D.",
+      "details": "Notes: D, F, A, C. This is a minor 7th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-A-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "A",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "D",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "D_dominant_7th",
+      "name": "D Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on D.",
+      "details": "Notes: D, F#, A, C. This is a dominant 7th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "D",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "D_diminished_7th",
+      "name": "D Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on D.",
+      "details": "Notes: D, F, Ab, Cb. This is a diminished 7th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-Ab-Cb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "Ab",
+          "Cb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "D",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "D_sus2",
+      "name": "D Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on D.",
+      "details": "Notes: D, E, A. This is a sus2 chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-E-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "E",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "D",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "D_sus4",
+      "name": "D Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on D.",
+      "details": "Notes: D, G, A. This is a sus4 chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-G-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "G",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "D",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "D_major_6th",
+      "name": "D Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on D.",
+      "details": "Notes: D, F#, A, B. This is a major 6th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "D",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "D_minor_6th",
+      "name": "D Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on D.",
+      "details": "Notes: D, F, A, B. This is a minor 6th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-A-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "A",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "D",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "D_9th",
+      "name": "D 9th",
+      "category": "chords",
+      "description": "A 9th chord based on D.",
+      "details": "Notes: D, F#, A, C, E. This is a 9th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A-C-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A",
+          "C",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "D",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "D_major_9th",
+      "name": "D Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on D.",
+      "details": "Notes: D, F#, A, C#, E. This is a major 9th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F#-A-C#-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F#",
+          "A",
+          "C#",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "D",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "D_minor_9th",
+      "name": "D Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on D.",
+      "details": "Notes: D, F, A, C, E. This is a minor 9th chord in the key of D.",
+      "examples": [
+        "Play as root voicing: D-F-A-C-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D",
+          "F",
+          "A",
+          "C",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "D",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "D#_major",
+      "name": "D# Major",
+      "category": "chords",
+      "description": "A Major chord based on D#.",
+      "details": "Notes: D#, F##, A#. This is a major chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "D#",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "D#_minor",
+      "name": "D# Minor",
+      "category": "chords",
+      "description": "A Minor chord based on D#.",
+      "details": "Notes: D#, F#, A#. This is a minor chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "D#",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "D#_diminished",
+      "name": "D# Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on D#.",
+      "details": "Notes: D#, F#, A. This is a diminished chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "D#",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "D#_augmented",
+      "name": "D# Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on D#.",
+      "details": "Notes: D#, F##, A##. This is a augmented chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "D#",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "D#_major_7th",
+      "name": "D# Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on D#.",
+      "details": "Notes: D#, F##, A#, C##. This is a major 7th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#-C##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#",
+          "C##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "D#",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "D#_minor_7th",
+      "name": "D# Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on D#.",
+      "details": "Notes: D#, F#, A#, C#. This is a minor 7th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A#-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A#",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "D#",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "D#_dominant_7th",
+      "name": "D# Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on D#.",
+      "details": "Notes: D#, F##, A#, C#. This is a dominant 7th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "D#",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "D#_diminished_7th",
+      "name": "D# Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on D#.",
+      "details": "Notes: D#, F#, A, C. This is a diminished 7th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "D#",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "D#_sus2",
+      "name": "D# Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on D#.",
+      "details": "Notes: D#, E#, A#. This is a sus2 chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-E#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "E#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "D#",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "D#_sus4",
+      "name": "D# Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on D#.",
+      "details": "Notes: D#, G#, A#. This is a sus4 chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-G#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "G#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "D#",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "D#_major_6th",
+      "name": "D# Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on D#.",
+      "details": "Notes: D#, F##, A#, B#. This is a major 6th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "D#",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "D#_minor_6th",
+      "name": "D# Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on D#.",
+      "details": "Notes: D#, F#, A#, B#. This is a minor 6th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "D#",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "D#_9th",
+      "name": "D# 9th",
+      "category": "chords",
+      "description": "A 9th chord based on D#.",
+      "details": "Notes: D#, F##, A#, C#, E#. This is a 9th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#-C#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#",
+          "C#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "D#",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "D#_major_9th",
+      "name": "D# Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on D#.",
+      "details": "Notes: D#, F##, A#, C##, E#. This is a major 9th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F##-A#-C##-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F##",
+          "A#",
+          "C##",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "D#",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "D#_minor_9th",
+      "name": "D# Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on D#.",
+      "details": "Notes: D#, F#, A#, C#, E#. This is a minor 9th chord in the key of D#.",
+      "examples": [
+        "Play as root voicing: D#-F#-A#-C#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "D#",
+          "F#",
+          "A#",
+          "C#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "D#",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "E_major",
+      "name": "E Major",
+      "category": "chords",
+      "description": "A Major chord based on E.",
+      "details": "Notes: E, G#, B. This is a major chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "E",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "E_minor",
+      "name": "E Minor",
+      "category": "chords",
+      "description": "A Minor chord based on E.",
+      "details": "Notes: E, G, B. This is a minor chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "E",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "E_diminished",
+      "name": "E Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on E.",
+      "details": "Notes: E, G, Bb. This is a diminished chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-Bb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "Bb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "E",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "E_augmented",
+      "name": "E Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on E.",
+      "details": "Notes: E, G#, B#. This is a augmented chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "E",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "E_major_7th",
+      "name": "E Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on E.",
+      "details": "Notes: E, G#, B, D#. This is a major 7th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "E",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "E_minor_7th",
+      "name": "E Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on E.",
+      "details": "Notes: E, G, B, D. This is a minor 7th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-B-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "B",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "E",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "E_dominant_7th",
+      "name": "E Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on E.",
+      "details": "Notes: E, G#, B, D. This is a dominant 7th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "E",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "E_diminished_7th",
+      "name": "E Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on E.",
+      "details": "Notes: E, G, Bb, Db. This is a diminished 7th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-Bb-Db",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "Bb",
+          "Db"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "E",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "E_sus2",
+      "name": "E Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on E.",
+      "details": "Notes: E, F#, B. This is a sus2 chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-F#-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "F#",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "E",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "E_sus4",
+      "name": "E Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on E.",
+      "details": "Notes: E, A, B. This is a sus4 chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-A-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "A",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "E",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "E_major_6th",
+      "name": "E Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on E.",
+      "details": "Notes: E, G#, B, C#. This is a major 6th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "E",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "E_minor_6th",
+      "name": "E Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on E.",
+      "details": "Notes: E, G, B, C#. This is a minor 6th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-B-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "B",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "E",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "E_9th",
+      "name": "E 9th",
+      "category": "chords",
+      "description": "A 9th chord based on E.",
+      "details": "Notes: E, G#, B, D, F#. This is a 9th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B-D-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B",
+          "D",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "E",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "E_major_9th",
+      "name": "E Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on E.",
+      "details": "Notes: E, G#, B, D#, F#. This is a major 9th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G#-B-D#-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G#",
+          "B",
+          "D#",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "E",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "E_minor_9th",
+      "name": "E Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on E.",
+      "details": "Notes: E, G, B, D, F#. This is a minor 9th chord in the key of E.",
+      "examples": [
+        "Play as root voicing: E-G-B-D-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "E",
+          "G",
+          "B",
+          "D",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "E",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "F_major",
+      "name": "F Major",
+      "category": "chords",
+      "description": "A Major chord based on F.",
+      "details": "Notes: F, A, C. This is a major chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "F",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "F_minor",
+      "name": "F Minor",
+      "category": "chords",
+      "description": "A Minor chord based on F.",
+      "details": "Notes: F, Ab, C. This is a minor chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "F",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "F_diminished",
+      "name": "F Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on F.",
+      "details": "Notes: F, Ab, Cb. This is a diminished chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-Cb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "Cb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "F",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "F_augmented",
+      "name": "F Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on F.",
+      "details": "Notes: F, A, C#. This is a augmented chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "F",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "F_major_7th",
+      "name": "F Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on F.",
+      "details": "Notes: F, A, C, E. This is a major 7th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "F",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "F_minor_7th",
+      "name": "F Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on F.",
+      "details": "Notes: F, Ab, C, Eb. This is a minor 7th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-C-Eb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "C",
+          "Eb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "F",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "F_dominant_7th",
+      "name": "F Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on F.",
+      "details": "Notes: F, A, C, Eb. This is a dominant 7th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C-Eb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C",
+          "Eb"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "F",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "F_diminished_7th",
+      "name": "F Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on F.",
+      "details": "Notes: F, Ab, Cb, Ebb. This is a diminished 7th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-Cb-Ebb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "Cb",
+          "Ebb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "F",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "F_sus2",
+      "name": "F Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on F.",
+      "details": "Notes: F, G, C. This is a sus2 chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-G-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "G",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "F",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "F_sus4",
+      "name": "F Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on F.",
+      "details": "Notes: F, Bb, C. This is a sus4 chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Bb-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Bb",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "F",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "F_major_6th",
+      "name": "F Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on F.",
+      "details": "Notes: F, A, C, D. This is a major 6th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "F",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "F_minor_6th",
+      "name": "F Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on F.",
+      "details": "Notes: F, Ab, C, D. This is a minor 6th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-C-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "C",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "F",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "F_9th",
+      "name": "F 9th",
+      "category": "chords",
+      "description": "A 9th chord based on F.",
+      "details": "Notes: F, A, C, Eb, G. This is a 9th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C-Eb-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C",
+          "Eb",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "F",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "F_major_9th",
+      "name": "F Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on F.",
+      "details": "Notes: F, A, C, E, G. This is a major 9th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-A-C-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "A",
+          "C",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "F",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "F_minor_9th",
+      "name": "F Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on F.",
+      "details": "Notes: F, Ab, C, Eb, G. This is a minor 9th chord in the key of F.",
+      "examples": [
+        "Play as root voicing: F-Ab-C-Eb-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F",
+          "Ab",
+          "C",
+          "Eb",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "F",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "F#_major",
+      "name": "F# Major",
+      "category": "chords",
+      "description": "A Major chord based on F#.",
+      "details": "Notes: F#, A#, C#. This is a major chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "F#",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "F#_minor",
+      "name": "F# Minor",
+      "category": "chords",
+      "description": "A Minor chord based on F#.",
+      "details": "Notes: F#, A, C#. This is a minor chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "F#",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "F#_diminished",
+      "name": "F# Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on F#.",
+      "details": "Notes: F#, A, C. This is a diminished chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "F#",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "F#_augmented",
+      "name": "F# Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on F#.",
+      "details": "Notes: F#, A#, C##. This is a augmented chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "F#",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "F#_major_7th",
+      "name": "F# Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on F#.",
+      "details": "Notes: F#, A#, C#, E#. This is a major 7th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "F#",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "F#_minor_7th",
+      "name": "F# Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on F#.",
+      "details": "Notes: F#, A, C#, E. This is a minor 7th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C#-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C#",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "F#",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "F#_dominant_7th",
+      "name": "F# Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on F#.",
+      "details": "Notes: F#, A#, C#, E. This is a dominant 7th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "F#",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "F#_diminished_7th",
+      "name": "F# Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on F#.",
+      "details": "Notes: F#, A, C, Eb. This is a diminished 7th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C-Eb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C",
+          "Eb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "F#",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "F#_sus2",
+      "name": "F# Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on F#.",
+      "details": "Notes: F#, G#, C#. This is a sus2 chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-G#-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "G#",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "F#",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "F#_sus4",
+      "name": "F# Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on F#.",
+      "details": "Notes: F#, B, C#. This is a sus4 chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-B-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "B",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "F#",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "F#_major_6th",
+      "name": "F# Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on F#.",
+      "details": "Notes: F#, A#, C#, D#. This is a major 6th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "F#",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "F#_minor_6th",
+      "name": "F# Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on F#.",
+      "details": "Notes: F#, A, C#, D#. This is a minor 6th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "F#",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "F#_9th",
+      "name": "F# 9th",
+      "category": "chords",
+      "description": "A 9th chord based on F#.",
+      "details": "Notes: F#, A#, C#, E, G#. This is a 9th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#-E-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#",
+          "E",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "F#",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "F#_major_9th",
+      "name": "F# Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on F#.",
+      "details": "Notes: F#, A#, C#, E#, G#. This is a major 9th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A#-C#-E#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A#",
+          "C#",
+          "E#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "F#",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "F#_minor_9th",
+      "name": "F# Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on F#.",
+      "details": "Notes: F#, A, C#, E, G#. This is a minor 9th chord in the key of F#.",
+      "examples": [
+        "Play as root voicing: F#-A-C#-E-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "F#",
+          "A",
+          "C#",
+          "E",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "F#",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "G_major",
+      "name": "G Major",
+      "category": "chords",
+      "description": "A Major chord based on G.",
+      "details": "Notes: G, B, D. This is a major chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "G",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "G_minor",
+      "name": "G Minor",
+      "category": "chords",
+      "description": "A Minor chord based on G.",
+      "details": "Notes: G, Bb, D. This is a minor chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "G",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "G_diminished",
+      "name": "G Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on G.",
+      "details": "Notes: G, Bb, Db. This is a diminished chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-Db",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "Db"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "G",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "G_augmented",
+      "name": "G Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on G.",
+      "details": "Notes: G, B, D#. This is a augmented chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "G",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "G_major_7th",
+      "name": "G Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on G.",
+      "details": "Notes: G, B, D, F#. This is a major 7th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "G",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "G_minor_7th",
+      "name": "G Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on G.",
+      "details": "Notes: G, Bb, D, F. This is a minor 7th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-D-F",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "D",
+          "F"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "G",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "G_dominant_7th",
+      "name": "G Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on G.",
+      "details": "Notes: G, B, D, F. This is a dominant 7th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D-F",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D",
+          "F"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "G",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "G_diminished_7th",
+      "name": "G Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on G.",
+      "details": "Notes: G, Bb, Db, Fb. This is a diminished 7th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-Db-Fb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "Db",
+          "Fb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "G",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "G_sus2",
+      "name": "G Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on G.",
+      "details": "Notes: G, A, D. This is a sus2 chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-A-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "A",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "G",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "G_sus4",
+      "name": "G Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on G.",
+      "details": "Notes: G, C, D. This is a sus4 chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-C-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "C",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "G",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "G_major_6th",
+      "name": "G Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on G.",
+      "details": "Notes: G, B, D, E. This is a major 6th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "G",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "G_minor_6th",
+      "name": "G Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on G.",
+      "details": "Notes: G, Bb, D, E. This is a minor 6th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-D-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "D",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "G",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "G_9th",
+      "name": "G 9th",
+      "category": "chords",
+      "description": "A 9th chord based on G.",
+      "details": "Notes: G, B, D, F, A. This is a 9th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D-F-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D",
+          "F",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "G",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "G_major_9th",
+      "name": "G Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on G.",
+      "details": "Notes: G, B, D, F#, A. This is a major 9th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-B-D-F#-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "B",
+          "D",
+          "F#",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "G",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "G_minor_9th",
+      "name": "G Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on G.",
+      "details": "Notes: G, Bb, D, F, A. This is a minor 9th chord in the key of G.",
+      "examples": [
+        "Play as root voicing: G-Bb-D-F-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G",
+          "Bb",
+          "D",
+          "F",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "G",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "G#_major",
+      "name": "G# Major",
+      "category": "chords",
+      "description": "A Major chord based on G#.",
+      "details": "Notes: G#, B#, D#. This is a major chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "G#",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "G#_minor",
+      "name": "G# Minor",
+      "category": "chords",
+      "description": "A Minor chord based on G#.",
+      "details": "Notes: G#, B, D#. This is a minor chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "G#",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "G#_diminished",
+      "name": "G# Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on G#.",
+      "details": "Notes: G#, B, D. This is a diminished chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "G#",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "G#_augmented",
+      "name": "G# Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on G#.",
+      "details": "Notes: G#, B#, D##. This is a augmented chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "G#",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "G#_major_7th",
+      "name": "G# Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on G#.",
+      "details": "Notes: G#, B#, D#, F##. This is a major 7th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#-F##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#",
+          "F##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "G#",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "G#_minor_7th",
+      "name": "G# Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on G#.",
+      "details": "Notes: G#, B, D#, F#. This is a minor 7th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D#-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D#",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "G#",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "G#_dominant_7th",
+      "name": "G# Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on G#.",
+      "details": "Notes: G#, B#, D#, F#. This is a dominant 7th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "G#",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "G#_diminished_7th",
+      "name": "G# Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on G#.",
+      "details": "Notes: G#, B, D, F. This is a diminished 7th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D-F",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D",
+          "F"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "G#",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "G#_sus2",
+      "name": "G# Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on G#.",
+      "details": "Notes: G#, A#, D#. This is a sus2 chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-A#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "A#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "G#",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "G#_sus4",
+      "name": "G# Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on G#.",
+      "details": "Notes: G#, C#, D#. This is a sus4 chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-C#-D#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "C#",
+          "D#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "G#",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "G#_major_6th",
+      "name": "G# Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on G#.",
+      "details": "Notes: G#, B#, D#, E#. This is a major 6th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "G#",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "G#_minor_6th",
+      "name": "G# Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on G#.",
+      "details": "Notes: G#, B, D#, E#. This is a minor 6th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "G#",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "G#_9th",
+      "name": "G# 9th",
+      "category": "chords",
+      "description": "A 9th chord based on G#.",
+      "details": "Notes: G#, B#, D#, F#, A#. This is a 9th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#-F#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#",
+          "F#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "G#",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "G#_major_9th",
+      "name": "G# Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on G#.",
+      "details": "Notes: G#, B#, D#, F##, A#. This is a major 9th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B#-D#-F##-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B#",
+          "D#",
+          "F##",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "G#",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "G#_minor_9th",
+      "name": "G# Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on G#.",
+      "details": "Notes: G#, B, D#, F#, A#. This is a minor 9th chord in the key of G#.",
+      "examples": [
+        "Play as root voicing: G#-B-D#-F#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "G#",
+          "B",
+          "D#",
+          "F#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "G#",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "A_major",
+      "name": "A Major",
+      "category": "chords",
+      "description": "A Major chord based on A.",
+      "details": "Notes: A, C#, E. This is a major chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "A",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "A_minor",
+      "name": "A Minor",
+      "category": "chords",
+      "description": "A Minor chord based on A.",
+      "details": "Notes: A, C, E. This is a minor chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "A",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "A_diminished",
+      "name": "A Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on A.",
+      "details": "Notes: A, C, Eb. This is a diminished chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-Eb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "Eb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "A",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "A_augmented",
+      "name": "A Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on A.",
+      "details": "Notes: A, C#, E#. This is a augmented chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "A",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "A_major_7th",
+      "name": "A Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on A.",
+      "details": "Notes: A, C#, E, G#. This is a major 7th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "A",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "A_minor_7th",
+      "name": "A Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on A.",
+      "details": "Notes: A, C, E, G. This is a minor 7th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "A",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "A_dominant_7th",
+      "name": "A Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on A.",
+      "details": "Notes: A, C#, E, G. This is a dominant 7th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "A",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "A_diminished_7th",
+      "name": "A Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on A.",
+      "details": "Notes: A, C, Eb, Gb. This is a diminished 7th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-Eb-Gb",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "Eb",
+          "Gb"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "A",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "A_sus2",
+      "name": "A Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on A.",
+      "details": "Notes: A, B, E. This is a sus2 chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-B-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "B",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "A",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "A_sus4",
+      "name": "A Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on A.",
+      "details": "Notes: A, D, E. This is a sus4 chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-D-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "D",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "A",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "A_major_6th",
+      "name": "A Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on A.",
+      "details": "Notes: A, C#, E, F#. This is a major 6th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "A",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "A_minor_6th",
+      "name": "A Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on A.",
+      "details": "Notes: A, C, E, F#. This is a minor 6th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-E-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "E",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "A",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "A_9th",
+      "name": "A 9th",
+      "category": "chords",
+      "description": "A 9th chord based on A.",
+      "details": "Notes: A, C#, E, G, B. This is a 9th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E-G-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E",
+          "G",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "A",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "A_major_9th",
+      "name": "A Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on A.",
+      "details": "Notes: A, C#, E, G#, B. This is a major 9th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C#-E-G#-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C#",
+          "E",
+          "G#",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "A",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "A_minor_9th",
+      "name": "A Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on A.",
+      "details": "Notes: A, C, E, G, B. This is a minor 9th chord in the key of A.",
+      "examples": [
+        "Play as root voicing: A-C-E-G-B",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A",
+          "C",
+          "E",
+          "G",
+          "B"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "A",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "A#_major",
+      "name": "A# Major",
+      "category": "chords",
+      "description": "A Major chord based on A#.",
+      "details": "Notes: A#, C##, E#. This is a major chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "A#",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "A#_minor",
+      "name": "A# Minor",
+      "category": "chords",
+      "description": "A Minor chord based on A#.",
+      "details": "Notes: A#, C#, E#. This is a minor chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "A#",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "A#_diminished",
+      "name": "A# Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on A#.",
+      "details": "Notes: A#, C#, E. This is a diminished chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "A#",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "A#_augmented",
+      "name": "A# Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on A#.",
+      "details": "Notes: A#, C##, E##. This is a augmented chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "A#",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "A#_major_7th",
+      "name": "A# Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on A#.",
+      "details": "Notes: A#, C##, E#, G##. This is a major 7th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#-G##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#",
+          "G##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "A#",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "A#_minor_7th",
+      "name": "A# Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on A#.",
+      "details": "Notes: A#, C#, E#, G#. This is a minor 7th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "A#",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "A#_dominant_7th",
+      "name": "A# Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on A#.",
+      "details": "Notes: A#, C##, E#, G#. This is a dominant 7th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "A#",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "A#_diminished_7th",
+      "name": "A# Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on A#.",
+      "details": "Notes: A#, C#, E, G. This is a diminished 7th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E-G",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E",
+          "G"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "A#",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "A#_sus2",
+      "name": "A# Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on A#.",
+      "details": "Notes: A#, B#, E#. This is a sus2 chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-B#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "B#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "A#",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "A#_sus4",
+      "name": "A# Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on A#.",
+      "details": "Notes: A#, D#, E#. This is a sus4 chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-D#-E#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "D#",
+          "E#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "A#",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "A#_major_6th",
+      "name": "A# Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on A#.",
+      "details": "Notes: A#, C##, E#, F##. This is a major 6th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#-F##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#",
+          "F##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "A#",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "A#_minor_6th",
+      "name": "A# Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on A#.",
+      "details": "Notes: A#, C#, E#, F##. This is a minor 6th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E#-F##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E#",
+          "F##"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "A#",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "A#_9th",
+      "name": "A# 9th",
+      "category": "chords",
+      "description": "A 9th chord based on A#.",
+      "details": "Notes: A#, C##, E#, G#, B#. This is a 9th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#-G#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#",
+          "G#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "A#",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "A#_major_9th",
+      "name": "A# Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on A#.",
+      "details": "Notes: A#, C##, E#, G##, B#. This is a major 9th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C##-E#-G##-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C##",
+          "E#",
+          "G##",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "A#",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "A#_minor_9th",
+      "name": "A# Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on A#.",
+      "details": "Notes: A#, C#, E#, G#, B#. This is a minor 9th chord in the key of A#.",
+      "examples": [
+        "Play as root voicing: A#-C#-E#-G#-B#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "A#",
+          "C#",
+          "E#",
+          "G#",
+          "B#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "A#",
+        "type": "Minor 9th"
+      }
+    },
+    {
+      "id": "B_major",
+      "name": "B Major",
+      "category": "chords",
+      "description": "A Major chord based on B.",
+      "details": "Notes: B, D#, F#. This is a major chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5"
+        ],
+        "root": "B",
+        "type": "Major"
+      }
+    },
+    {
+      "id": "B_minor",
+      "name": "B Minor",
+      "category": "chords",
+      "description": "A Minor chord based on B.",
+      "details": "Notes: B, D, F#. This is a minor chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5"
+        ],
+        "root": "B",
+        "type": "Minor"
+      }
+    },
+    {
+      "id": "B_diminished",
+      "name": "B Diminished",
+      "category": "chords",
+      "description": "A Diminished chord based on B.",
+      "details": "Notes: B, D, F. This is a diminished chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5"
+        ],
+        "root": "B",
+        "type": "Diminished"
+      }
+    },
+    {
+      "id": "B_augmented",
+      "name": "B Augmented",
+      "category": "chords",
+      "description": "A Augmented chord based on B.",
+      "details": "Notes: B, D#, F##. This is a augmented chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F##",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F##"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "#5"
+        ],
+        "root": "B",
+        "type": "Augmented"
+      }
+    },
+    {
+      "id": "B_major_7th",
+      "name": "B Major 7th",
+      "category": "chords",
+      "description": "A Major 7th chord based on B.",
+      "details": "Notes: B, D#, F#, A#. This is a major 7th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#-A#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#",
+          "A#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7"
+        ],
+        "root": "B",
+        "type": "Major 7th"
+      }
+    },
+    {
+      "id": "B_minor_7th",
+      "name": "B Minor 7th",
+      "category": "chords",
+      "description": "A Minor 7th chord based on B.",
+      "details": "Notes: B, D, F#, A. This is a minor 7th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F#-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F#",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7"
+        ],
+        "root": "B",
+        "type": "Minor 7th"
+      }
+    },
+    {
+      "id": "B_dominant_7th",
+      "name": "B Dominant 7th",
+      "category": "chords",
+      "description": "A Dominant 7th chord based on B.",
+      "details": "Notes: B, D#, F#, A. This is a dominant 7th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#-A",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#",
+          "A"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7"
+        ],
+        "root": "B",
+        "type": "Dominant 7th"
+      }
+    },
+    {
+      "id": "B_diminished_7th",
+      "name": "B Diminished 7th",
+      "category": "chords",
+      "description": "A Diminished 7th chord based on B.",
+      "details": "Notes: B, D, F, Ab. This is a diminished 7th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F-Ab",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F",
+          "Ab"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "b5",
+          "bb7"
+        ],
+        "root": "B",
+        "type": "Diminished 7th"
+      }
+    },
+    {
+      "id": "B_sus2",
+      "name": "B Sus2",
+      "category": "chords",
+      "description": "A Sus2 chord based on B.",
+      "details": "Notes: B, C#, F#. This is a sus2 chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-C#-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "C#",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "2",
+          "5"
+        ],
+        "root": "B",
+        "type": "Sus2"
+      }
+    },
+    {
+      "id": "B_sus4",
+      "name": "B Sus4",
+      "category": "chords",
+      "description": "A Sus4 chord based on B.",
+      "details": "Notes: B, E, F#. This is a sus4 chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-E-F#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "E",
+          "F#"
+        ],
+        "intervals": [
+          "1",
+          "4",
+          "5"
+        ],
+        "root": "B",
+        "type": "Sus4"
+      }
+    },
+    {
+      "id": "B_major_6th",
+      "name": "B Major 6th",
+      "category": "chords",
+      "description": "A Major 6th chord based on B.",
+      "details": "Notes: B, D#, F#, G#. This is a major 6th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "6"
+        ],
+        "root": "B",
+        "type": "Major 6th"
+      }
+    },
+    {
+      "id": "B_minor_6th",
+      "name": "B Minor 6th",
+      "category": "chords",
+      "description": "A Minor 6th chord based on B.",
+      "details": "Notes: B, D, F#, G#. This is a minor 6th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F#-G#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F#",
+          "G#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "6"
+        ],
+        "root": "B",
+        "type": "Minor 6th"
+      }
+    },
+    {
+      "id": "B_9th",
+      "name": "B 9th",
+      "category": "chords",
+      "description": "A 9th chord based on B.",
+      "details": "Notes: B, D#, F#, A, C#. This is a 9th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#-A-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#",
+          "A",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "B",
+        "type": "9th"
+      }
+    },
+    {
+      "id": "B_major_9th",
+      "name": "B Major 9th",
+      "category": "chords",
+      "description": "A Major 9th chord based on B.",
+      "details": "Notes: B, D#, F#, A#, C#. This is a major 9th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D#-F#-A#-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D#",
+          "F#",
+          "A#",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "3",
+          "5",
+          "7",
+          "9"
+        ],
+        "root": "B",
+        "type": "Major 9th"
+      }
+    },
+    {
+      "id": "B_minor_9th",
+      "name": "B Minor 9th",
+      "category": "chords",
+      "description": "A Minor 9th chord based on B.",
+      "details": "Notes: B, D, F#, A, C#. This is a minor 9th chord in the key of B.",
+      "examples": [
+        "Play as root voicing: B-D-F#-A-C#",
+        "Melodic use in C major or relative minor keys"
+      ],
+      "related": [],
+      "metadata": {
+        "notes": [
+          "B",
+          "D",
+          "F#",
+          "A",
+          "C#"
+        ],
+        "intervals": [
+          "1",
+          "b3",
+          "5",
+          "b7",
+          "9"
+        ],
+        "root": "B",
+        "type": "Minor 9th"
+      }
+    }
+  ]
+}

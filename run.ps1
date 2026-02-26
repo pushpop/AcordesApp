@@ -61,7 +61,10 @@ try {
     exit 1
 }
 
-if ($PythonArgs.Count -gt 0) {
+# Only show Python version if we need to do work (venv doesn't exist yet)
+$ShowPythonVersion = -not (Test-Path $VenvPy)
+
+if ($ShowPythonVersion -and $PythonArgs.Count -gt 0) {
     Write-Host " Using Python $PyMajor.$PyMinor (selected via py $($PythonArgs[0]))"
 }
 

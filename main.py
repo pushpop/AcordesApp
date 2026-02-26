@@ -34,6 +34,17 @@ from modes.tambor.tambor_mode import TamborMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
+class SynthHelpBar(Static):
+    """ABOUTME: Help bar displaying Synth keybinds - shown only in Synth mode.
+    ABOUTME: Displays keyboard shortcuts for Synth operations on two lines."""
+
+    def render(self) -> str:
+        """Render the help bar with two lines of keybinds."""
+        line1 = "WASD: Navigate | Q/E: Adjust | _: Randomize | ENTER: Focus | ,/.: Presets"
+        line2 = r"\[/\]: Volume | Ctrl+N: Save | Ctrl+S: Update | SPACE: Panic | -: Random All"
+        return f"{line1}\n{line2}"
+
+
 class TamborHelpBar(Static):
     """ABOUTME: Help bar displaying Tambor keybinds - shown only in Tambor mode.
     ABOUTME: Displays keyboard shortcuts for all Tambor operations on two lines."""
@@ -43,6 +54,28 @@ class TamborHelpBar(Static):
         line1 = "↑↓: Drums | ←→: Steps/M-S | SPACE: Play/Stop | ENTER: Toggle | E: Edit | M: Mute | S: Solo | H: Humanize"
         line2 = "R: Random | F: Fill | C: Clear | T: PRE-SCALE | N: Pattern | +/-: Steps"
         return f"{line1}\n{line2}"
+
+
+class MetronomeHelpBar(Static):
+    """ABOUTME: Help bar displaying Metronome keybinds - shown only in Metronome mode.
+    ABOUTME: Displays keyboard shortcuts for metronome control on two lines."""
+
+    def render(self) -> str:
+        """Render the help bar with two lines of keybinds."""
+        line1 = "P / SPACE: Start/Stop | ↑: Tempo + | ↓: Tempo - | ←: Time Sig - | →: Time Sig +"
+        line2 = ""
+        return line1 if not line2 else f"{line1}\n{line2}"
+
+
+class CompendiumHelpBar(Static):
+    """ABOUTME: Help bar displaying Compendium keybinds - shown only in Compendium mode.
+    ABOUTME: Displays keyboard shortcuts for chord library browsing."""
+
+    def render(self) -> str:
+        """Render the help bar with two lines of keybinds."""
+        line1 = "SPACE: Play Chord | E: Expand All | ↑↓←→: Navigate"
+        line2 = ""
+        return line1 if not line2 else f"{line1}\n{line2}"
 
 
 class MainScreen(Screen):
@@ -59,7 +92,41 @@ class MainScreen(Screen):
         align: center middle;
     }
 
+    #content-area > .mode-mounting {
+        display: none;
+    }
+
+    #synth-help-bar {
+        width: 100%;
+        height: auto;
+        text-align: center;
+        color: $text-muted;
+        padding: 0;
+        margin: 0;
+        border-top: solid $accent;
+    }
+
     #tambor-help-bar {
+        width: 100%;
+        height: auto;
+        text-align: center;
+        color: $text-muted;
+        padding: 0;
+        margin: 0;
+        border-top: solid $accent;
+    }
+
+    #metronome-help-bar {
+        width: 100%;
+        height: auto;
+        text-align: center;
+        color: $text-muted;
+        padding: 0;
+        margin: 0;
+        border-top: solid $accent;
+    }
+
+    #compendium-help-bar {
         width: 100%;
         height: auto;
         text-align: center;
@@ -86,7 +153,12 @@ class MainScreen(Screen):
         super().__init__()
         self.app_context = app_context
         self.mode_history = []
-        self._help_bar: Optional[TamborHelpBar] = None
+        self._help_bars: dict[str, Optional[Static]] = {
+            "synth": None,
+            "tambor": None,
+            "metronome": None,
+            "compendium": None,
+        }
 
     def compose(self):
         """Compose the main screen layout."""
@@ -165,23 +237,40 @@ class MainScreen(Screen):
         content = self.query_one("#content-area")
         content.remove_children()
         mode_widget = create_fn()
+        # Hide mode during mounting to prevent cascading widget render artifacts
+        mode_widget.add_class("mode-mounting")
         content.mount(mode_widget)
+
+        # Reveal the mode after it's fully composed
+        def show_mode():
+            mode_widget.remove_class("mode-mounting")
+
+        self.call_later(show_mode)
 
         # Give focus to the mounted mode if it supports focus (for BINDINGS to work)
         if hasattr(mode_widget, 'can_focus') and mode_widget.can_focus:
             mode_widget.focus()
 
-        # Manage Tambor help bar: mount only when in Tambor mode, unmount otherwise
-        if mode_name == "tambor":
-            # Mount help bar if not already mounted
-            if self._help_bar is None:
-                self._help_bar = TamborHelpBar(id="tambor-help-bar")
-                self.mount(self._help_bar)
-        else:
-            # Unmount help bar if it's mounted
-            if self._help_bar is not None:
-                self._help_bar.remove()
-                self._help_bar = None
+        # Manage mode-specific help bars: mount only for modes that have them
+        modes_with_help = {
+            "synth": SynthHelpBar,
+            "tambor": TamborHelpBar,
+            "metronome": MetronomeHelpBar,
+            "compendium": CompendiumHelpBar,
+        }
+
+        if mode_name in modes_with_help:
+            # Mount the appropriate help bar if not already mounted
+            if self._help_bars[mode_name] is None:
+                help_bar_class = modes_with_help[mode_name]
+                self._help_bars[mode_name] = help_bar_class(id=f"{mode_name}-help-bar")
+                self.mount(self._help_bars[mode_name])
+
+        # Unmount help bars for modes we're not in
+        for mode, help_bar in self._help_bars.items():
+            if mode != mode_name and help_bar is not None:
+                help_bar.remove()
+                self._help_bars[mode] = None
 
         self.app_context["current_mode"] = mode_name
 
