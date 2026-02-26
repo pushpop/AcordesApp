@@ -736,12 +736,13 @@ class TamborMode(Vertical):
             self.action_toggle_playback()
 
         # Cancel update timers to prevent background playback
+        # Note: set_interval() returns a Timer object, so we call .stop() on it
         if self._update_timer_handle is not None:
-            self.remove_timer(self._update_timer_handle)
+            self._update_timer_handle.stop()
             self._update_timer_handle = None
 
         if self._auto_save_timer_handle is not None:
-            self.remove_timer(self._auto_save_timer_handle)
+            self._auto_save_timer_handle.stop()
             self._auto_save_timer_handle = None
 
         # Save any unsaved changes immediately on mode exit
