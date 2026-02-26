@@ -83,10 +83,10 @@ class DrumVoiceManager:
         # This prevents parameter overwriting when multiple drums trigger on same step
         self.midi_note_params[midi_note] = synth_params.copy()
 
-        # Enqueue parameter update to MIDI event queue
-        # This ensures parameters are applied right before note_on in the audio thread
-        # when this MIDI note triggers, not globally affecting all voices
-        self._enqueue_drum_parameters(synth_params)
+        # Apply drum-specific synthesis parameters immediately before note_on
+        # This ensures parameters are set correctly for this specific drum voice
+        # before the note triggers, preventing parameter conflicts between drums
+        self._apply_drum_parameters(synth_params)
 
         # Apply humanization to velocity (±20% variation)
         humanized_velocity = max(1, min(127, int(velocity * humanize_velocity)))
@@ -95,7 +95,7 @@ class DrumVoiceManager:
         # - Retrigger if same MIDI note is already playing (no glitch)
         # - Allocate a new voice if available
         # - Voice steal if necessary
-        # - Apply parameters enqueued above right before this note_on
+        # - Use the parameters we just applied above
         self.synth_engine.note_on(midi_note, humanized_velocity)
 
         # Track this note as the last triggered note for this drum
@@ -117,66 +117,6 @@ class DrumVoiceManager:
         if voice_info["last_note"] is not None:
             self.synth_engine.note_off(voice_info["last_note"], velocity)
             voice_info["is_active"] = False
-
-    def _enqueue_drum_parameters(self, synth_params: Dict[str, Any]):
-        """
-        Enqueue drum parameters to MIDI event queue for per-note application.
-
-        This method enqueues a param_update event to the SynthEngine's MIDI event queue.
-        The audio thread will process this event right before the next note_on, ensuring
-        parameters are applied to the specific voice that's about to trigger, not globally
-        to all voices. This is critical for proper mixing when multiple drums trigger
-        on the same step.
-
-        Args:
-            synth_params: Dict of drum synthesis parameters from DRUM_PRESETS
-        """
-        # Build the parameter dict by mapping drum preset params to synth engine params
-        params_to_apply = {}
-
-        # Envelope parameters
-        if "attack" in synth_params:
-            params_to_apply["attack"] = synth_params["attack"]
-        if "decay" in synth_params:
-            params_to_apply["decay"] = synth_params["decay"]
-        if "sustain" in synth_params:
-            params_to_apply["sustain"] = synth_params["sustain"]
-        if "release" in synth_params:
-            params_to_apply["release"] = synth_params["release"]
-
-        # Filter parameters
-        if "cutoff_freq" in synth_params:
-            params_to_apply["cutoff"] = synth_params["cutoff_freq"]
-        if "resonance" in synth_params:
-            params_to_apply["resonance"] = synth_params["resonance"]
-
-        # Oscillator/waveform
-        if "oscillator_type" in synth_params:
-            osc_type = synth_params["oscillator_type"]
-            if osc_type == "noise_white":
-                params_to_apply["waveform"] = "noise_white"
-            elif osc_type == "noise_pink":
-                params_to_apply["waveform"] = "noise_pink"
-            elif osc_type in ["sine", "square", "triangle", "sawtooth", "pure_sine"]:
-                params_to_apply["waveform"] = osc_type
-            else:
-                params_to_apply["waveform"] = "sine"
-
-        # Volume
-        if "volume" in synth_params:
-            params_to_apply["amp_level"] = synth_params["volume"]
-
-        # Enqueue to MIDI event queue if available
-        # This ensures parameters are applied via the audio thread in proper sequence
-        if params_to_apply and hasattr(self.synth_engine, 'midi_event_queue'):
-            self.synth_engine.midi_event_queue.put({
-                'type': 'param_update',
-                'params': params_to_apply
-            })
-        else:
-            # Fallback: Apply immediately if event queue not available
-            # (for standalone/testing use)
-            self._apply_drum_parameters(synth_params)
 
     def _apply_drum_parameters(self, synth_params: Dict[str, Any]):
         """
