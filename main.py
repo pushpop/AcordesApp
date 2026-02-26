@@ -28,6 +28,7 @@ from modes.compendium_mode import CompendiumMode
 from modes.synth_mode import SynthMode
 from modes.metronome_mode import MetronomeMode
 from modes.main_menu_mode import MainMenuMode
+from modes.tambor.tambor_mode import TamborMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
@@ -52,6 +53,7 @@ class MainScreen(Screen):
         Binding("2", "show_compendium", "Compendium", show=True),
         Binding("3", "show_synth", "Synth", show=True),
         Binding("4", "show_metronome", "Metronome", show=True),
+        Binding("5", "show_tambor", "Tambor", show=True),
         Binding("c", "show_config", "Config", show=True),
         Binding("backspace", "go_back", "Back", show=True),
         Binding("escape", "quit_app", "Quit", show=True),
@@ -105,6 +107,8 @@ class MainScreen(Screen):
             self.action_show_synth(save_history=False)
         elif previous_mode == "metronome":
             self.action_show_metronome(save_history=False)
+        elif previous_mode == "tambor":
+            self.action_show_tambor(save_history=False)
 
     def action_show_main_menu(self, save_history=True):
         """Show main menu mode."""
@@ -160,6 +164,12 @@ class MainScreen(Screen):
             self._record_history()
         self._switch_mode(self.app_context["create_metronome"], "metronome")
 
+    def action_show_tambor(self, save_history=True):
+        """Show Tambor drum machine mode."""
+        if save_history:
+            self._record_history()
+        self._switch_mode(self.app_context["create_tambor"], "tambor")
+
     def action_show_config(self):
         """Show config modal."""
         # Remember current mode
@@ -188,6 +198,8 @@ class MainScreen(Screen):
                 self.action_show_synth(save_history=False)
             elif previous_mode == "metronome":
                 self.action_show_metronome(save_history=False)
+            elif previous_mode == "tambor":
+                self.action_show_tambor(save_history=False)
             else: # Defaults to main_menu
                 self.action_show_main_menu(save_history=False)
 
@@ -242,6 +254,7 @@ class AcordesApp(App):
             "create_compendium": self._create_compendium_mode,
             "create_synth": self._create_synth_mode,
             "create_metronome": self._create_metronome_mode,
+            "create_tambor": self._create_tambor_mode,
             "current_mode": "main_menu",
             "mode_before_config": "main_menu",
         }
@@ -299,6 +312,14 @@ class AcordesApp(App):
     def _create_metronome_mode(self):
         """Create metronome mode widget."""
         return MetronomeMode(self.config_manager)
+
+    def _create_tambor_mode(self):
+        """Create Tambor drum machine mode widget."""
+        return TamborMode(
+            config_manager=self.config_manager,
+            synth_engine=self.synth_engine,
+            midi_handler=self.midi_handler
+        )
 
     def on_unmount(self):
         """Clean up on exit."""
