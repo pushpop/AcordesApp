@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button
 from textual.binding import Binding
-from music.fill_presets import get_all_fill_ids, get_fill_names
+from ..music.fill_presets import get_all_fill_ids, get_fill_names
 
 
 class FillSelectorScreen(Screen):

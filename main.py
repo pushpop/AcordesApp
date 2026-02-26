@@ -9,6 +9,8 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 # Note: On Windows, mido will auto-detect available MIDI backends
 # We don't force a specific backend to avoid DLL issues
 
+from typing import Optional
+
 from textual.app import App
 from textual.binding import Binding
 from textual.widgets import Static, Header, Footer
@@ -32,6 +34,17 @@ from modes.tambor.tambor_mode import TamborMode
 from components.confirmation_dialog import ConfirmationDialog
 
 
+class TamborHelpBar(Static):
+    """ABOUTME: Help bar displaying Tambor keybinds - shown only in Tambor mode.
+    ABOUTME: Displays keyboard shortcuts for all Tambor operations on two lines."""
+
+    def render(self) -> str:
+        """Render the help bar with two lines of keybinds."""
+        line1 = "↑↓: Drums | ←→: Steps/M-S | SPACE: Play/Stop | ENTER: Toggle | E: Edit | M: Mute | S: Solo | H: Humanize"
+        line2 = "R: Random | F: Fill | C: Clear | T: PRE-SCALE | N: Pattern | +/-: Steps"
+        return f"{line1}\n{line2}"
+
+
 class MainScreen(Screen):
     """Main screen with split layout."""
 
@@ -41,9 +54,19 @@ class MainScreen(Screen):
     }
 
     #content-area {
-        height: 100%;
+        height: 1fr;
         width: 100%;
         align: center middle;
+    }
+
+    #tambor-help-bar {
+        width: 100%;
+        height: auto;
+        text-align: center;
+        color: $text-muted;
+        padding: 0;
+        margin: 0;
+        border-top: solid $accent;
     }
     """
 
@@ -63,6 +86,7 @@ class MainScreen(Screen):
         super().__init__()
         self.app_context = app_context
         self.mode_history = []
+        self._help_bar: Optional[TamborHelpBar] = None
 
     def compose(self):
         """Compose the main screen layout."""
@@ -71,6 +95,9 @@ class MainScreen(Screen):
         # Content area for Piano or Compendium - NO CONTAINER
         with Container(id="content-area"):
             pass
+
+        # Help bar will be mounted dynamically when in Tambor mode
+        # It's not yielded here because we only want it visible in Tambor mode
 
         yield Footer()
 
@@ -137,7 +164,25 @@ class MainScreen(Screen):
 
         content = self.query_one("#content-area")
         content.remove_children()
-        content.mount(create_fn())
+        mode_widget = create_fn()
+        content.mount(mode_widget)
+
+        # Give focus to the mounted mode if it supports focus (for BINDINGS to work)
+        if hasattr(mode_widget, 'can_focus') and mode_widget.can_focus:
+            mode_widget.focus()
+
+        # Manage Tambor help bar: mount only when in Tambor mode, unmount otherwise
+        if mode_name == "tambor":
+            # Mount help bar if not already mounted
+            if self._help_bar is None:
+                self._help_bar = TamborHelpBar(id="tambor-help-bar")
+                self.mount(self._help_bar)
+        else:
+            # Unmount help bar if it's mounted
+            if self._help_bar is not None:
+                self._help_bar.remove()
+                self._help_bar = None
+
         self.app_context["current_mode"] = mode_name
 
     def action_show_piano(self, save_history=True):

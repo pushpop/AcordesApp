@@ -159,7 +159,7 @@ class DrumSynth:
         def _preload_bg():
             """Background thread function to preload all drums."""
             try:
-                from music.drum_presets import DRUM_PRESETS
+                from .drum_presets import DRUM_PRESETS
 
                 for drum_name, drum_config in DRUM_PRESETS.items():
                     midi_note = drum_config.get("midi_note")

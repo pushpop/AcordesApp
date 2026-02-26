@@ -1,33 +1,29 @@
-"""ABOUTME: Adapter bridging Tambor drum synthesis to Acordes SynthEngine.
-ABOUTME: Routes drum notes to Acordes synth with parameter mapping, falls back to local DrumSynth."""
+"""ABOUTME: Adapter routing Tambor drum synthesis to shared Acordes SynthEngine.
+ABOUTME: Maps drum parameters to Acordes synth parameters for drum sound generation."""
 
 from typing import Optional, Dict, Any
 
 
 class AcordesSynthAdapter:
     """
-    Routes Tambor drum notes to Acordes SynthEngine when available,
-    with intelligent fallback to local DrumSynth.
+    Routes Tambor drum notes to the shared Acordes SynthEngine.
 
     Maps Tambor drum parameters (pitch, ADSR, filter, etc.) to Acordes
-    synth parameters for seamless integration. Falls back gracefully if
-    Acordes synth is unavailable.
+    synth parameters for seamless integration across the application.
     """
 
-    def __init__(self, synth_engine: Optional[Any] = None, drum_synth: Optional[Any] = None):
+    def __init__(self, synth_engine: Any):
         """
-        Initialize the adapter with Acordes synth engine and fallback drum synth.
+        Initialize the adapter with Acordes synth engine.
 
         Args:
-            synth_engine: Acordes SynthEngine instance (may be None)
-            drum_synth: Fallback DrumSynth instance for local synthesis
+            synth_engine: Acordes SynthEngine instance (required)
         """
         self.synth_engine = synth_engine
-        self.drum_synth = drum_synth
 
     def drum_note_on(self, midi_note: int, velocity: int, drum_params: Dict[str, Any]):
         """
-        Trigger a drum hit using Acordes synth if available, else fallback to DrumSynth.
+        Trigger a drum hit using Acordes SynthEngine.
 
         Args:
             midi_note: MIDI note number (e.g., 36 for kick, 38 for snare)
@@ -35,10 +31,7 @@ class AcordesSynthAdapter:
             drum_params: Dict of drum synth parameters from drum_presets.synth_params
                         (pitch, ADSR, cutoff_freq, resonance, oscillator_type, etc.)
         """
-        if self.synth_engine is not None:
-            self._route_to_acordes_synth(midi_note, velocity, drum_params)
-        elif self.drum_synth is not None:
-            self._route_to_drum_synth(midi_note, velocity, drum_params)
+        self._route_to_acordes_synth(midi_note, velocity, drum_params)
 
     def _route_to_acordes_synth(self, midi_note: int, velocity: int, drum_params: Dict[str, Any]):
         """
@@ -95,13 +88,6 @@ class AcordesSynthAdapter:
         # Velocity is 0-127; normalize to 0-127 for synth_engine.note_on
         self.synth_engine.note_on(midi_note, velocity)
 
-    def _route_to_drum_synth(self, midi_note: int, velocity: int, drum_params: Dict[str, Any]):
-        """
-        Fallback route to local DrumSynth.
-
-        Uses drum_synth.note_on() with full drum_params dict.
-        """
-        self.drum_synth.note_on(midi_note, velocity)
 
     def drum_note_off(self, midi_note: int, velocity: int = 0):
         """
@@ -111,14 +97,8 @@ class AcordesSynthAdapter:
             midi_note: MIDI note number
             velocity: Release velocity (typically 0)
         """
-        if self.synth_engine is not None:
-            self.synth_engine.note_off(midi_note, velocity)
-        elif self.drum_synth is not None:
-            # DrumSynth doesn't have explicit note_off (samples finish naturally)
-            pass
+        self.synth_engine.note_off(midi_note, velocity)
 
     def all_notes_off(self):
-        """Silent all active drums immediately."""
-        if self.synth_engine is not None:
-            self.synth_engine.all_notes_off()
-        # DrumSynth doesn't have explicit all_notes_off (just stop playback)
+        """Silence all active drums immediately."""
+        self.synth_engine.all_notes_off()
