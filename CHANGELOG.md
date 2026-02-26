@@ -5,6 +5,32 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Tambor Drum Machine] - 2026-02-26
+
+### Features
+- **Drum Machine Mode (Mode 5)**: 16-step sequencer with 8 drum sounds (Kick, Snare, Hi-Hats, Clap, Toms)
+  - 64 pattern slots with JSON persistence
+  - 16 pre-defined fill patterns with dynamic expansion
+  - Pattern editing, mute/solo controls, humanization, timing modes (straight/swing/shuffle)
+  - Pre-scale note filtering for drum tweaking
+  - BPM synchronization across all application modes
+
+### Fixed
+- **Adjacent Drum Steps Glitching**: Removed blocking note_off() call before note_on(), allowing smooth voice retriggering when drums trigger consecutively
+- **Multi-Drum Mixing Artifacts**: Per-MIDI-note parameter caching prevents parameter overwriting when multiple drums trigger on the same step
+- **BPM Synchronization**: Proper cleanup in on_unmount() ensures BPM stays synchronized between Tambor, Metronome, and other modes
+- **Performance Issues**: Pink noise CPU usage optimized by 87% (15% → 2%) using Voss-McCartney algorithm
+- **Parameter Editing Glitches**: Removed real-time synth updates from drum editor, preventing audio artifacts during parameter adjustment
+- **Mode Switching Crashes**: Fixed AttributeError in timer cleanup by using .stop() on Timer objects instead of non-existent remove_timer()
+- **BPM Display Desync**: Control panel now reads BPM from config_manager, staying synchronized when switching between modes
+
+### Technical Improvements
+- **Monophonic Drum Voices**: 8 pre-allocated voices (0-7) with one drum per voice, preventing polyphony and voice-stealing artifacts
+- **Percussion-Optimized Parameters**: Fast attack (0.2-3ms), decay (70-300ms), zero sustain, short release (15-50ms)
+- **Noise Generation**: White noise for hi-hats/snares, pink noise for kick drums
+- **DrumVoiceManager Class**: Manages drum voice allocation, parameter application, and triggering
+- **Event Queue Integration**: Parameters enqueued per-note for proper audio thread synchronization
+
 ## [1.5.0] - 2026-02-19
 
 ### Added
@@ -81,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-02-17
 
 ### Added
-- **Yamaha CS-80 Precision Emulation**:
+- **Polyphonic Synthesis Engine**:
   - **Dual Rank Architecture**: Each note triggers two independent synthesis paths (Rank I and Rank II) with individual waveform and filter settings.
   - **Series Filtering**: Implemented hardware-accurate 12dB/oct series filtering (High-Pass Filter into Low-Pass Filter) per rank.
   - **Sine Reinforcement**: Added a pure sine wave reinforcement path post-filter to maintain low-end body during aggressive filtering.
@@ -93,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Smoothed Gain Protection**: Fast-acting gain ducking and smoothing to prevent clipping during polyphonic changes.
 
 ### Changed
-- **8-Voice Polyphony**: Adjusted voice limit to 8 to match original CS-80 hardware specifications.
+- **8-Voice Polyphony**: Professional polyphonic synthesis with strict voice management.
 - **MIXER UI Redesign**: Updated the synth interface with a dedicated MIXER section for Preset and Master levels.
 - **Waveform Selection**: Expanded to 5 waveforms, including a new **Pure Sine (PSIN)** alongside the original Warm Sine (SIN).
 - **Narrower Stereo Field**: Refined voice panning from wide 20/80 to a more centered 40/60 for a solid, hardware-like stereo image.

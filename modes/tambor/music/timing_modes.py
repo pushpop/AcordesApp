@@ -1,4 +1,4 @@
-"""ABOUTME: Timing modes for TR-909 drum machine sequencer effects.
+"""ABOUTME: Timing modes for drum machine sequencer effects.
 ABOUTME: Provides swing, shuffle, and custom timing offset calculations."""
 
 from enum import Enum

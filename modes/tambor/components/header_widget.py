@@ -82,7 +82,7 @@ class HeaderWidget(Vertical):
         return f"{top}\n{mid}\n{bottom}"
 
     def _create_tr_blocks(self) -> str:
-        """Create TR-909 inspired colored blocks (8 blocks with 4 color pairs)."""
+        """Create drum machine inspired colored blocks (8 blocks with 4 color pairs)."""
         # Use block characters with color coding:
         # Red pair (██), Orange pair (▓▓), Yellow pair (▒▒), White pair (░░)
         red_pair = "[#ff3333]██[/]"  # Red

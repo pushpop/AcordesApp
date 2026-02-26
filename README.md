@@ -11,7 +11,7 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Config Mode**: Display and select MIDI devices connected to your system.
 - **Piano Mode**: Real-time visual piano keyboard showing notes and chord detection.
 - **Synth Mode**: An 8-voice polyphonic synthesizer with real-time MIDI playback.
-  - **CS-80 Emulation** *(v1.3.0)*: Precision emulation of the Yamaha CS-80 architecture.
+  - **Polyphonic Synthesis Engine** *(v1.3.0)*: Professional synthesis architecture with dual-oscillator design.
     - **Dual Rank Architecture**: Two independent synthesis paths per note.
     - **Series Filtering**: High-Pass Filter (HPF) into Low-Pass Filter (LPF) per rank.
     - **Sine Reinforcement**: Post-filter pure sine wave for solid low-end.
@@ -22,15 +22,15 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
   - **DSP Correctness & Click-Free Polyphony** *(v1.4.0)*: Full audio engine audit and fix — filter stability, sine waveform accuracy, phase continuity, gain staging, and polyphonic click elimination.
   - **Audio Thread Priority & Race-Free Parameters** *(v1.4.1)*: OS-level audio thread scheduling (Windows/Linux/macOS) and thread-safe parameter routing via event queue eliminate remaining clicks and crackles during rapid playing and mode switching.
   - **Low-Frequency Onset & Randomize Click Suppression** *(v1.4.3)*: Frequency-adaptive onset ramp, ANTI_I window, and DC blocker coefficient eliminate onset thumps on very low notes; output mute gate suppresses clicks during randomize on held notes.
-  - **LFO Shape & Target Routing** *(NEW in v1.5.0)*: SIN / TRI / SQR / S&H shapes with target routing to VCO, VCF, VCA, or ALL simultaneously.
-  - **FX Delay** *(NEW in v1.5.0)*: Stereo echo with adjustable time (50 ms – 2 s), feedback, and wet/dry mix.
-  - **BBD-style Chorus** *(NEW in v1.5.0)*: Tape-emulation chorus with 1–4 modulated delay taps, rate, depth, and wet/dry mix.
-  - **Arpeggiator** *(NEW in v1.5.0)*: Audio-callback-driven arpeggiator with UP / DOWN / UP+DOWN / RANDOM modes, BPM (shared with Metronome), gate length, and octave range 1–4.
+  - **LFO Shape & Target Routing**: SIN / TRI / SQR / S&H shapes with target routing to VCO, VCF, VCA, or ALL simultaneously.
+  - **FX Delay**: Stereo echo with adjustable time (50 ms – 2 s), feedback, and wet/dry mix.
+  - **BBD-style Chorus**: Tape-emulation chorus with 1–4 modulated delay taps, rate, depth, and wet/dry mix.
+  - **Arpeggiator**: Audio-callback-driven arpeggiator with UP / DOWN / UP+DOWN / RANDOM modes, BPM (shared with Metronome), gate length, and octave range 1–4.
   - **Preset System**: 10 factory presets + unlimited user-saveable presets stored as individual JSON files.
   - **Randomizer**: Generate musically useful random patches with a single key press.
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
-- **Metronome Mode**: A highly customizable and musically aware metronome. BPM now shared with the Arpeggiator.
+- **Metronome Mode**: A highly customizable and musically aware metronome with BPM shared across all modes.
 
 ## What's New in v1.5.0
 
@@ -129,13 +129,13 @@ A focused DSP quality release — no new features, only fixes to audio engine co
 
 ## What's New in v1.3.0
 
-- **CS-80 Architecture**:
-  - Implemented the legendary Dual Rank system where each key triggers two independent synth engines.
-  - Added Series HPF -> LPF filtering for precise timbral windowing.
+- **Synthesis Architecture**:
+  - Implemented the Dual Rank system where each key triggers two independent synth engines.
+  - Added Series HPF -> LFO filtering for precise timbral windowing.
   - Added Sine Reinforcement to maintain bass "heft" during aggressive filtering.
-  - Global Sub-Oscillator (LFO) for hardware-authentic modulation.
+  - Global Sub-Oscillator (LFO) for authentic modulation.
 - **Pro Audio Improvements**:
-  - **8-Voice Polyphony**: Strictly limited to 8 voices to match the original CS-80 hardware.
+  - **8-Voice Polyphony**: Professional polyphonic synthesis with strict voice management.
   - **Vectorized DSP**: All oscillators, filters, and envelopes refactored with NumPy/SciPy for high performance.
   - **Click-Free Performance**: Implemented free-running oscillators and smoothed gain transitions.
   - **DC Blocker Refinement**: Eliminated "DC Crush" artifacts for rock-solid tonal stability.

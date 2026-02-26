@@ -39,7 +39,7 @@ Key modes:
 - **`synth_mode.py`** — The most complex mode. Manages 8 UI sections (OSC, FILTER, ENVELOPE, LFO, CHORUS, FX, ARPEGGIO, MIXER) rendered as a parameter grid. Has two input sub-modes: *focus mode* (WASD cursor + Q/E value change + `_` randomize focused param) and *legacy mode* (letter keys mapped to individual params). All parameter changes go through `_push_params_to_engine()` → `synth_engine.update_parameters(**kwargs)`.
 - **`piano_mode.py`** — Visualises the MIDI keyboard, runs chord detection, also drives synth.
 - **`metronome_mode.py`** — Shares BPM with the arpeggiator via `config_manager.get_bpm()` / `set_bpm()`.
-- **`tambor/tambor_mode.py`** — TR-909-style drum machine (16-step sequencer, 8 drum sounds, pattern management, fills, humanize). Integrated from standalone Tambor project. Uses the shared Acordes `SynthEngine` to generate drum sounds via MIDI triggers. Pattern playback enqueues note-on/off events to `synth_engine.midi_event_queue` for sample-accurate timing. BPM syncs with metronome via `config_manager`.
+- **`tambor/tambor_mode.py`** — Drum machine sequencer (16-step sequencer, 8 drum sounds, pattern management, fills, humanize). Integrated from standalone Tambor project. Uses the shared Acordes `SynthEngine` to generate drum sounds via MIDI triggers. Pattern playback enqueues note-on/off events to `synth_engine.midi_event_queue` for sample-accurate timing. BPM syncs with metronome via `config_manager`.
 
 ### MIDI flow
 

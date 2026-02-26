@@ -681,7 +681,7 @@ class TamborMode(Vertical):
 
     def compose(self):
         """Compose the drum machine layout."""
-        yield HeaderWidget(title="TAMBOR", subtitle="TR-909 Drum Sequencer")
+        yield HeaderWidget(title="TAMBOR", subtitle="Drum Sequencer")
 
         self.control_panel = ControlPanel(config_manager=self.config_manager)
         yield self.control_panel

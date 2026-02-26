@@ -1,4 +1,4 @@
-"""ABOUTME: PRE-SCALE timing for TR-909 drum machine sequencer resolution.
+"""ABOUTME: PRE-SCALE timing for drum machine sequencer resolution.
 ABOUTME: Determines how many steps per beat (quarter note) for fundamental grid subdivision."""
 
 from enum import Enum
