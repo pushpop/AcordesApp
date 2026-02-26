@@ -1,6 +1,11 @@
-<img width="698" height="485" alt="image" src="https://github.com/user-attachments/assets/52cd7352-ebd7-45ea-8079-8854dd3f7cd8" />
-
 # Acordes - MIDI Piano TUI Application
+
+## Application Overview
+
+| | |
+|:---:|:---:|
+| ![Main Menu](docs/images/main-menu.png) | ![Piano Mode](docs/images/piano-mode.png) |
+| ![Synth Mode](docs/images/synth-mode.png) | ![Tambor Mode](docs/images/tambor-mode.png) |
 
 **Version 1.6.0**
 
