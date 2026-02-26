@@ -86,6 +86,11 @@ class MainScreen(Screen):
         layout: vertical;
     }
 
+    Header {
+        height: auto;
+        border: none;
+    }
+
     #content-area {
         height: 1fr;
         width: 100%;
@@ -149,6 +154,10 @@ class MainScreen(Screen):
         Binding("escape", "quit_app", "Quit", show=True),
     ]
 
+    def action_toggle_header(self) -> None:
+        """Prevent the default header toggle action."""
+        pass  # Disabled - do nothing
+
     def __init__(self, app_context):
         super().__init__()
         self.app_context = app_context
@@ -162,7 +171,12 @@ class MainScreen(Screen):
 
     def compose(self):
         """Compose the main screen layout."""
-        yield Header()
+        header = Header()
+        header.can_focus = False
+        # Prevent header from expanding when clicked
+        if hasattr(header, 'expand'):
+            header.expand = False
+        yield header
 
         # Content area for Piano or Compendium - NO CONTAINER
         with Container(id="content-area"):
@@ -352,7 +366,8 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.5.0"
+    VERSION = "1.6.0"
+    ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """
 

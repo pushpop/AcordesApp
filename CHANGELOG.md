@@ -5,6 +5,73 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-02-26
+
+### Added
+- **Compendium Search Functionality**: Real-time search across all 258+ music items
+  - Search input at top of Compendium Mode — filters tree on every keystroke
+  - Searches all fields: name, description, details, examples, metadata (case-insensitive)
+  - Results grouped by category (Chords, Scales, Modes, Instruments, Genres) with item counts
+  - Existing chord auto-play and detail panel work seamlessly with search results
+  - Tab/Shift+Tab focus cycling between search input and tree
+  - Delete search text to instantly restore full hierarchical tree
+  - `CompendiumDataManager.search_items()` method for flexible querying
+  - `CompendiumMode._build_search_results_tree()` for organized result display
+  - `on_input_changed()` event handler for real-time filtering
+
+- **Music Modes Category (NEW)**: 7 diatonic modes with complete theory
+  - Ionian (1st degree) — Major scale equivalent
+  - Dorian (2nd degree) — Jazzy, funky, groovy minor
+  - Phrygian (3rd degree) — Dark, exotic, Spanish/flamenco
+  - Lydian (4th degree) — Ethereal, dreamy, bright
+  - Mixolydian (5th degree) — Major with bluesy quality
+  - Aeolian (6th degree) — Natural minor (sad, introspective)
+  - Locrian (7th degree) — Very dark, dissonant, unstable
+  - Each mode includes intervals, semitones, usage, and related modes
+  - New `data/compendium/modes.json` file with 7 modal entries
+
+- **Expanded Instruments (6 → 28 items)**:
+  - String Instruments family (10): Piano, Guitar, Violin, Cello, Viola, Double Bass, Harp, Mandolin, Ukulele, Bass
+  - Brass Instruments family (4): Trumpet, French Horn, Trombone, Tuba
+  - Woodwind Instruments family (4): Saxophone, Clarinet, Flute, Oboe
+  - Percussion family (1): Drums
+  - Keyboard Instruments family (3): Organ, Synthesizer
+  - Vocal Instruments family (1): Vocals
+  - Hierarchical tree organization with family grouping in Compendium display
+  - Each instrument includes range, polyphony, learning curve, artist examples, metadata
+
+- **Expanded Genres (6 → 22 items)**:
+  - Original 6: Jazz, Blues, Rock, Classical, Pop, Hip Hop / Rap
+  - Added 16: Country, Folk, Reggae, Electronic / EDM, Metal, R&B / Soul, Funk, Latin / Salsa, Gospel, Ambient, Indie / Alternative, Punk, Disco, World / Ethnic Music, Ska, Grunge
+  - Each genre includes era, origin, characteristics, instruments, subgenres
+
+- **Expanded Scales (7 → 15 items)**:
+  - Original 7: Major, Natural Minor, Harmonic Minor, Melodic Minor, Major/Minor Pentatonic, Blues
+  - Added 8 exotic scales: Harmonic Major, Whole Tone, Phrygian Dominant, Diminished (Octatonic), Augmented, Altered (Super Locrian), Mixolydian Flat 6 (Hindu), Neapolitan Minor
+  - Comprehensive intervals, semitone patterns, and usage information
+
+- **Improved Compendium Category Hierarchy**:
+  - Updated `data/compendium/categories.json` to include Modes as 6th main category under Music
+  - All 258+ items organized across 6 categories with cross-references
+
+### Changed
+- `ENABLE_COMMAND_PALETTE = False` in `AcordesApp` class (`main.py`) — Textual command palette disabled for cleaner interface
+- Version updated from 1.5.0 → 1.6.0 in `main.py` and documentation
+- **Header title no longer expands on click**: Disabled Textual Header expand behavior via `can_focus=False`, `expand=False`, and `action_toggle_header()` override for cleaner UI
+- **Category descriptions in Compendium**: Selecting major categories (Chords, Scales, Modes, Instruments, Genres) now displays category description and subcategories in detail panel
+- **Fixed category icons in full tree**: Category nodes now display correct icons (🎹 🎧 📊 🎼 🎸) in full tree view, matching search results
+
+### Architecture Notes
+- Search implementation is non-destructive — existing tree building methods unchanged
+- Search is real-time via `Input.Changed` event handler — no Enter key needed
+- Substring matching (not fuzzy) for predictable, responsive filtering
+- Instrument hierarchy created via `_build_instruments_tree()` method recognizing family category nodes
+- All existing features (detail panel, auto-play, navigation) work unchanged with search results
+- Data validation test (`test_compendium_data.py`) updated to handle categories.json different structure
+- Fully backward compatible — old presets and saved state load correctly
+
+---
+
 ## [Tambor Drum Machine] - 2026-02-26
 
 ### Features

@@ -1,0 +1,158 @@
+{
+  "items": [
+    {
+      "id": "ionian_mode",
+      "name": "Ionian Mode",
+      "category": "modes",
+      "description": "The first mode of the major scale, also known as the major scale itself.",
+      "details": "The Ionian mode is the foundation of Western music. It has a bright, happy, and resolved character. Pattern: W-W-H-W-W-W-H. This is the mode you play when you play a major scale starting and ending on the root.",
+      "examples": [
+        "C Ionian: C-D-E-F-G-A-B",
+        "G Ionian: G-A-B-C-D-E-F#",
+        "Used extensively in pop, classical, and all major-key music"
+      ],
+      "related": ["dorian_mode", "phrygian_mode", "lydian_mode", "mixolydian_mode", "aeolian_mode", "locrian_mode"],
+      "metadata": {
+        "degree": 1,
+        "intervals": [0, 2, 4, 5, 7, 9, 11],
+        "semitones": "2-2-1-2-2-2-1",
+        "characteristic_note": "Major 3rd",
+        "chord": "Major (I)",
+        "character": "bright, happy, resolved",
+        "usage": "major_key_melody"
+      }
+    },
+    {
+      "id": "dorian_mode",
+      "name": "Dorian Mode",
+      "category": "modes",
+      "description": "The second mode of the major scale, with a minor quality but raised 6th degree.",
+      "details": "The Dorian mode sounds minor but brighter than natural minor. Pattern: W-H-W-W-W-H-W. It's the second mode built from any major scale. Used extensively in jazz, funk, and rock.",
+      "examples": [
+        "D Dorian (from C major): D-E-F-G-A-B-C",
+        "C Dorian (from Bb major): C-D-Eb-F-G-A-Bb",
+        "Common in jazz solos and funk grooves"
+      ],
+      "related": ["ionian_mode", "phrygian_mode", "lydian_mode"],
+      "metadata": {
+        "degree": 2,
+        "intervals": [0, 2, 3, 5, 7, 9, 10],
+        "semitones": "2-1-2-2-2-1-2",
+        "characteristic_note": "Minor 3rd and Major 6th",
+        "chord": "Minor (ii)",
+        "character": "minor, jazzy, funky, groovy",
+        "usage": "jazz, funk, rock, soul"
+      }
+    },
+    {
+      "id": "phrygian_mode",
+      "name": "Phrygian Mode",
+      "category": "modes",
+      "description": "The third mode of the major scale, with Spanish or Middle Eastern flavor.",
+      "details": "The Phrygian mode has an exotic, dark quality with a raised 2nd degree. Pattern: H-W-W-W-H-W-W. Creates a mysterious, sometimes ominous sound. Popular in flamenco and metal.",
+      "examples": [
+        "E Phrygian (from C major): E-F-G-A-B-C-D",
+        "F Phrygian (from Db major): F-Gb-Ab-Bb-Cb-Dbb-Ebb",
+        "Essential in flamenco, Spanish guitar, and extreme metal"
+      ],
+      "related": ["ionian_mode", "dorian_mode", "lydian_mode"],
+      "metadata": {
+        "degree": 3,
+        "intervals": [0, 1, 3, 5, 7, 8, 10],
+        "semitones": "1-2-2-2-1-2-2",
+        "characteristic_note": "Minor 2nd and Minor 3rd",
+        "chord": "Minor (iii)",
+        "character": "dark, exotic, mysterious, Spanish",
+        "usage": "flamenco, metal, world_music"
+      }
+    },
+    {
+      "id": "lydian_mode",
+      "name": "Lydian Mode",
+      "category": "modes",
+      "description": "The fourth mode of the major scale, with a raised 4th degree.",
+      "details": "The Lydian mode sounds major but dreamy and ethereal with an augmented 4th. Pattern: W-W-W-H-W-W-H. Often described as 'ethereal' or 'dreamy'. Popular in film scores and progressive rock.",
+      "examples": [
+        "F Lydian (from C major): F-G-A-B-C-D-E",
+        "G Lydian (from D major): G-A-B-C#-D-E-F#",
+        "Used in film scores, fantasy music, and progressive rock"
+      ],
+      "related": ["ionian_mode", "mixolydian_mode", "locrian_mode"],
+      "metadata": {
+        "degree": 4,
+        "intervals": [0, 2, 4, 6, 7, 9, 11],
+        "semitones": "2-2-2-1-2-2-1",
+        "characteristic_note": "Augmented 4th (Raised 4th)",
+        "chord": "Major (IV)",
+        "character": "ethereal, dreamy, bright, floaty",
+        "usage": "film_scores, progressive_rock, fantasy"
+      }
+    },
+    {
+      "id": "mixolydian_mode",
+      "name": "Mixolydian Mode",
+      "category": "modes",
+      "description": "The fifth mode of the major scale, with a lowered 7th degree (blues note).",
+      "details": "The Mixolydian mode sounds major but bluesy with a flattened 7th. Pattern: W-W-H-W-W-H-W. Creates a major but unresolved, bluesy quality. Very common in rock and blues.",
+      "examples": [
+        "G Mixolydian (from C major): G-A-B-C-D-E-F",
+        "C Mixolydian (from F major): C-D-E-F-G-A-Bb",
+        "Essential in blues, rock, funk, and many pop songs"
+      ],
+      "related": ["ionian_mode", "dorian_mode", "lydian_mode"],
+      "metadata": {
+        "degree": 5,
+        "intervals": [0, 2, 4, 5, 7, 9, 10],
+        "semitones": "2-2-1-2-2-1-2",
+        "characteristic_note": "Minor 7th (Dominant 7th quality)",
+        "chord": "Dominant (V7)",
+        "character": "major with bluesy, unresolved quality",
+        "usage": "blues, rock, funk, pop"
+      }
+    },
+    {
+      "id": "aeolian_mode",
+      "name": "Aeolian Mode",
+      "category": "modes",
+      "description": "The sixth mode of the major scale, also known as the natural minor scale.",
+      "details": "The Aeolian mode is the natural minor scale. Pattern: W-H-W-W-H-W-W. Sounds sad or introspective. One of the most used scales in all music after the major scale.",
+      "examples": [
+        "A Aeolian (from C major): A-B-C-D-E-F-G",
+        "C Aeolian (from Eb major): C-D-Eb-F-G-Ab-Bb",
+        "Used universally in minor-key music across all genres"
+      ],
+      "related": ["ionian_mode", "dorian_mode", "phrygian_mode"],
+      "metadata": {
+        "degree": 6,
+        "intervals": [0, 2, 3, 5, 7, 8, 10],
+        "semitones": "2-1-2-2-1-2-2",
+        "characteristic_note": "Minor 3rd and Minor 6th and Minor 7th",
+        "chord": "Minor (vi)",
+        "character": "sad, introspective, minor, dark",
+        "usage": "minor_key_melody, all_genres"
+      }
+    },
+    {
+      "id": "locrian_mode",
+      "name": "Locrian Mode",
+      "category": "modes",
+      "description": "The seventh mode of the major scale, with a flat 2nd and flat 5th.",
+      "details": "The Locrian mode is the darkest and most unstable mode. Pattern: H-W-W-H-W-W-W. Rarely used but creates an unsettling, dissonant quality. Found in progressive rock, metal, and experimental music.",
+      "examples": [
+        "B Locrian (from C major): B-C-D-E-F-G-A",
+        "F Locrian (from Gb major): F-Gb-Ab-Bb-Cb-Db-Ebb",
+        "Uncommon, used for special effects and dark moods"
+      ],
+      "related": ["ionian_mode", "phrygian_mode", "dorian_mode"],
+      "metadata": {
+        "degree": 7,
+        "intervals": [0, 1, 3, 5, 6, 8, 10],
+        "semitones": "1-2-2-1-2-2-2",
+        "characteristic_note": "Minor 2nd and Diminished 5th",
+        "chord": "Diminished (vii°)",
+        "character": "very dark, dissonant, unsettling, unstable",
+        "usage": "metal, progressive_rock, experimental, special_effects"
+      }
+    }
+  ]
+}

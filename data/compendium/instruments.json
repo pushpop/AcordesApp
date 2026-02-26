@@ -1,6 +1,22 @@
 {
   "items": [
     {
+      "id": "strings_family",
+      "name": "String Instruments",
+      "category": "instruments",
+      "description": "Instruments that produce sound through vibrating strings.",
+      "details": "String instruments create sound when strings are plucked, struck, or bowed. They are found in nearly every musical tradition and are essential in classical, folk, and popular music.",
+      "examples": [
+        "Acoustic and electric variants worldwide",
+        "Ranges from high violin to low double bass"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 7
+      }
+    },
+    {
       "id": "piano",
       "name": "Piano",
       "category": "instruments",
@@ -11,7 +27,7 @@
         "Jazz: Bill Evans, Keith Jarrett",
         "Pop: Elton John, Billy Joel"
       ],
-      "related": [],
+      "related": ["organ", "synthesizer"],
       "metadata": {
         "family": "keyboard",
         "range": "A0-C8",
@@ -29,16 +45,12 @@
       "examples": [
         "Rock: Jimi Hendrix, Eddie Van Halen",
         "Jazz: Django Reinhardt, Wes Montgomery",
-        "Classical: Andr\u00e9s Segovia"
+        "Classical: Andrés Segovia"
       ],
-      "related": [],
+      "related": ["bass", "ukulele", "mandolin"],
       "metadata": {
         "family": "strings",
-        "variants": [
-          "acoustic",
-          "electric",
-          "classical"
-        ],
+        "variants": ["acoustic", "electric", "classical"],
         "strings_count": 6,
         "frets": "20-24",
         "polyphony": "6",
@@ -49,14 +61,14 @@
       "id": "violin",
       "name": "Violin",
       "category": "instruments",
-      "description": "A bowed string instrument with 4 strings.",
+      "description": "A bowed string instrument with 4 strings, highest in the violin family.",
       "details": "One of the highest-pitched orchestral instruments. Essential in classical, baroque, and folk music. Also used in jazz and contemporary music.",
       "examples": [
-        "Classical: Niccol\u00f2 Paganini",
+        "Classical: Niccolò Paganini",
         "Jazz: Stephan Grappelli",
         "Folk: Lindsey Stirling"
       ],
-      "related": [],
+      "related": ["viola", "cello", "double_bass"],
       "metadata": {
         "family": "strings",
         "strings_count": 4,
@@ -66,50 +78,123 @@
       }
     },
     {
-      "id": "drums",
-      "name": "Drums (Drum Kit)",
+      "id": "cello",
+      "name": "Cello",
       "category": "instruments",
-      "description": "A collection of percussion instruments including kick, snare, toms, hi-hat, and cymbals.",
-      "details": "The foundation of rhythm in rock, pop, jazz, and modern music. Requires coordination between all four limbs. Essential for timekeeping.",
+      "description": "A large bowed string instrument with 4 strings, lower pitched than violin.",
+      "details": "One of the most expressive orchestral instruments. Used in classical music, film scores, and contemporary genres. Sits between violin and bass in pitch range.",
       "examples": [
-        "Rock: Keith Moon, John Bonham",
-        "Jazz: Art Blakey, Tony Williams",
-        "Pop: Ringo Starr, Travis Barker"
+        "Classical: Pablo Casals",
+        "Contemporary: Yo-Yo Ma",
+        "Film: Game of Thrones themes"
+      ],
+      "related": ["violin", "viola", "double_bass"],
+      "metadata": {
+        "family": "strings",
+        "strings_count": 4,
+        "range": "C2-A5",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "viola",
+      "name": "Viola",
+      "category": "instruments",
+      "description": "A bowed string instrument slightly larger than violin with deeper tone.",
+      "details": "The middle voice in the string family. Essential in chamber music and orchestras. Richer, warmer tone than violin.",
+      "examples": [
+        "Classical: Lionel Tertis",
+        "Contemporary: Tabea Zimmermann"
+      ],
+      "related": ["violin", "cello"],
+      "metadata": {
+        "family": "strings",
+        "strings_count": 4,
+        "range": "C3-D6",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "double_bass",
+      "name": "Double Bass (Upright Bass)",
+      "category": "instruments",
+      "description": "The largest and lowest-pitched string instrument, played with a bow or plucked.",
+      "details": "Essential in orchestras and jazz ensembles. Also called upright bass or contrabass. Provides the foundation of the harmonic structure.",
+      "examples": [
+        "Jazz: Ray Brown, Oscar Pettiford",
+        "Classical: Sergei Koussevitzky",
+        "Folk: Bluegrass bassists"
+      ],
+      "related": ["bass", "cello"],
+      "metadata": {
+        "family": "strings",
+        "strings_count": 4,
+        "range": "E1-A4",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "harp",
+      "name": "Harp",
+      "category": "instruments",
+      "description": "A string instrument played by plucking, used across many cultures.",
+      "details": "Ancient instrument known for ethereal, shimmering tones. Essential in orchestral music and folk traditions. Complex technique but beautiful sound.",
+      "examples": [
+        "Classical: Harpo Marx, Cecilia Thibault",
+        "Folk: Celtic harp traditions",
+        "Film: Fantasy film soundtracks"
       ],
       "related": [],
       "metadata": {
-        "family": "percussion",
-        "components": [
-          "kick",
-          "snare",
-          "tom",
-          "hi-hat",
-          "crash",
-          "ride"
-        ],
-        "tuning": "pitch_variable",
+        "family": "strings",
+        "variants": ["concert_grand", "celtic", "electric"],
+        "strings_count": "22-47+",
         "polyphony": "multiple",
         "learning_curve": "hard"
       }
     },
     {
-      "id": "trumpet",
-      "name": "Trumpet",
+      "id": "mandolin",
+      "name": "Mandolin",
       "category": "instruments",
-      "description": "A brass instrument with 3 valves, known for bright, cutting tone.",
-      "details": "Essential in jazz, orchestral, and brass band music. Requires strong breath control and embouchure. Can play loud, cutting notes or soft, mellow ones.",
+      "description": "A small string instrument with paired strings, common in folk and bluegrass music.",
+      "details": "Bright, percussive tone. Essential in bluegrass, classical, and world music. Two strings per note provide a shimmering effect.",
       "examples": [
-        "Jazz: Miles Davis, Dizzy Gillespie",
-        "Classical: Maurice Andr\u00e9",
-        "Pop: Herb Alpert"
+        "Bluegrass: Bill Monroe, Chris Thile",
+        "Classical: Various Vivaldi arrangements",
+        "Folk: Various traditions"
       ],
-      "related": [],
+      "related": ["ukulele", "lute"],
       "metadata": {
-        "family": "brass",
-        "range": "F#3-B6",
-        "valves": 3,
-        "polyphony": "1",
-        "learning_curve": "hard"
+        "family": "strings",
+        "strings_count": 8,
+        "range": "G2-C6",
+        "polyphony": "multiple",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "ukulele",
+      "name": "Ukulele",
+      "category": "instruments",
+      "description": "A small string instrument originating from Hawaii, easy to learn and portable.",
+      "details": "Cheerful, warm tone. Comes in soprano, concert, tenor, and baritone sizes. Perfect for beginners and folk music. Versatile across many genres.",
+      "examples": [
+        "Pop: Eddie Vedder, Vance Joy",
+        "Hawaiian: Taimane Gardner",
+        "Folk: Various contemporary artists"
+      ],
+      "related": ["guitar", "mandolin"],
+      "metadata": {
+        "family": "strings",
+        "variants": ["soprano", "concert", "tenor", "baritone"],
+        "strings_count": 4,
+        "range": "G3-G5 (soprano)",
+        "polyphony": "4",
+        "learning_curve": "easy"
       }
     },
     {
@@ -123,18 +208,332 @@
         "Funk: James Jamerson, Victor Wooten",
         "Jazz: Charles Mingus"
       ],
-      "related": [],
+      "related": ["guitar", "double_bass"],
       "metadata": {
         "family": "strings",
-        "variants": [
-          "electric",
-          "acoustic",
-          "fretless"
-        ],
+        "variants": ["electric", "acoustic", "fretless"],
         "strings_count": 4,
         "range": "B0-D5",
         "polyphony": "4",
         "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "brass_family",
+      "name": "Brass Instruments",
+      "category": "instruments",
+      "description": "Instruments made of brass that produce sound through vibrating air columns.",
+      "details": "Brass instruments are played by blowing air into a mouthpiece. They require strong breath control and embouchure. Essential in orchestras, jazz, and brass bands.",
+      "examples": [
+        "From bright trumpet to deep tuba",
+        "Core of jazz and orchestral brass sections"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 4
+      }
+    },
+    {
+      "id": "trumpet",
+      "name": "Trumpet",
+      "category": "instruments",
+      "description": "A brass instrument with 3 valves, known for bright, cutting tone.",
+      "details": "Essential in jazz, orchestral, and brass band music. Requires strong breath control and embouchure. Can play loud, cutting notes or soft, mellow ones.",
+      "examples": [
+        "Jazz: Miles Davis, Dizzy Gillespie",
+        "Classical: Maurice André",
+        "Pop: Herb Alpert"
+      ],
+      "related": ["trombone", "french_horn", "tuba"],
+      "metadata": {
+        "family": "brass",
+        "range": "F#3-B6",
+        "valves": 3,
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "french_horn",
+      "name": "French Horn",
+      "category": "instruments",
+      "description": "A brass instrument with a conical bore and valves, known for mellow, warm tone.",
+      "details": "Versatile brass instrument used in orchestras, chamber music, and occasionally jazz. Requires precise embouchure. Can sound both delicate and powerful.",
+      "examples": [
+        "Classical: Dennis Brain",
+        "Film: Hans Zimmer scores",
+        "Jazz: Arturo Sandoval"
+      ],
+      "related": ["trumpet", "trombone"],
+      "metadata": {
+        "family": "brass",
+        "range": "A#1-A5",
+        "valves": 3,
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "trombone",
+      "name": "Trombone",
+      "category": "instruments",
+      "description": "A brass instrument with a sliding tube instead of valves, known for expressive glissandos.",
+      "details": "Essential in jazz and orchestras. The slide mechanism allows for glissandos and expressive bends. Can play smooth or sharp articulations.",
+      "examples": [
+        "Jazz: J.J. Johnson, Kim Oki",
+        "Classical: Ian Bousfield",
+        "Funk: Fred Wesley"
+      ],
+      "related": ["trumpet", "tuba"],
+      "metadata": {
+        "family": "brass",
+        "range": "E1-F5",
+        "polyphony": "1",
+        "mechanism": "slide",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "tuba",
+      "name": "Tuba",
+      "category": "instruments",
+      "description": "The largest and lowest-pitched brass instrument with a deep, powerful sound.",
+      "details": "Essential for providing bass lines in orchestras and brass bands. Requires strong breath control. Can play both rhythmic and melodic roles.",
+      "examples": [
+        "Classical: Ira Wiggins",
+        "Jazz: John Williams",
+        "Folk: Polka and brass band traditions"
+      ],
+      "related": ["french_horn", "trombone"],
+      "metadata": {
+        "family": "brass",
+        "range": "B0-F3",
+        "valves": "3-6",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "woodwind_family",
+      "name": "Woodwind Instruments",
+      "category": "instruments",
+      "description": "Wind instruments traditionally made of wood that produce sound through vibrating reeds or air columns.",
+      "details": "Woodwind instruments require breath control and fingering technique. Despite the name, some modern woodwinds are made of metal. Essential in orchestras and bands.",
+      "examples": [
+        "From high flute to deep bassoon",
+        "Core of orchestral and wind band sections"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 5
+      }
+    },
+    {
+      "id": "saxophone",
+      "name": "Saxophone",
+      "category": "instruments",
+      "description": "A woodwind instrument with a single reed and brass body, available in multiple sizes.",
+      "details": "Invented in the 19th century, essential in jazz. Comes in soprano, alto, tenor, and baritone varieties. Rich, warm tone that blends well in ensembles.",
+      "examples": [
+        "Jazz: John Coltrane, Charlie Parker",
+        "Funk: Maceo Parker",
+        "Rock: David Sanborn"
+      ],
+      "related": ["clarinet", "oboe"],
+      "metadata": {
+        "family": "woodwind",
+        "variants": ["soprano", "alto", "tenor", "baritone"],
+        "range": "A#3-F#6 (varies by type)",
+        "polyphony": "1",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "clarinet",
+      "name": "Clarinet",
+      "category": "instruments",
+      "description": "A woodwind instrument with a single reed and cylindrical body.",
+      "details": "Versatile instrument spanning multiple octaves. Essential in classical orchestras, jazz, and folk music. Can play both bright and mellow tones.",
+      "examples": [
+        "Classical: Artie Shaw",
+        "Jazz: Sidney Bechet",
+        "Folk: Various world traditions"
+      ],
+      "related": ["saxophone", "oboe", "bassoon"],
+      "metadata": {
+        "family": "woodwind",
+        "range": "E3-C7",
+        "reeds": "single",
+        "polyphony": "1",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "flute",
+      "name": "Flute",
+      "category": "instruments",
+      "description": "A woodwind instrument with no reed, played by blowing across an embouchure hole.",
+      "details": "One of the oldest instruments. Light, airy tone. Used in orchestras, folk music, and contemporary genres. Piccolo is the smaller, higher-pitched variant.",
+      "examples": [
+        "Classical: James Galway",
+        "Jazz: Herbie Mann",
+        "World: Ranat Thong Pan (Thai)"
+      ],
+      "related": ["piccolo", "recorder"],
+      "metadata": {
+        "family": "woodwind",
+        "range": "C4-C7",
+        "polyphony": "1",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "oboe",
+      "name": "Oboe",
+      "category": "instruments",
+      "description": "A woodwind instrument with a double reed producing a bright, penetrating sound.",
+      "details": "Expressive and agile. Often plays the highest melodic lines in orchestras. Can sound nasal and intense or warm and mellow.",
+      "examples": [
+        "Classical: Albrecht Mayer",
+        "Baroque: Various period specialists"
+      ],
+      "related": ["clarinet", "english_horn", "bassoon"],
+      "metadata": {
+        "family": "woodwind",
+        "range": "B3-F6",
+        "reeds": "double",
+        "polyphony": "1",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "percussion_family",
+      "name": "Percussion Instruments",
+      "category": "instruments",
+      "description": "Instruments that produce sound through striking, shaking, or scraping.",
+      "details": "Percussion instruments are the primary timekeepers in music. Includes both pitched (drums, timpani) and unpitched (cymbals, triangles) instruments.",
+      "examples": [
+        "From melodic timpani to rhythmic hi-hats",
+        "Foundation of rhythm sections worldwide"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 1
+      }
+    },
+    {
+      "id": "drums",
+      "name": "Drums (Drum Kit)",
+      "category": "instruments",
+      "description": "A collection of percussion instruments including kick, snare, toms, hi-hat, and cymbals.",
+      "details": "The foundation of rhythm in rock, pop, jazz, and modern music. Requires coordination between all four limbs. Essential for timekeeping.",
+      "examples": [
+        "Rock: Keith Moon, John Bonham",
+        "Jazz: Art Blakey, Tony Williams",
+        "Pop: Ringo Starr, Travis Barker"
+      ],
+      "related": ["timpani", "percussion"],
+      "metadata": {
+        "family": "percussion",
+        "components": ["kick", "snare", "tom", "hi-hat", "crash", "ride"],
+        "tuning": "pitch_variable",
+        "polyphony": "multiple",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "keyboard_family",
+      "name": "Keyboard Instruments",
+      "category": "instruments",
+      "description": "Instruments played using a keyboard of keys, found across many sound-generation methods.",
+      "details": "Keyboard instruments range from acoustic pianos with mechanical actions to electronic synthesizers with endless sound possibilities.",
+      "examples": [
+        "From acoustic piano to digital synthesizer",
+        "Used in every musical genre and style"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 3
+      }
+    },
+    {
+      "id": "organ",
+      "name": "Organ",
+      "category": "instruments",
+      "description": "A keyboard instrument with pipes or electronic amplification producing various tones.",
+      "details": "Comes in pipe organ (church/concert halls) and electronic organ (portable) variants. Produces extremely rich, full sounds. Essential in classical and gospel music.",
+      "examples": [
+        "Classical: John Williams, Cameron Carpenter",
+        "Gospel: Gospel organists",
+        "Rock: Jon Lord (Deep Purple)"
+      ],
+      "related": ["piano", "synthesizer", "harpsichord"],
+      "metadata": {
+        "family": "keyboard",
+        "variants": ["pipe", "electronic", "digital"],
+        "range": "A1-C6+",
+        "polyphony": "unlimited",
+        "learning_curve": "hard"
+      }
+    },
+    {
+      "id": "synthesizer",
+      "name": "Synthesizer",
+      "category": "instruments",
+      "description": "An electronic instrument that generates and modifies sound using oscillators and filters.",
+      "details": "Produces unlimited sounds - from imitations of acoustic instruments to completely new tones. Essential in electronic music, pop, and contemporary genres.",
+      "examples": [
+        "Electronic: Rick Wakeman, Keith Emerson",
+        "Pop: Vangelis, Kraftwerk",
+        "Modern: Grimes, Aphex Twin"
+      ],
+      "related": ["piano", "organ"],
+      "metadata": {
+        "family": "keyboard",
+        "variants": ["analog", "digital", "hybrid"],
+        "polyphony": "unlimited",
+        "learning_curve": "medium"
+      }
+    },
+    {
+      "id": "voice_family",
+      "name": "Voice / Vocals",
+      "category": "instruments",
+      "description": "The human voice as a musical instrument, the most universal and expressive instrument.",
+      "details": "The human voice is capable of great expression and emotion. Ranges from bass to soprano depending on individual physiology and training.",
+      "examples": [
+        "Used in every musical genre and culture",
+        "Most direct expression of emotion in music"
+      ],
+      "related": [],
+      "metadata": {
+        "family_type": "category",
+        "instruments_count": 1
+      }
+    },
+    {
+      "id": "vocals",
+      "name": "Vocals (Human Voice)",
+      "category": "instruments",
+      "description": "The human voice as a musical instrument, capable of great expression and emotion.",
+      "details": "Ranges from bass to soprano depending on individual. Used in every genre. The voice carries emotion and lyrics. Can be trained extensively.",
+      "examples": [
+        "Classical: Maria Callas",
+        "Jazz: Ella Fitzgerald",
+        "Rock: Freddie Mercury",
+        "Pop: Aretha Franklin"
+      ],
+      "related": [],
+      "metadata": {
+        "family": "voice",
+        "types": ["soprano", "alto", "tenor", "bass"],
+        "range": "E1-E6+ (varies widely)",
+        "polyphony": "1",
+        "learning_curve": "easy_to_advanced"
       }
     }
   ]

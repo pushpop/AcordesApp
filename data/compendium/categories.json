@@ -7,46 +7,46 @@
       "children": [
         "chords",
         "scales",
+        "modes",
         "instruments",
-        "genres",
-        "theory"
+        "genres"
       ],
-      "icon": "\ud83c\udfb5"
+      "icon": "🎵"
     },
     {
       "id": "chords",
       "name": "Chords",
       "parent": "music",
       "description": "Collections of notes played simultaneously",
-      "icon": "\ud83c\udfb9"
+      "icon": "🎹"
     },
     {
       "id": "scales",
       "name": "Scales",
       "parent": "music",
       "description": "Ordered collections of notes in ascending/descending pitch",
-      "icon": "\ud83d\udcca"
+      "icon": "📊"
+    },
+    {
+      "id": "modes",
+      "name": "Modes",
+      "parent": "music",
+      "description": "Seven modal scales derived from the major scale, each with distinct character",
+      "icon": "🎼"
     },
     {
       "id": "instruments",
       "name": "Instruments",
       "parent": "music",
       "description": "Devices for producing musical sounds",
-      "icon": "\ud83c\udfb8"
+      "icon": "🎸"
     },
     {
       "id": "genres",
       "name": "Genres",
       "parent": "music",
       "description": "Styles and categories of music",
-      "icon": "\ud83c\udfa7"
-    },
-    {
-      "id": "theory",
-      "name": "Music Theory",
-      "parent": "music",
-      "description": "Fundamental concepts and principles of music",
-      "icon": "\ud83d\udcda"
+      "icon": "🎧"
     }
   ]
 }

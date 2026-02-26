@@ -10,27 +10,12 @@
         "C major: C-D-E-F-G-A-B",
         "G major: G-A-B-C-D-E-F#"
       ],
-      "related": [
-        "dorian_mode",
-        "phrygian_mode",
-        "lydian_mode",
-        "mixolydian_mode",
-        "aeolian_mode",
-        "locrian_mode"
-      ],
+      "related": ["dorian_mode", "phrygian_mode", "lydian_mode", "mixolydian_mode", "aeolian_mode", "locrian_mode"],
       "metadata": {
-        "intervals": [
-          0,
-          2,
-          4,
-          5,
-          7,
-          9,
-          11
-        ],
+        "intervals": [0, 2, 4, 5, 7, 9, 11],
         "semitones": "2-2-1-2-2-2-1",
-        "modes_count": 7,
-        "relative_minor": "natural_minor"
+        "notes_count": 7,
+        "type": "major"
       }
     },
     {
@@ -43,23 +28,12 @@
         "A minor: A-B-C-D-E-F-G",
         "E minor: E-F#-G-A-B-C-D"
       ],
-      "related": [
-        "major_scale",
-        "harmonic_minor",
-        "melodic_minor"
-      ],
+      "related": ["major_scale", "harmonic_minor", "melodic_minor"],
       "metadata": {
-        "intervals": [
-          0,
-          2,
-          3,
-          5,
-          7,
-          8,
-          10
-        ],
+        "intervals": [0, 2, 3, 5, 7, 8, 10],
         "semitones": "2-1-2-2-1-2-2",
-        "relative_major": "major_scale"
+        "notes_count": 7,
+        "type": "minor"
       }
     },
     {
@@ -72,21 +46,12 @@
         "A harmonic minor: A-B-C-D-E-F-G#",
         "E harmonic minor: E-F#-G-A-B-C-D#"
       ],
-      "related": [
-        "natural_minor_scale",
-        "melodic_minor"
-      ],
+      "related": ["natural_minor_scale", "melodic_minor", "harmonic_major"],
       "metadata": {
-        "intervals": [
-          0,
-          2,
-          3,
-          5,
-          7,
-          8,
-          11
-        ],
-        "semitones": "2-1-2-2-1-3-1"
+        "intervals": [0, 2, 3, 5, 7, 8, 11],
+        "semitones": "2-1-2-2-1-3-1",
+        "notes_count": 7,
+        "type": "minor"
       }
     },
     {
@@ -99,21 +64,12 @@
         "A melodic minor ascending: A-B-C-D-E-F#-G#",
         "A melodic minor descending: A-G-F-E-D-C-B"
       ],
-      "related": [
-        "natural_minor_scale",
-        "harmonic_minor"
-      ],
+      "related": ["natural_minor_scale", "harmonic_minor"],
       "metadata": {
-        "intervals": [
-          0,
-          2,
-          3,
-          5,
-          7,
-          9,
-          11
-        ],
-        "semitones": "2-1-2-2-2-2-1"
+        "intervals": [0, 2, 3, 5, 7, 9, 11],
+        "semitones": "2-1-2-2-2-2-1",
+        "notes_count": 7,
+        "type": "minor"
       }
     },
     {
@@ -126,20 +82,12 @@
         "C major pentatonic: C-D-E-G-A",
         "G major pentatonic: G-A-B-D-E"
       ],
-      "related": [
-        "pentatonic_minor",
-        "major_scale"
-      ],
+      "related": ["pentatonic_minor", "major_scale"],
       "metadata": {
-        "intervals": [
-          0,
-          2,
-          4,
-          7,
-          9
-        ],
+        "intervals": [0, 2, 4, 7, 9],
         "semitones": "2-2-3-2-3",
-        "note_count": 5
+        "notes_count": 5,
+        "type": "pentatonic"
       }
     },
     {
@@ -152,21 +100,12 @@
         "A minor pentatonic: A-C-D-E-G",
         "E minor pentatonic: E-G-A-B-D"
       ],
-      "related": [
-        "pentatonic_major",
-        "natural_minor_scale",
-        "blues_scale"
-      ],
+      "related": ["pentatonic_major", "natural_minor_scale", "blues_scale"],
       "metadata": {
-        "intervals": [
-          0,
-          3,
-          5,
-          7,
-          10
-        ],
+        "intervals": [0, 3, 5, 7, 10],
         "semitones": "3-2-2-3-2",
-        "note_count": 5
+        "notes_count": 5,
+        "type": "pentatonic"
       }
     },
     {
@@ -177,24 +116,165 @@
       "details": "The 6-note scale includes the characteristic 'blue note' (flat 5). Used extensively in blues, rock, and jazz.",
       "examples": [
         "A blues: A-C-D-Eb-E-G",
-        "E blues: E-G-A-B-B-D"
+        "E blues: E-G-A-B-Bb-D"
       ],
-      "related": [
-        "pentatonic_minor",
-        "blues_music"
-      ],
+      "related": ["pentatonic_minor", "blues_music"],
       "metadata": {
-        "intervals": [
-          0,
-          3,
-          5,
-          6,
-          7,
-          10
-        ],
+        "intervals": [0, 3, 5, 6, 7, 10],
         "semitones": "3-2-1-1-3-2",
-        "note_count": 6,
-        "blue_note": "flat_5"
+        "notes_count": 6,
+        "type": "blues"
+      }
+    },
+    {
+      "id": "harmonic_major",
+      "name": "Harmonic Major Scale",
+      "category": "scales",
+      "description": "A major scale with a flattened 6th degree.",
+      "details": "Pattern: W-W-H-W-H-W+H-H. Rare but distinctive sound, combining major brightness with minor darkness. Used in jazz and some classical works.",
+      "examples": [
+        "C harmonic major: C-D-E-F-G-Ab-B",
+        "G harmonic major: G-A-B-C-D-Eb-F#"
+      ],
+      "related": ["major_scale", "harmonic_minor"],
+      "metadata": {
+        "intervals": [0, 2, 4, 5, 7, 8, 11],
+        "semitones": "2-2-1-2-1-3-1",
+        "notes_count": 7,
+        "type": "exotic"
+      }
+    },
+    {
+      "id": "whole_tone_scale",
+      "name": "Whole Tone Scale",
+      "category": "scales",
+      "description": "A 6-note scale with all intervals being whole steps (no half steps).",
+      "details": "Pattern: W-W-W-W-W-W. Creates an ambiguous, unsettling sound with no traditional tonal center. Used in impressionist classical music and avant-garde jazz.",
+      "examples": [
+        "C whole tone: C-D-E-F#-G#-A#",
+        "Unique property: Only two unique whole tone scales exist (enharmonically equivalent)"
+      ],
+      "related": [],
+      "metadata": {
+        "intervals": [0, 2, 4, 6, 8, 10],
+        "semitones": "2-2-2-2-2-2",
+        "notes_count": 6,
+        "type": "exotic",
+        "unique_count": 2
+      }
+    },
+    {
+      "id": "phrygian_dominant",
+      "name": "Phrygian Dominant Scale",
+      "category": "scales",
+      "description": "A scale combining Phrygian mode's flat 2nd with a major 3rd (V mode of harmonic minor).",
+      "details": "Pattern: H-W-W-W-H-W+H-W. Creates Spanish and Flamenco sounds. Also called Spanish Phrygian or 5th mode of harmonic minor.",
+      "examples": [
+        "E Phrygian dominant (from A harmonic minor): E-F-G#-A-B-C-D",
+        "Common in Flamenco guitar and Spanish music"
+      ],
+      "related": ["phrygian_mode", "harmonic_minor"],
+      "metadata": {
+        "intervals": [0, 1, 4, 5, 7, 8, 10],
+        "semitones": "1-3-1-2-1-2-2",
+        "notes_count": 7,
+        "type": "exotic",
+        "origin": "5th mode of harmonic minor"
+      }
+    },
+    {
+      "id": "diminished_scale",
+      "name": "Diminished Scale (Octatonic)",
+      "category": "scales",
+      "description": "An 8-note scale alternating between whole and half steps.",
+      "details": "Two variations: W-H-W-H-W-H-W-H (whole-half) or H-W-H-W-H-W-H-W (half-whole). Creates symmetrical, unsettling sound. Used in jazz and classical music.",
+      "examples": [
+        "C diminished (W-H): C-D-Eb-F-Gb-Ab-A-B",
+        "Used over diminished chords and passing chords"
+      ],
+      "related": ["whole_tone_scale"],
+      "metadata": {
+        "intervals_whole_half": [0, 2, 3, 5, 6, 8, 9, 11],
+        "intervals_half_whole": [0, 1, 3, 4, 6, 7, 9, 10],
+        "semitones": "Alternating 2-1",
+        "notes_count": 8,
+        "type": "exotic",
+        "variations": 2
+      }
+    },
+    {
+      "id": "augmented_scale",
+      "name": "Augmented Scale",
+      "category": "scales",
+      "description": "A 6-note scale alternating between minor thirds and half steps.",
+      "details": "Pattern: W+H-H-W+H-H-W+H (6 notes). Creates an exotic, unsettling sound. Symmetric and mysterious. Used in advanced jazz improvisation.",
+      "examples": [
+        "C augmented: C-D#-E-G-G#-B",
+        "Used over augmented chords and dominant structures"
+      ],
+      "related": ["whole_tone_scale", "diminished_scale"],
+      "metadata": {
+        "intervals": [0, 3, 4, 7, 8, 11],
+        "semitones": "3-1-3-1-3-1",
+        "notes_count": 6,
+        "type": "exotic",
+        "symmetric": true
+      }
+    },
+    {
+      "id": "altered_scale",
+      "name": "Altered Scale (Super Locrian)",
+      "category": "scales",
+      "description": "The 7th mode of melodic minor, containing all chromatic alterations.",
+      "details": "Pattern: H-W-H-W-W-W-W. Contains both flat-9, sharp-9, flat-5, and sharp-5. Essential for jazz improvisation over altered dominant chords.",
+      "examples": [
+        "B altered (from C melodic minor): B-C-D-Eb-F-G-A",
+        "Most alterations possible in a single scale"
+      ],
+      "related": ["melodic_minor", "locrian_mode"],
+      "metadata": {
+        "intervals": [0, 1, 3, 4, 6, 8, 10],
+        "semitones": "1-2-1-2-2-2-2",
+        "notes_count": 7,
+        "type": "exotic",
+        "origin": "7th mode of melodic minor"
+      }
+    },
+    {
+      "id": "mixolydian_flat6",
+      "name": "Mixolydian Flat 6 (Hindu Scale)",
+      "category": "scales",
+      "description": "A Mixolydian mode with a lowered 6th degree, creating a darker major sound.",
+      "details": "Pattern: W-W-H-W-H-W+H-W. Also known as Hindu scale or Ultralocrian. Less common but creates beautiful modal textures.",
+      "examples": [
+        "G Mixolydian flat 6: G-A-B-C-D-Eb-F",
+        "Found in various world music traditions"
+      ],
+      "related": ["mixolydian_mode"],
+      "metadata": {
+        "intervals": [0, 2, 4, 5, 7, 8, 10],
+        "semitones": "2-2-1-2-1-3-1",
+        "notes_count": 7,
+        "type": "exotic",
+        "alternate_name": "Hindu scale"
+      }
+    },
+    {
+      "id": "neapolitan_minor",
+      "name": "Neapolitan Minor Scale",
+      "category": "scales",
+      "description": "A natural minor scale with a raised 7th degree, combining both minors.",
+      "details": "Pattern: W-H-W-W-H-W+H-H. Unique scale combining characteristics of natural minor and harmonic minor.",
+      "examples": [
+        "A Neapolitan minor: A-B-C-D-E-F-G#",
+        "Used in classical and romantic music"
+      ],
+      "related": ["natural_minor_scale", "harmonic_minor"],
+      "metadata": {
+        "intervals": [0, 2, 3, 5, 7, 8, 11],
+        "semitones": "2-1-2-2-1-3-1",
+        "notes_count": 7,
+        "type": "exotic"
       }
     }
   ]

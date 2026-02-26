@@ -2,7 +2,7 @@
 
 # Acordes - MIDI Piano TUI Application
 
-**Version 1.5.0**
+**Version 1.6.0**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full signal-processing chain and preset system, and a fully-featured metronome.
 
@@ -31,6 +31,90 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome with BPM shared across all modes.
+
+## What's New in v1.6.0
+
+A comprehensive expansion of the Compendium Music Knowledge Hub with real-time search, 7 musical modes, hierarchically organized instruments, expanded genres and scales, and UI improvements.
+
+### Compendium Expansion & Search Functionality
+
+The Compendium has grown from 244 to 258+ music items across 6 main categories, and now features **real-time search** that instantly filters results as you type.
+
+**Search Features:**
+- **Real-time filtering**: Type in the search input at the top of Compendium Mode — the tree updates on every keystroke
+- **Comprehensive scope**: Searches all fields including item names, descriptions, details, examples, and metadata
+- **Grouped results**: Search results are organized by category (Chords, Scales, Modes, Instruments, Genres) with item counts
+- **Keyboard-friendly**: Tab/Shift+Tab cycling between search input and tree — no mouse needed
+- **Clear to restore**: Deleting all search text instantly restores the full hierarchical tree
+- **Auto-play integration**: Existing chord auto-play and detail panel work seamlessly with search results
+
+**Category Details:**
+- **Browse categories**: Select major categories (Chords 🎹, Scales 📊, Modes 🎼, Instruments 🎸, Genres 🎧) to view their descriptions
+- **Subcategory information**: The detail panel shows all subcategories under each parent category for quick reference
+- **Visual icons**: Each category displays a unique icon for easy visual identification throughout the interface
+
+**Total items in Compendium:**
+- Chords: 180 items (12 keys × 15 chord types)
+- Scales: 15 items (was 7, added 8 exotic scales)
+- Modes: 7 items (NEW category)
+- Instruments: 28 items (was 6, expanded with family grouping)
+- Genres: 22 items (was 6, added 16 new genres)
+- **Total: 258+ music theory items**
+
+### 7 Music Modes (NEW Category)
+
+Complete reference for all diatonic modes derived from the major scale:
+- **Ionian** (1st degree) — Bright, happy, resolved (identical to major scale)
+- **Dorian** (2nd degree) — Minor, jazzy, funky, groovy
+- **Phrygian** (3rd degree) — Dark, exotic, mysterious, Spanish (flamenco)
+- **Lydian** (4th degree) — Ethereal, dreamy, bright, floaty
+- **Mixolydian** (5th degree) — Major with bluesy, unresolved quality
+- **Aeolian** (6th degree) — Sad, introspective, minor, dark (natural minor)
+- **Locrian** (7th degree) — Very dark, dissonant, unsettling, unstable
+
+Each mode includes intervals, semitone patterns, usage examples, and related modes.
+
+### Expanded Instruments with Family Hierarchy (22 → 28 items)
+
+Instruments now organized into 6 hierarchical families:
+
+**String Instruments (10):** Piano, Acoustic/Electric Guitar, Violin, Cello, Viola, Double Bass, Harp, Mandolin, Ukulele, Bass Guitar
+
+**Brass Instruments (4):** Trumpet, French Horn, Trombone, Tuba
+
+**Woodwind Instruments (4):** Saxophone, Clarinet, Flute, Oboe
+
+**Percussion Instruments (1):** Drums / Drum Kit
+
+**Keyboard Instruments (3):** Organ, Synthesizer, (Piano also listed here)
+
+**Vocal Instruments (1):** Vocals / Human Voice
+
+Each instrument includes detailed descriptions, range, polyphony limits, learning curve, artist examples, and metadata.
+
+### Expanded Genres (6 → 22 items)
+
+Added 16 new genres to the original 6:
+
+**Original:** Jazz, Blues, Rock, Classical, Pop, Hip Hop / Rap
+
+**New:** Country, Folk, Reggae, Electronic / EDM, Metal, R&B / Soul, Funk, Latin / Salsa, Gospel, Ambient, Indie / Alternative, Punk, Disco, World / Ethnic Music, Ska, Grunge
+
+Each genre includes era, origin, key characteristics, primary instruments, and subgenres.
+
+### Expanded Scales (7 → 15 items)
+
+Original 7 scales plus 8 exotic/modal variations:
+
+**Original:** Major Scale, Natural Minor, Harmonic Minor, Melodic Minor, Major Pentatonic, Minor Pentatonic, Blues Scale
+
+**New Exotic Scales:** Harmonic Major, Whole Tone Scale, Phrygian Dominant, Diminished Scale (Octatonic), Augmented Scale, Altered Scale (Super Locrian), Mixolydian Flat 6 (Hindu), Neapolitan Minor
+
+### Command Palette Disabled
+
+The Textual command palette (Ctrl+\) has been disabled for a cleaner, more focused keyboard interface. All essential mode switching and commands are available via the global key bindings (0–5, C for config, ESC to quit).
+
+---
 
 ## What's New in v1.5.0
 

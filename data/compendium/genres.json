@@ -11,26 +11,12 @@
         "Cool Jazz: Miles Davis, John Coltrane",
         "Fusion: Herbie Hancock, Weather Report"
       ],
-      "related": [
-        "blues",
-        "swing"
-      ],
+      "related": ["blues", "funk"],
       "metadata": {
         "era": "1900s-present",
         "origin": "New Orleans, USA",
-        "key_characteristics": [
-          "improvisation",
-          "syncopation",
-          "swing",
-          "blues_influence"
-        ],
-        "instruments": [
-          "trumpet",
-          "saxophone",
-          "piano",
-          "bass",
-          "drums"
-        ]
+        "key_characteristics": ["improvisation", "syncopation", "swing", "blues_influence"],
+        "instruments": ["trumpet", "saxophone", "piano", "bass", "drums"]
       }
     },
     {
@@ -45,19 +31,11 @@
         "B.B. King",
         "Stevie Ray Vaughan"
       ],
-      "related": [
-        "jazz",
-        "rock"
-      ],
+      "related": ["jazz", "rock"],
       "metadata": {
         "era": "1890s-present",
         "origin": "Mississippi Delta, USA",
-        "key_characteristics": [
-          "12-bar progression",
-          "blues_scale",
-          "bending",
-          "call_and_response"
-        ],
+        "key_characteristics": ["12-bar progression", "blues_scale", "bending", "call_and_response"],
         "chord_progression": "I-IV-I-V-IV-I"
       }
     },
@@ -72,24 +50,12 @@
         "Hard Rock: AC/DC, Aerosmith",
         "Alternative: Nirvana, Radiohead"
       ],
-      "related": [
-        "blues",
-        "pop"
-      ],
+      "related": ["blues", "pop", "metal"],
       "metadata": {
         "era": "1950s-present",
         "origin": "United States",
-        "key_characteristics": [
-          "electric_guitar",
-          "strong_rhythm",
-          "youth_culture"
-        ],
-        "instruments": [
-          "electric_guitar",
-          "bass",
-          "drums",
-          "vocals"
-        ]
+        "key_characteristics": ["electric_guitar", "strong_rhythm", "youth_culture"],
+        "instruments": ["electric_guitar", "bass", "drums", "vocals"]
       }
     },
     {
@@ -106,19 +72,8 @@
       "related": [],
       "metadata": {
         "era": "1600s-present",
-        "key_characteristics": [
-          "written_composition",
-          "formal_structure",
-          "harmony",
-          "orchestration"
-        ],
-        "main_periods": [
-          "renaissance",
-          "baroque",
-          "classical",
-          "romantic",
-          "contemporary"
-        ]
+        "key_characteristics": ["written_composition", "formal_structure", "harmony", "orchestration"],
+        "main_periods": ["renaissance", "baroque", "classical", "romantic", "contemporary"]
       }
     },
     {
@@ -133,17 +88,10 @@
         "Taylor Swift",
         "The Weeknd"
       ],
-      "related": [
-        "rock",
-        "hip_hop"
-      ],
+      "related": ["rock", "hip_hop"],
       "metadata": {
         "era": "1950s-present",
-        "key_characteristics": [
-          "catchy_melody",
-          "simple_harmony",
-          "radio_friendly"
-        ],
+        "key_characteristics": ["catchy_melody", "simple_harmony", "radio_friendly"],
         "typical_length": "3-4 minutes"
       }
     },
@@ -158,25 +106,314 @@
         "Golden Age: Nas, Biggie, Wu-Tang",
         "Modern: Drake, Kendrick Lamar"
       ],
-      "related": [
-        "pop",
-        "r_and_b"
-      ],
+      "related": ["pop", "funk"],
       "metadata": {
         "era": "1970s-present",
         "origin": "Bronx, New York",
-        "key_characteristics": [
-          "rhythm",
-          "wordplay",
-          "beats",
-          "sampling"
-        ],
-        "elements": [
-          "djing",
-          "rapping",
-          "breaking",
-          "graffiti"
-        ]
+        "key_characteristics": ["rhythm", "wordplay", "beats", "sampling"],
+        "elements": ["djing", "rapping", "breaking", "graffiti"]
+      }
+    },
+    {
+      "id": "country",
+      "name": "Country",
+      "category": "genres",
+      "description": "Genre rooted in American folk music, featuring storytelling and acoustic guitar.",
+      "details": "Developed in rural America, emphasizing themes of heartbreak, working life, and relationships. Uses acoustic guitar, fiddle, and steel guitar prominently.",
+      "examples": [
+        "Outlaw: Johnny Cash, Willie Nelson",
+        "Bluegrass: Bill Monroe",
+        "Modern: Dolly Parton, Morgan Wallen"
+      ],
+      "related": ["folk", "blues"],
+      "metadata": {
+        "era": "1920s-present",
+        "origin": "Rural United States",
+        "key_characteristics": ["storytelling", "acoustic_guitar", "twang", "emotional_lyrics"],
+        "instruments": ["acoustic_guitar", "fiddle", "steel_guitar", "banjo", "drums"]
+      }
+    },
+    {
+      "id": "folk",
+      "name": "Folk",
+      "category": "genres",
+      "description": "Traditional music of a culture, passed down through generations with acoustic instruments.",
+      "details": "Varies widely by region and culture. Emphasizes tradition, community, and often social or political messages. Acoustic instruments dominate.",
+      "examples": [
+        "American Folk: Woody Guthrie, Joan Baez",
+        "Celtic: Traditional Irish and Scottish music",
+        "Contemporary Folk: Bon Iver, Iron & Wine"
+      ],
+      "related": ["country", "world"],
+      "metadata": {
+        "era": "Ancient-present (varies by culture)",
+        "key_characteristics": ["tradition", "acoustic", "storytelling", "cultural_identity"],
+        "regional_variations": ["celtic", "scandinavian", "american", "world"]
+      }
+    },
+    {
+      "id": "reggae",
+      "name": "Reggae",
+      "category": "genres",
+      "description": "Caribbean music genre with a distinctive rhythm, strong bass, and spiritual themes.",
+      "details": "Originated in Jamaica in the 1960s. Characterized by the offbeat skank rhythm and emphasis on the bass line. Often carries messages of peace and social consciousness.",
+      "examples": [
+        "Bob Marley & The Wailers",
+        "Peter Tosh",
+        "Burning Spear"
+      ],
+      "related": ["ska", "world"],
+      "metadata": {
+        "era": "1960s-present",
+        "origin": "Jamaica",
+        "key_characteristics": ["offbeat_rhythm", "emphasis_on_bass", "spiritual_themes"],
+        "rhythm_pattern": "skank"
+      }
+    },
+    {
+      "id": "electronic",
+      "name": "Electronic / EDM",
+      "category": "genres",
+      "description": "Music created primarily with electronic instruments and digital production.",
+      "details": "Encompasses house, techno, trance, drum and bass, and many subgenres. Emphasizes rhythm, repetition, and synthesized sounds. Essential in modern dance culture.",
+      "examples": [
+        "Techno: Richie Hawtin, Carl Cox",
+        "House: Daft Punk, Calvin Harris",
+        "Trance: Armin van Buuren, Tiësto"
+      ],
+      "related": ["pop"],
+      "metadata": {
+        "era": "1970s-present",
+        "origin": "Detroit/Chicago, USA",
+        "key_characteristics": ["electronic_instruments", "repetition", "beat_emphasis"],
+        "subgenres": ["house", "techno", "trance", "drum_and_bass", "ambient"]
+      }
+    },
+    {
+      "id": "metal",
+      "name": "Metal",
+      "category": "genres",
+      "description": "Genre featuring distorted guitars, powerful vocals, and intense instrumentation.",
+      "details": "Emerged from rock in the 1970s. Characterized by high volume, heavily distorted guitars, and often aggressive themes. Extremely diverse subgenres.",
+      "examples": [
+        "Heavy Metal: Black Sabbath, Iron Maiden",
+        "Thrash Metal: Metallica, Slayer",
+        "Death Metal: Death, Morbid Angel"
+      ],
+      "related": ["rock"],
+      "metadata": {
+        "era": "1970s-present",
+        "origin": "United Kingdom/USA",
+        "key_characteristics": ["distorted_guitar", "powerful_vocals", "high_volume", "complex_riffs"],
+        "subgenres": ["heavy", "thrash", "death", "black", "power", "progressive"]
+      }
+    },
+    {
+      "id": "r_and_b",
+      "name": "R&B / Soul",
+      "category": "genres",
+      "description": "Genre emphasizing soulful vocals, smooth grooves, and emotional expression.",
+      "details": "Rooted in African American music. Combines elements of gospel, blues, and jazz. Known for vocal prowess, emotional depth, and sophisticated production.",
+      "examples": [
+        "Classic Soul: Marvin Gaye, Aretha Franklin",
+        "Smooth R&B: Usher, D'Angelo",
+        "Modern R&B: SZA, The Weeknd"
+      ],
+      "related": ["jazz", "blues"],
+      "metadata": {
+        "era": "1940s-present",
+        "origin": "United States",
+        "key_characteristics": ["smooth_grooves", "emotional_vocals", "soulful", "sophisticated_harmony"],
+        "instruments": ["vocals", "bass", "drums", "keyboards", "guitar"]
+      }
+    },
+    {
+      "id": "funk",
+      "name": "Funk",
+      "category": "genres",
+      "description": "Groove-based music with strong emphasis on bass and syncopated rhythm.",
+      "details": "Emerged in the 1960s as fusion of soul, jazz, and R&B. All about the groove and making people dance. Heavy, tight rhythm section is essential.",
+      "examples": [
+        "Parliament-Funkadelic: George Clinton",
+        "James Brown",
+        "Prince"
+      ],
+      "related": ["jazz", "hip_hop"],
+      "metadata": {
+        "era": "1960s-present",
+        "origin": "United States",
+        "key_characteristics": ["strong_bass", "syncopation", "groove", "dance_oriented"],
+        "instruments": ["bass", "drums", "keyboards", "horn_section", "vocals"]
+      }
+    },
+    {
+      "id": "latin",
+      "name": "Latin / Salsa",
+      "category": "genres",
+      "description": "Music genres from Latin America and Hispanic cultures with distinctive rhythmic patterns.",
+      "details": "Includes salsa, mambo, cha-cha, rumba, and many others. Characterized by complex polyrhythmic patterns, brass sections, and dance-oriented grooves.",
+      "examples": [
+        "Salsa: Celia Cruz, Tito Puente",
+        "Mambo: Pérez Prado",
+        "Rumba: Various Cuban traditions"
+      ],
+      "related": [],
+      "metadata": {
+        "era": "Various (1800s-present)",
+        "origin": "Latin America/Caribbean",
+        "key_characteristics": ["polyrhythmic", "brass", "dance_oriented", "clave_rhythm"],
+        "subgenres": ["salsa", "mambo", "cha_cha", "rumba", "tango", "samba"]
+      }
+    },
+    {
+      "id": "gospel",
+      "name": "Gospel",
+      "category": "genres",
+      "description": "Spiritual music rooted in Christian African American tradition with powerful vocals.",
+      "details": "Emphasizes vocal prowess, emotional expression, and spiritual themes. Often features call-and-response, hand claps, and organ accompaniment.",
+      "examples": [
+        "Mahalia Jackson",
+        "Aretha Franklin",
+        "Contemporary Gospel artists"
+      ],
+      "related": ["r_and_b", "soul"],
+      "metadata": {
+        "era": "1920s-present",
+        "origin": "African American Churches, USA",
+        "key_characteristics": ["powerful_vocals", "spiritual_themes", "call_and_response", "organ"],
+        "instruments": ["vocals", "organ", "piano", "drums", "guitar"]
+      }
+    },
+    {
+      "id": "ambient",
+      "name": "Ambient",
+      "category": "genres",
+      "description": "Atmospheric, texture-based music designed to create mood rather than dominate attention.",
+      "details": "Focuses on timbre and soundscapes rather than structure. Often used as background music for relaxation or meditation. Can be purely electronic or mixed with acoustic elements.",
+      "examples": [
+        "Brian Eno",
+        "Aphex Twin",
+        "Nils Frahm"
+      ],
+      "related": ["electronic"],
+      "metadata": {
+        "era": "1970s-present",
+        "origin": "United Kingdom",
+        "key_characteristics": ["atmospheric", "texture_based", "minimal_structure", "mood_creation"],
+        "purpose": ["relaxation", "meditation", "background"]
+      }
+    },
+    {
+      "id": "indie",
+      "name": "Indie / Alternative",
+      "category": "genres",
+      "description": "Music produced outside major label systems, often with experimental or unconventional approaches.",
+      "details": "Emphasis on artistic control and authenticity over commercial appeal. Highly diverse in sound but unified by independent spirit. Emerged from 1980s underground.",
+      "examples": [
+        "90s Alternative: Nirvana, Radiohead",
+        "Indie Rock: The Strokes, Arctic Monkeys",
+        "Indie Pop: Tame Impala, Mac DeMarco"
+      ],
+      "related": ["rock", "pop"],
+      "metadata": {
+        "era": "1980s-present",
+        "key_characteristics": ["independent", "experimental", "artistic_control", "authentic"],
+        "subgenres": ["indie_rock", "indie_pop", "alt_rock", "art_rock"]
+      }
+    },
+    {
+      "id": "punk",
+      "name": "Punk",
+      "category": "genres",
+      "description": "Fast, aggressive, short-song-focused rock music with DIY ethos and political edge.",
+      "details": "Emerged in mid-1970s as reaction against progressive rock. Emphasizes raw energy, simple chords, and often carries social or political messages.",
+      "examples": [
+        "The Sex Pistols",
+        "The Ramones",
+        "The Clash"
+      ],
+      "related": ["rock"],
+      "metadata": {
+        "era": "1970s-present",
+        "origin": "United Kingdom/USA",
+        "key_characteristics": ["fast", "aggressive", "short_songs", "DIY_ethos", "political"],
+        "typical_length": "1.5-3 minutes"
+      }
+    },
+    {
+      "id": "disco",
+      "name": "Disco",
+      "category": "genres",
+      "description": "Dance music genre with strong beat, bass, and funk elements, designed for dancing.",
+      "details": "Dominated 1970s with synthesizers, drum machines, and emphasis on the 4/4 beat. Known for vocal harmonies, lush orchestration, and high energy.",
+      "examples": [
+        "Bee Gees",
+        "Donna Summer",
+        "KC and The Sunshine Band"
+      ],
+      "related": ["funk", "soul"],
+      "metadata": {
+        "era": "1970s-1980s",
+        "origin": "United States",
+        "key_characteristics": ["strong_beat", "bass_emphasis", "funk_influence", "dance_oriented"],
+        "typical_tempo": "100-130 BPM"
+      }
+    },
+    {
+      "id": "world",
+      "name": "World / Ethnic Music",
+      "category": "genres",
+      "description": "Traditional and contemporary music from diverse cultures around the globe.",
+      "details": "Encompasses music from Africa, Asia, Middle East, and beyond. Often features traditional instruments and cultural practices specific to regions.",
+      "examples": [
+        "African: Fela Kuti, Youssou N'Dour",
+        "Asian: Various traditional musics",
+        "Middle Eastern: Oud players, Sufi music"
+      ],
+      "related": ["folk"],
+      "metadata": {
+        "era": "Ancient-present",
+        "origin": "Worldwide",
+        "key_characteristics": ["cultural_identity", "traditional_instruments", "diverse_scales"],
+        "regions": ["africa", "asia", "middle_east", "oceania"]
+      }
+    },
+    {
+      "id": "ska",
+      "name": "Ska",
+      "category": "genres",
+      "description": "Upbeat genre combining reggae rhythms with punk/rock energy and horn sections.",
+      "details": "Originated in Jamaica in the late 1950s. Combines offbeat guitar skank with horns and fast tempo. Known for dance-oriented, uplifting sound.",
+      "examples": [
+        "The Specials",
+        "Sublime",
+        "Reel Big Fish"
+      ],
+      "related": ["reggae", "punk", "rock"],
+      "metadata": {
+        "era": "1950s-present",
+        "origin": "Jamaica",
+        "key_characteristics": ["offbeat_skank", "horn_section", "upbeat", "dance_oriented"],
+        "instruments": ["guitar", "bass", "drums", "brass", "vocals"]
+      }
+    },
+    {
+      "id": "grunge",
+      "name": "Grunge",
+      "category": "genres",
+      "description": "Rock genre blending punk, metal, and hard rock with angst-filled lyrics.",
+      "details": "Emerged from Seattle in the 1980s-90s. Characterized by distorted guitars, powerful drumming, and emotional, often dark lyrics. Anti-establishment attitude.",
+      "examples": [
+        "Nirvana",
+        "Pearl Jam",
+        "Soundgarden"
+      ],
+      "related": ["rock", "metal", "punk"],
+      "metadata": {
+        "era": "1980s-1990s",
+        "origin": "Seattle, USA",
+        "key_characteristics": ["distorted_guitar", "angst_lyrics", "powerful_drums", "anti_establishment"],
+        "similar_eras": ["grunge_movement"]
       }
     }
   ]
