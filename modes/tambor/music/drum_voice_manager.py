@@ -52,13 +52,13 @@ class DrumVoiceManager:
 
         This method:
         1. Caches drum-specific synth parameters by MIDI note to prevent parameter overwriting
-        2. Enqueues parameter update to MIDI event queue (applies right before note_on)
+        2. Applies parameters to synth engine right before note_on for correct voice application
         3. Ensures monophonic retriggering (same MIDI note)
         4. Triggers the new note with velocity modulation
 
-        Key fix: When multiple drums trigger on the same step, parameters are enqueued per-note
-        via the MIDI event queue, ensuring each drum's parameters apply to its specific voice
-        without cross-contamination.
+        Key design: Each drum has a unique MIDI note (Kick=36, Snare=38, etc.), so applying
+        parameters immediately before note_on ensures the correct drum parameters are used
+        without conflicts between simultaneous drum triggers.
 
         Args:
             drum_idx: Drum index (0-7)
