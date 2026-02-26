@@ -131,7 +131,7 @@ def _create_slider(self, value, min_val, max_val, width: int = 20):
 
 ### 2. Box Creation
 ```python
-# NEW: Complete box header
+# Complete box header
 def _create_section_box(self, title: str, width: int = 24) -> str:
     title_padded = f" {title} "
     padding = width - len(title_padded) - 2
@@ -140,7 +140,7 @@ def _create_section_box(self, title: str, width: int = 24) -> str:
     top_line = f"╔{'═' * left_pad}{title_padded}{'═' * right_pad}╗"
     return f"[bold #00ff00]{top_line}[/]"
 
-# NEW: Complete box footer
+# Complete box footer
 def _create_section_box_bottom(self, width: int = 24) -> str:
     bottom_line = f"╚{'═' * width}╝"
     return f"[bold #00ff00]{bottom_line}[/]"

@@ -26,9 +26,9 @@ class MainMenuMode(Vertical):
     }
 
     #main-menu-buttons Button {
-        width: 24;
+        width: 16;
         height: 12;
-        margin: 0 2;
+        margin: 0 1;
         border: tall $primary;
     }
 
@@ -48,13 +48,14 @@ class MainMenuMode(Vertical):
     def compose(self) -> ComposeResult:
         """Create the main menu layout."""
         yield HeaderWidget(title="M A I N   M E N U", subtitle="Select a mode to begin")
-        
+
         with Center():
             with Horizontal(id="main-menu-buttons"):
                 yield Button("Piano", id="piano_button", variant="primary")
                 yield Button("Compendium", id="compendium_button", variant="primary")
                 yield Button("Synth", id="synth_button", variant="primary")
                 yield Button("Metronome", id="metronome_button", variant="primary")
+                yield Button("Tambor", id="tambor_button", variant="primary")
 
     def on_mount(self) -> None:
         """Focus the first button when the menu is mounted."""
@@ -70,6 +71,8 @@ class MainMenuMode(Vertical):
             self.main_screen.action_show_synth()
         elif event.button.id == "metronome_button":
             self.main_screen.action_show_metronome()
+        elif event.button.id == "tambor_button":
+            self.main_screen.action_show_tambor()
 
     def on_key(self, event: events.Key) -> None:
         """Handle directional keys for focus navigation."""

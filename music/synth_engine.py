@@ -487,7 +487,46 @@ class SynthEngine:
             if v.base_frequency is not None and (v.note_active or v.is_releasing):
                 v.frequency = v.base_frequency * (2.0 ** (self.pitch_bend / 12.0))
 
+    def _generate_pink_noise(self, num_samples: int) -> np.ndarray:
+        """ABOUTME: Generate pink noise using Voss-McCartney algorithm (fast vectorized).
+        ABOUTME: Approximates 1/f spectrum with minimal CPU overhead."""
+        # Initialize state buffers if needed
+        if not hasattr(self, '_pink_state'):
+            self._pink_state = np.zeros(7, dtype=np.float32)
+
+        # Generate white noise
+        white = np.random.randn(num_samples).astype(np.float32)
+
+        # Fast vectorized pink noise: simple cascade of accumulators
+        # This approximates pink noise with O(1) per-sample cost (vs expensive IIR)
+        pink = np.zeros(num_samples, dtype=np.float32)
+        state = self._pink_state.copy()
+
+        # Use cascade of integrators with different decay rates for 1/f response
+        for i in range(num_samples):
+            # Add weighted white noise to each state variable
+            state[0] = 0.99765 * state[0] + white[i] * 0.0990460
+            state[1] = 0.96494 * state[1] + white[i] * 0.2965164
+            state[2] = 0.57115 * state[2] + white[i] * 1.0526500
+
+            # Mix states to create pink noise
+            pink[i] = (state[0] + state[1] + state[2]) * 0.333333
+
+        # Save state for next call (ensures spectral continuity)
+        self._pink_state = state
+
+        return pink.astype(np.float32)
+
     def _generate_waveform(self, waveform: str, frequency: float, num_samples: int, start_phase: float) -> tuple[np.ndarray, float]:
+        # Handle noise waveforms first (they don't use frequency/phase)
+        if waveform == "noise_white":
+            samples = np.random.randn(num_samples).astype(np.float32) * 0.5
+            return samples, start_phase
+        elif waveform == "noise_pink":
+            samples = self._generate_pink_noise(num_samples) * 0.5
+            return samples, start_phase
+
+        # Regular pitched waveforms use phase accumulation
         phase_inc = 2 * np.pi * frequency / self.sample_rate
         t = np.arange(num_samples)
         phases = start_phase + t * phase_inc

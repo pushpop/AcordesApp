@@ -33,10 +33,13 @@ Mode switching happens in `MainScreen._switch_mode()`: it calls `synth_engine.al
 
 Each mode is a Textual `Widget` subclass. Modes use `on_mount()` / `on_unmount()` for lifecycle. Modes that need MIDI input call `midi_handler.set_callbacks(...)` in `on_mount` to register note-on/note-off/pitch-bend handlers, and must clear them in `on_unmount`.
 
+**Widget lifecycle:** `compose()` yields child widgets in order (determines initial layout), then `on_mount()` is called (can mount additional widgets or start timers). Set `can_focus = True` and define `BINDINGS` list if the mode needs keyboard input; `_switch_mode()` will call `widget.focus()` after mounting to activate key bindings.
+
 Key modes:
 - **`synth_mode.py`** — The most complex mode. Manages 8 UI sections (OSC, FILTER, ENVELOPE, LFO, CHORUS, FX, ARPEGGIO, MIXER) rendered as a parameter grid. Has two input sub-modes: *focus mode* (WASD cursor + Q/E value change + `_` randomize focused param) and *legacy mode* (letter keys mapped to individual params). All parameter changes go through `_push_params_to_engine()` → `synth_engine.update_parameters(**kwargs)`.
 - **`piano_mode.py`** — Visualises the MIDI keyboard, runs chord detection, also drives synth.
 - **`metronome_mode.py`** — Shares BPM with the arpeggiator via `config_manager.get_bpm()` / `set_bpm()`.
+- **`tambor/tambor_mode.py`** — Drum machine sequencer (16-step sequencer, 8 drum sounds, pattern management, fills, humanize). Integrated from standalone Tambor project. Uses the shared Acordes `SynthEngine` to generate drum sounds via MIDI triggers. Pattern playback enqueues note-on/off events to `synth_engine.midi_event_queue` for sample-accurate timing. BPM syncs with metronome via `config_manager`.
 
 ### MIDI flow
 
@@ -78,9 +81,14 @@ Presets are JSON files in `presets/`. `PresetManager` loads all `.json` files; f
 
 `ConfigManager` loads/saves `config.json` (gitignored). Stores: selected MIDI device, last synth preset name, full synth parameter state (`synth_state`), and shared metronome/arpeggiator BPM. Every setter writes to disk immediately.
 
+### Pattern system (Tambor - `modes/tambor/music/`)
+
+Patterns are JSON files stored in `presets/tambor/` (separate from synth presets). Each pattern file contains drum step data, BPM, pre-scale, mute/solo state, and humanize settings. `PatternManager` handles file I/O; `PatternSaver`/`PatternLoader` use a background thread pool for non-blocking saves/loads to avoid UI freezes during file I/O. The UI thread enqueues save requests; the background thread processes them asynchronously.
+
 ## Key conventions
 
 - **Thread safety:** UI thread ↔ audio thread communicate exclusively through `synth_engine.midi_event_queue`. The `param_update` event type is the only safe way to change synth parameters mid-playback.
 - **Textual key bindings:** Textual 0.75+ maps Shift+Minus to the key name `"underscore"` (not `"shift+minus"`). Special characters follow Textual's `_character_to_key()` translation.
+- **Textual CSS selectors:** ID selectors (`#help-bar`) and element selectors (`TamborMode > HelpBar`) behave differently in widget layout. Yielding a widget in `compose()` places it in the parent's children list in order; re-mounting widgets via `mount()` appends them to the end. Use ID selectors for styling that should be independent of parent type.
 - **`requirements-windows.txt`** is an outdated stub — `requirements.txt` is the authoritative file for all platforms.
 - **`venv/`** is gitignored. The launcher scripts recreate it automatically.
