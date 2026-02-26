@@ -382,9 +382,10 @@ class ControlPanel(Static):
     }
     """
 
-    def __init__(self):
+    def __init__(self, config_manager=None):
         super().__init__()
-        self.bpm = 120
+        self.config_manager = config_manager
+        self.bpm = config_manager.get_bpm() if config_manager else 120
         self.pattern = 1
         self.total_patterns = 64
         self.playback_state = "STOPPED"
@@ -408,9 +409,20 @@ class ControlPanel(Static):
         yield Label(f"{self.fill_info}", id="fill-label")
         yield Label(f"Focus: {self.focus_drum_name} {self.focus_info}", id="focus-label")
 
+    def refresh_bpm_from_config(self):
+        """Refresh BPM display from config_manager (for mode switching)."""
+        if self.config_manager:
+            self.bpm = self.config_manager.get_bpm()
+            try:
+                self.query_one("#bpm-label").update(f"BPM: {self.bpm}")
+            except:
+                pass
+
     def update_bpm(self, bpm: int):
-        """Update BPM display."""
+        """Update BPM display and save to config_manager."""
         self.bpm = bpm
+        if self.config_manager:
+            self.config_manager.set_bpm(bpm)
         try:
             self.query_one("#bpm-label").update(f"BPM: {self.bpm}")
         except:
@@ -671,7 +683,7 @@ class TamborMode(Vertical):
         """Compose the drum machine layout."""
         yield HeaderWidget(title="TAMBOR", subtitle="TR-909 Drum Sequencer")
 
-        self.control_panel = ControlPanel()
+        self.control_panel = ControlPanel(config_manager=self.config_manager)
         yield self.control_panel
 
         for drum_idx, drum_name in enumerate(self.DRUM_SOUNDS):
@@ -686,6 +698,11 @@ class TamborMode(Vertical):
 
     def on_mount(self):
         """Initialize the sequencer on mount."""
+        # Refresh BPM from config_manager (for mode switching sync)
+        # This ensures Tambor displays the current BPM set in Metronome or other modes
+        if self.control_panel:
+            self.control_panel.refresh_bpm_from_config()
+
         # Load last edited pattern from previous session
         last_pattern = self._load_last_pattern()
         if last_pattern and 1 <= last_pattern <= 64:
