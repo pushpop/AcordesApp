@@ -48,3 +48,7 @@ imgs/
 
 # Claude Code settings
 .claude/
+
+# Gemini settings
+.gemini/
+GEMINI.md
