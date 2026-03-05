@@ -308,30 +308,40 @@ class MainScreen(Screen):
 
     def action_show_piano(self, save_history=True):
         """Show piano mode."""
+        if self.app_context.get("current_mode") == "piano":
+            return
         if save_history:
             self._record_history()
         self._switch_mode(self.app_context["create_piano"], "piano")
 
     def action_show_compendium(self, save_history=True):
         """Show compendium mode."""
+        if self.app_context.get("current_mode") == "compendium":
+            return
         if save_history:
             self._record_history()
         self._switch_mode(self.app_context["create_compendium"], "compendium")
 
     def action_show_synth(self, save_history=True):
         """Show synth mode."""
+        if self.app_context.get("current_mode") == "synth":
+            return
         if save_history:
             self._record_history()
         self._switch_mode(self.app_context["create_synth"], "synth")
 
     def action_show_metronome(self, save_history=True):
         """Show metronome mode."""
+        if self.app_context.get("current_mode") == "metronome":
+            return
         if save_history:
             self._record_history()
         self._switch_mode(self.app_context["create_metronome"], "metronome")
 
     def action_show_tambor(self, save_history=True):
         """Show Tambor drum machine mode."""
+        if self.app_context.get("current_mode") == "tambor":
+            return
         if save_history:
             self._record_history()
         self._switch_mode(self.app_context["create_tambor"], "tambor")
@@ -384,7 +394,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.6.0"
+    VERSION = "1.7.9"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """

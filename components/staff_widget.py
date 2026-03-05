@@ -1,4 +1,5 @@
-"""Musical staff widget for displaying notes on a traditional staff."""
+# ABOUTME: Musical staff widget — renders treble and bass clef with active MIDI notes as filled circles.
+# ABOUTME: Precomputes staff position lookup tables at init to avoid per-note dict rebuilds on every update.
 from textual.widgets import Static
 from typing import Set, List
 
@@ -8,6 +9,17 @@ class StaffWidget(Static):
 
     # MIDI note 60 = C4 (middle C)
     NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+    # Precomputed position tables — built once at class definition time.
+    # Maps staff row index → reference MIDI note for each clef.
+    _TREBLE_LINE_NOTES  = {9: 64, 7: 67, 5: 71, 3: 74, 1: 77}
+    _TREBLE_SPACE_NOTES = {10: 62, 8: 65, 6: 69, 4: 72, 2: 76, 0: 79}
+    _BASS_LINE_NOTES    = {9: 43, 7: 47, 5: 50, 3: 53, 1: 57}
+    _BASS_SPACE_NOTES   = {10: 41, 8: 45, 6: 48, 4: 52, 2: 55, 0: 59}
+
+    # Merged dicts for fast position lookup (built once, used every render).
+    _TREBLE_ALL = {**_TREBLE_LINE_NOTES, **_TREBLE_SPACE_NOTES}
+    _BASS_ALL   = {**_BASS_LINE_NOTES,   **_BASS_SPACE_NOTES}
 
     def __init__(self, **kwargs):
         # Initialize with empty staff display
@@ -177,41 +189,15 @@ class StaffWidget(Static):
             else:  # Spaces
                 staff_lines.append(" " * staff_width)
 
-        # Reference MIDI notes for each line position
+        # Use precomputed position tables — no dict construction per call.
         if is_treble:
-            # Treble clef: E4 to F5 (MIDI 64 to 77)
-            line_notes = {
-                9: 64,  # E4
-                7: 67,  # G4
-                5: 71,  # B4
-                3: 74,  # D5
-                1: 77,  # F5
-            }
-            space_notes = {
-                10: 62,  # D4 (below staff)
-                8: 65,   # F4
-                6: 69,   # A4
-                4: 72,   # C5
-                2: 76,   # E5
-                0: 79,   # G5 (above staff)
-            }
+            line_notes  = self._TREBLE_LINE_NOTES
+            space_notes = self._TREBLE_SPACE_NOTES
+            all_positions = self._TREBLE_ALL
         else:
-            # Bass clef: G2 to A3 (MIDI 43 to 57)
-            line_notes = {
-                9: 43,  # G2
-                7: 47,  # B2
-                5: 50,  # D3
-                3: 53,  # F3
-                1: 57,  # A3
-            }
-            space_notes = {
-                10: 41,  # F2 (below staff)
-                8: 45,   # A2
-                6: 48,   # C3
-                4: 52,   # E3
-                2: 55,   # G3
-                0: 59,   # B3 (above staff)
-            }
+            line_notes  = self._BASS_LINE_NOTES
+            space_notes = self._BASS_SPACE_NOTES
+            all_positions = self._BASS_ALL
 
         # Track note positions to place them all at once
         note_positions = []  # List of (y_pos, x_pos, is_sharp)
@@ -233,8 +219,8 @@ class StaffWidget(Static):
                 if x_pos < 2:
                     x_pos = 2
 
-                # Find closest staff position
-                y_pos = self._find_staff_position(note, line_notes, space_notes)
+                # Find closest staff position using precomputed combined table.
+                y_pos = self._find_staff_position(note, all_positions)
 
                 # Clamp y_pos to valid range
                 if y_pos < 0:
@@ -267,18 +253,10 @@ class StaffWidget(Static):
         for i, line in enumerate(staff_lines):
             label = ref_labels[i] if i < len(ref_labels) else ""
 
-            # Add markup by replacing characters, maintaining exact width
-            marked_line = ""
-            j = 0
-            while j < len(line):
-                char = line[j]
-                if char == '♯':
-                    marked_line += '[yellow]♯[/yellow]'
-                elif char == '●':
-                    marked_line += '[bold yellow]●[/bold yellow]'
-                else:
-                    marked_line += char
-                j += 1
+            # Apply Rich markup via string replace — avoids char-by-char iteration.
+            marked_line = (line
+                           .replace('♯', '[yellow]♯[/yellow]')
+                           .replace('●', '[bold yellow]●[/bold yellow]'))
 
             # Pad the label to ensure consistent spacing
             label_padded = label.ljust(2)  # Ensure labels are always 2 chars (e.g., "F5")
@@ -286,21 +264,17 @@ class StaffWidget(Static):
 
         return "\n".join(result)
 
-    def _find_staff_position(self, midi_note: int, line_notes: dict, space_notes: dict) -> int:
+    def _find_staff_position(self, midi_note: int, all_positions: dict) -> int:
         """Find the closest staff position for a MIDI note.
 
         Args:
             midi_note: MIDI note number.
-            line_notes: Dict mapping line indices to MIDI notes.
-            space_notes: Dict mapping space indices to MIDI notes.
+            all_positions: Precomputed dict mapping staff row indices to reference MIDI notes.
 
         Returns:
             Staff line index (0-10).
         """
-        # Combine all positions
-        all_positions = {**line_notes, **space_notes}
-
-        # Find closest position
+        # Find closest position using the precomputed combined table.
         closest_pos = min(all_positions.keys(),
                          key=lambda k: abs(all_positions[k] - midi_note))
 

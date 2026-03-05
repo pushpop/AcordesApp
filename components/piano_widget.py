@@ -1,7 +1,9 @@
-"""Visual piano keyboard widget."""
+# ABOUTME: Visual ASCII piano keyboard widget — renders pressed MIDI keys with colour highlights.
+# ABOUTME: Caches keyboard border width so regex runs only when the octave range changes, not per keypress.
 from textual.widgets import Static
 from textual.reactive import reactive
 from typing import Set
+import re
 
 
 class PianoWidget(Static):
@@ -24,6 +26,9 @@ class PianoWidget(Static):
     def __init__(self, **kwargs):
         super().__init__("", **kwargs)
         self.active_notes = set()
+        # Cache border width so regex only runs when octave range changes
+        self._cached_border_width: int = 0
+        self._cached_octave_key: tuple = ()
 
     def _build_piano_display(self, active_notes: Set[int]) -> str:
         """Build piano keyboard ASCII art with taller keys and coloring."""
@@ -253,15 +258,18 @@ class PianoWidget(Static):
                 lines[9] += "   │"
                 lines[10] += "───┘"
 
-        # Calculate keyboard width dynamically by removing markup tags
-        import re
-        # Remove all rich markup tags to get visual width from all lines
-        max_width = 0
-        for line in lines:
-            clean_line = re.sub(r'\[.*?\]', '', line)
-            max_width = max(max_width, len(clean_line))
+        # Border width only changes when the octave range changes, not per keypress.
+        # Cache it keyed on (START_NOTE, NUM_OCTAVES) to avoid regex on every render.
+        octave_key = (START_NOTE, NUM_OCTAVES)
+        if octave_key != self._cached_octave_key:
+            max_width = 0
+            for line in lines:
+                clean_line = re.sub(r'\[.*?\]', '', line)
+                max_width = max(max_width, len(clean_line))
+            self._cached_border_width = max_width + 2
+            self._cached_octave_key = octave_key
 
-        visual_width = max_width + 2  # Add 2 for proper alignment and padding
+        visual_width = self._cached_border_width
 
         # Create bounding box
         top_border = "╔" + "═" * visual_width + "╗"
@@ -270,7 +278,6 @@ class PianoWidget(Static):
         # Add side borders to each line with proper padding
         bordered_lines = [top_border]
         for line in lines:
-            # Calculate how much padding is needed for this line
             clean_line = re.sub(r'\[.*?\]', '', line)
             padding_needed = visual_width - len(clean_line)
             bordered_lines.append("║" + line + " " * padding_needed + "║")
@@ -288,6 +295,6 @@ class PianoWidget(Static):
         Args:
             notes: Set of MIDI note numbers to display as pressed.
         """
+        # Setting the reactive triggers refresh automatically — no explicit call needed.
         self.active_notes = notes
-        self.refresh()
 

@@ -1,6 +1,5 @@
-"""Music Knowledge Hub - comprehensive reference browser with hierarchical navigation."""
-# ABOUTME: CompendiumMode implements a two-column Music Knowledge Hub with tree navigation
-# ABOUTME: Combines chord library, scales, instruments, genres in expandable JSON-based system
+# ABOUTME: CompendiumMode implements a two-column Music Knowledge Hub with tree navigation.
+# ABOUTME: Combines chord library, scales, instruments, genres in expandable JSON-based system.
 
 import json
 from pathlib import Path
@@ -12,6 +11,7 @@ from textual.widgets.tree import TreeNode
 from textual.binding import Binding
 from textual.message import Message
 from components.header_widget import HeaderWidget
+from modes.piano_mode import _PIANO_PARAMS
 
 if TYPE_CHECKING:
     from music.chord_library import ChordLibrary
@@ -462,6 +462,8 @@ class CompendiumMode(Widget):
         self.chord_library = chord_library
         self.synth_engine = synth_engine
         self.selected_notes: List[int] = []
+        # Snapshot of synth params captured on mount; restored when leaving compendium mode
+        self._saved_synth_params: dict = {}
 
         # Initialize data manager
         self.data_manager = CompendiumDataManager()
@@ -502,6 +504,10 @@ class CompendiumMode(Widget):
 
     def on_mount(self):
         """Initialize the tree and focus it."""
+        # Snapshot current synth state then apply the shared piano sound for chord preview.
+        self._saved_synth_params = self.synth_engine.get_current_params()
+        self.synth_engine.update_parameters(**_PIANO_PARAMS)
+
         self._build_tree()
         tree = self.query_one("#chord-tree", Tree)
         tree.focus()
@@ -509,6 +515,12 @@ class CompendiumMode(Widget):
         # Initialize detail panel with empty state
         detail_panel = self.query_one("#detail-panel", CompendiumDetailPanel)
         detail_panel.clear_display()
+
+    def on_unmount(self):
+        """Silence notes and restore synth state when leaving compendium mode."""
+        self.synth_engine.all_notes_off()
+        if self._saved_synth_params:
+            self.synth_engine.update_parameters(**self._saved_synth_params)
 
     def on_key(self, event) -> None:
         """Intercept key presses to handle left/right arrows when tree is focused."""

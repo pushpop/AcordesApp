@@ -7,7 +7,7 @@
 | ![Main Menu](docs/images/main-menu.png) | ![Piano Mode](docs/images/piano-mode.png) |
 | ![Synth Mode](docs/images/synth-mode.png) | ![Tambor Mode](docs/images/tambor-mode.png) |
 
-**Version 1.7.5**
+**Version 1.7.9**
 
 A terminal-based MIDI piano application with real-time visualization, chord detection, traditional musical staff notation, a polyphonic synthesizer with a full signal-processing chain and preset system, and a fully-featured metronome.
 
@@ -36,6 +36,50 @@ A terminal-based MIDI piano application with real-time visualization, chord dete
 - **Chord Compendium**: Reference guide with all chord types across all musical keys.
   - **Audio Playback**: Hear chords played as you browse.
 - **Metronome Mode**: A highly customizable and musically aware metronome with BPM shared across all modes.
+
+## What's New in v1.7.9
+
+**Piano Mode Integration, GUI Performance, Signal Flow Refinement & Quality-of-Life Improvements**
+
+### Piano Mode Exclusive Sound
+Piano Mode and Compendium Mode now use a dedicated piano-like sound instead of inheriting the synth engine's current preset:
+- **Dedicated piano preset**: Sine waveform, fast attack (4ms), natural decay (550ms), 75% key tracking for brightness per octave
+- **State preservation**: Previous synth parameters are automatically restored when leaving Piano or Compendium Mode
+- **Audio isolation**: Chord playback and note preview use consistent piano tone independent of synth tweaks
+
+### Filter EG (Envelope Generator) — Complete Implementation
+A separate per-voice ADSR envelope for filter cutoff modulation, driven by MIDI gate (independent of VCA):
+- **5 parameters**: Attack, Decay, Sustain, Release (same as VCA), plus Amount (-1 to +1 for downward/upward sweep up to 8 kHz)
+- **Zero CPU overhead**: Fully bypassed when Amount = 0.0 (all 128 factory presets)
+- **Correct signal flow**: Filter EG modulates VCF cutoff *before* VCA envelope shapes amplitude (VCO→VCF→VCA)
+- **Backward compatible**: Factory presets unaffected; Amount defaults to neutral (0.0)
+- **Layout restructured**: Row 0 now reads left-to-right: OSC | FILTER | FILTER EG | AMP EG (matching analog VCO→VCF→VCA flow)
+
+### GUI Performance Optimizations
+Real-time rendering speed improvements across all modes:
+- **Piano Widget**: Regex border width calculation cached per octave range (not per keypress) — 10–30% CPU reduction during rapid playing
+- **Staff Widget**: Precomputed staff position lookup tables eliminate per-note dict rebuilds; char-by-char Rich markup replaced with string.replace()
+- **Reactive refresh**: Removed redundant explicit refresh() calls after reactive assignment (Textual does this automatically)
+
+### Expanded Preset Naming Dictionary
+Preset name generation now draws from 160+ words across 4 languages (English, Portuguese, German, French) instead of ~60:
+- **Three-word format**: `adj noun noun` combos now generate ~4 million unique names (was ~900 with two-word format)
+- **Multi-language diversity**: Names like "zart corde strie" or "sombre drift hauch" feel musical without repetition
+- **Fewer collisions**: Increased pool size plus three-word format eliminates repeat names in typical session workflows
+
+### Mode Switching Stability
+Pressing the same mode shortcut (e.g., "1" for Piano twice) no longer reloads the mode:
+- **Guard checks**: Each `action_show_*` checks `current_mode` and returns early if already active
+- **No unmount/remount**: Avoids state snapshots, audio engine cycle, unnecessary CPU work
+- **Seamless interaction**: Works across all 5 modes (Piano, Synth, Compendium, Metronome, Tambor)
+
+### Sine Waveform Artifact Suppression (MONO/UNISON)
+Eliminated phase-discontinuity artifacts that appeared when switching between sine notes:
+- **Pre-gate S-curve**: 10 ms smooth fade-in from phase=0 applied pre-filter, hiding the phase reset
+- **Combines with attack ramp**: Works in parallel with VCA attack envelope and polyphase onset ramp
+- **Zero musicality impact**: Only affects initial transient; sustain and release untouched
+
+---
 
 ## What's New in v1.7.5
 

@@ -45,6 +45,11 @@ def create_preset(
     arp_rate: float = 8.0,
     arp_range: int = 1,
     voice_type: str = "poly",
+    feg_attack:  float = 0.01,
+    feg_decay:   float = 0.3,
+    feg_sustain: float = 0.0,
+    feg_release: float = 0.3,
+    feg_amount:  float = 0.0,
 ) -> Dict[str, Any]:
     """Helper function to create a preset dict."""
     return {
@@ -78,6 +83,11 @@ def create_preset(
         "arp_rate": arp_rate,
         "arp_range": arp_range,
         "voice_type": voice_type,
+        "feg_attack":  feg_attack,
+        "feg_decay":   feg_decay,
+        "feg_sustain": feg_sustain,
+        "feg_release": feg_release,
+        "feg_amount":  feg_amount,
     }
 
 

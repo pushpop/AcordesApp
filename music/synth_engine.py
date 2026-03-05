@@ -102,6 +102,21 @@ class Voice:
         # this many samples (typically 4 = 1 audio sample per oversampled step).
         self.crossfade_samples: int = 0
 
+        # Filter EG per-voice state — one-shot ADSR that modulates filter cutoff.
+        # Resets on every note trigger; independent of the amp envelope lifecycle.
+        self.feg_time:         float = 0.0    # elapsed time since last trigger
+        self.feg_is_releasing: bool  = False  # True after note-off
+        self.feg_release_start: float = 0.0   # FEG level captured at note-off
+
+        # Pre-gate progress for sine/pure_sine in MONO and UNISON voice modes.
+        # Tracks linear 0→1 progress over 10ms after each note trigger; the actual
+        # gate multiplier applied to the oscillator output is computed as an S-curve
+        # (1 - cos(π·progress)) / 2 so both the start and end of the fade-in have
+        # zero slope — no instantaneous amplitude steps at either endpoint.
+        # Applied between oscillator and filter so the filter sees a smoothly growing
+        # signal from phase=0.  Default 1.0 = fully open; zero impact on all other paths.
+        self.pre_gate_progress: float = 1.0
+
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
 
@@ -124,6 +139,10 @@ class Voice:
         self.age = 0.0
         self.onset_samples = 0   # restart the per-voice fade-in ramp
         self.onset_ms = 3.0      # reset to default; _trigger_note sets the real value
+        # FEG restarts from zero on every new trigger
+        self.feg_time = 0.0
+        self.feg_is_releasing = False
+        self.feg_release_start = 0.0
 
         # RESET filter/DC memory if starting from silence OR if this is a voice steal
         # (same voice being retaken by a different note). Preserving stale filter/DC
@@ -178,6 +197,9 @@ class Voice:
         self.last_envelope_level = 0.0
         self.sine_phase = 0.0
         self.onset_samples = 0
+        self.feg_time = 0.0
+        self.feg_is_releasing = False
+        self.feg_release_start = 0.0
         self._oversample_history[:] = 0.0
         self._oversample_history_r2[:] = 0.0
         self._oversample_history_sine[:] = 0.0
@@ -212,6 +234,16 @@ class SynthEngine:
         self.sustain = 0.7
         self.release = 0.1
         self.intensity = 1.0  # Always 100% — removed from UI
+
+        # Filter EG — per-voice one-shot ADSR that modulates LPF cutoff.
+        # feg_amount=0.0 means fully bypassed; all existing presets default to this.
+        # Maximum sweep: feg_amount × _FEG_MAX_SWEEP_HZ added to (or subtracted from) cutoff.
+        self.feg_attack  = 0.01
+        self.feg_decay   = 0.3
+        self.feg_sustain = 0.0
+        self.feg_release = 0.3
+        self.feg_amount  = 0.0
+        self._FEG_MAX_SWEEP_HZ = 8000.0  # maximum cutoff shift at amount=±1.0
 
         self.cutoff = 2000.0
         self.hpf_cutoff = 20.0
@@ -967,6 +999,44 @@ class SynthEngine:
 
         return filtered * filter_comp
 
+    def _compute_feg_value(self, voice: Voice, num_samples: int) -> float:
+        """Compute the Filter EG scalar (0.0–1.0) for the current buffer.
+
+        Returns a single representative value for the buffer rather than a
+        per-sample array — consistent with the per-buffer approach used for
+        cutoff/resonance smoothing throughout the engine.  Fast-path returns
+        0.0 immediately when feg_amount==0.0 so existing presets pay zero cost.
+        """
+        if self.feg_amount == 0.0:
+            return 0.0
+
+        dt = num_samples / self.sample_rate
+        t = voice.feg_time
+
+        if voice.feg_is_releasing:
+            # Exponential release from the level held at note-off.
+            # feg_release_start stores the elapsed feg_time at note-off; we use
+            # the time *since* note-off to drive the release decay.
+            t_rel = max(0.0, t - voice.feg_release_start)
+            time_const = max(0.001, self.feg_release)
+            level = np.exp(-t_rel / time_const)
+            voice.feg_time += dt
+            return float(np.clip(level, 0.0, 1.0))
+        else:
+            # Attack → Decay → Sustain
+            atk = max(0.001, self.feg_attack)
+            dcy = max(0.001, self.feg_decay)
+            sus = float(np.clip(self.feg_sustain, 0.0, 1.0))
+            if t < atk:
+                level = t / atk
+            elif t < atk + dcy:
+                p = (t - atk) / dcy
+                level = 1.0 - p * (1.0 - sus)
+            else:
+                level = sus
+            voice.feg_time += dt
+            return float(np.clip(level, 0.0, 1.0))
+
     def _apply_dc_blocker(self, voice: Voice, samples: np.ndarray) -> np.ndarray:
         """First-order HPF DC blocker with frequency-adaptive pole.
 
@@ -1052,6 +1122,11 @@ class SynthEngine:
                         elif k == 'hpf_resonance':   self.hpf_resonance_target   = v
                         elif k == 'noise_level':     self.noise_level_target     = v
                         elif k == 'key_tracking':    self.key_tracking_target    = v
+                        elif k == 'feg_attack':      self.feg_attack  = float(v)
+                        elif k == 'feg_decay':       self.feg_decay   = float(v)
+                        elif k == 'feg_sustain':     self.feg_sustain = float(v)
+                        elif k == 'feg_release':     self.feg_release = float(v)
+                        elif k == 'feg_amount':      self.feg_amount  = float(v)
                         elif k == 'voice_type':      self.voice_type             = v
                         elif k == 'filter_mode':     pass  # kept for preset backward-compat; ignored
                         else:
@@ -1213,13 +1288,29 @@ class SynthEngine:
                 mono_v.envelope_time = 0.0
                 mono_v.age = 0.0
                 mono_v.onset_ms = onset_ms_for_note
+                # FEG restarts on every new note in soft-trigger path too.
+                mono_v.feg_time = 0.0
+                mono_v.feg_is_releasing = False
+                mono_v.feg_release_start = 0.0
                 # onset_samples, filter states, DC blocker, and phase preserved.
                 # Arm engine-level crossfade: hides FIR frequency-change transient.
                 self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
+                # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
+                # The existing steal crossfade (steal_start_level) fades out the old
+                # note's amplitude over 8ms while the pre-gate fades in the new signal
+                # over 10ms — sequential out→in eliminates the filter-discharge spike.
+                if self.waveform in ("sine", "pure_sine"):
+                    mono_v.phase = 0.0
+                    mono_v.pre_gate_progress = 0.0
             else:
                 # Hard trigger from true silence: full reset via trigger().
                 mono_v.trigger(note, freq, vel)
                 mono_v.onset_ms = onset_ms_for_note
+                # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
+                # The onset ramp still runs post-envelope for DC blocker settling.
+                if self.waveform in ("sine", "pure_sine"):
+                    mono_v.phase = 0.0
+                    mono_v.pre_gate_progress = 0.0
 
         elif self.voice_type == "unison":
             # Unison mode: all voices play same note with detuning spread.
@@ -1247,12 +1338,27 @@ class SynthEngine:
                     v.envelope_time = 0.0
                     v.age = 0.0
                     v.onset_ms = onset_ms_for_note
+                    # FEG restarts on every new note.
+                    v.feg_time = 0.0
+                    v.feg_is_releasing = False
+                    v.feg_release_start = 0.0
                     # onset_samples, filter states, DC blocker, and phase preserved.
                     # Arm engine-level crossfade (same as MONO).
                     self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
+                    # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
+                    # Each UNISON voice gets its own gate; filter/DC states kept continuous.
+                    # steal_start_level preserved so the envelope's 8ms steal crossfade
+                    # fades out the old amplitude in parallel with the gate fade-in.
+                    if self.waveform in ("sine", "pure_sine"):
+                        v.phase = 0.0
+                        v.pre_gate_progress = 0.0
                 else:
                     # Hard trigger from true silence: full reset
                     v.trigger(note, detuned_freq, vel)
+                    # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
+                    if self.waveform in ("sine", "pure_sine"):
+                        v.phase = 0.0
+                        v.pre_gate_progress = 0.0
                     v.onset_ms = onset_ms_for_note
 
         else:  # "poly" mode (default)
@@ -1300,6 +1406,8 @@ class SynthEngine:
                 mono_v = self.voices[self.mono_voice_index]
                 if mono_v.note_active:
                     mono_v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                    mono_v.feg_is_releasing = True
+                    mono_v.feg_release_start = mono_v.feg_time
         elif self.voice_type == "unison":
             # Last-note priority for unison: same logic but all 8 detuned voices.
             remaining = [n for n in self._held_notes_ordered if n in self.held_notes]
@@ -1311,9 +1419,14 @@ class SynthEngine:
                 for v in self.voices:
                     if v.note_active:
                         v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                        v.feg_is_releasing = True
+                        v.feg_release_start = v.feg_time
         else:
             for v in self.voices:
-                if v.midi_note == note and v.note_active: v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                if v.midi_note == note and v.note_active:
+                    v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                    v.feg_is_releasing = True
+                    v.feg_release_start = v.feg_time
 
     def _audio_callback(self, in_data, frame_count, time_info, status):
         try:
@@ -1485,7 +1598,48 @@ class SynthEngine:
                     if self.ENABLE_OVERSAMPLING:
                         s1 = self._downsample_polyphase_signal(s1, self.OVERSAMPLE_FACTOR, history=v._oversample_history)
 
+                    # Pre-gate: S-curve fade-in over 10ms for sine/pure_sine in MONO/UNISON.
+                    # Applied between oscillator and filter so the filter sees a smoothly
+                    # growing signal from phase=0.  Shape: (1 - cos(π·t)) / 2 gives zero
+                    # slope at both endpoints — no instantaneous amplitude steps at start
+                    # or finish.  The existing steal crossfade (steal_start_level) handles
+                    # fading out the old note's amplitude in parallel, creating a natural
+                    # sequential out→in transition.  Default progress=1.0 = no effect.
+                    if (self.voice_type in ("mono", "unison")
+                            and self.waveform in ("sine", "pure_sine")
+                            and v.pre_gate_progress < 1.0):
+                        _GATE_RAMP_S = 0.010 * self.sample_rate  # 10ms in samples
+                        _rate = 1.0 / _GATE_RAMP_S
+                        _prog_start = v.pre_gate_progress
+                        _prog_end = min(1.0, _prog_start + _rate * frame_count)
+                        _prog_arr = np.linspace(_prog_start, _prog_end, frame_count, dtype=np.float32)
+                        _prog_arr = np.clip(_prog_arr, 0.0, 1.0)
+                        # S-curve: zero slope at 0 and 1, smooth throughout
+                        _gate = ((1.0 - np.cos(np.pi * _prog_arr)) * 0.5).astype(np.float32)
+                        v.pre_gate_progress = _prog_end
+                        s1 = s1 * _gate
+
+                    # Sine sub-oscillator mixed pre-filter so it's shaped by the
+                    # filter (and Filter EG) alongside the primary oscillator.
+                    if self.sine_mix > 0:
+                        ss, v.sine_phase = self._generate_waveform("pure_sine", f1, frame_count, v.sine_phase, oversample_factor=oversample_factor)
+                        if self.ENABLE_OVERSAMPLING:
+                            ss = self._downsample_polyphase_signal(ss, self.OVERSAMPLE_FACTOR, history=v._oversample_history_sine)
+                        s1 = s1 + ss * self.sine_mix
+
+                    # Filter EG: compute per-buffer scalar and add to vcf_lfo modulation.
+                    # feg_value is 0→1; scaled by feg_amount×_FEG_MAX_SWEEP_HZ and added
+                    # to the base cutoff inside _apply_filter via cutoff_mod offset.
+                    # When feg_amount==0.0 _compute_feg_value fast-paths to 0.0 with no overhead.
+                    feg_val = self._compute_feg_value(v, frame_count)
+                    feg_cutoff_offset = self.feg_amount * self._FEG_MAX_SWEEP_HZ * feg_val
+                    # Pass as a combined modulator: vcf_lfo handles LFO ratio, FEG adds Hz offset.
+                    # _apply_filter receives cutoff_mod as a multiplier; we encode the offset by
+                    # adjusting the target cutoff temporarily per-voice via a local variable.
+                    _base_cutoff = self.cutoff_current
+                    self.cutoff_current = float(np.clip(_base_cutoff + feg_cutoff_offset, 20.0, 20000.0))
                     s1 = self._sanitize_signal(self._apply_filter(v, s1, rank=1, cutoff_mod=vcf_lfo))
+                    self.cutoff_current = _base_cutoff  # restore immediately after filter call
 
                     if self.rank2_enabled:
                         f2 = f1 * (2.0 ** (self.rank2_detune / 1200.0))
@@ -1495,21 +1649,12 @@ class SynthEngine:
                         if self.ENABLE_OVERSAMPLING:
                             s2 = self._downsample_polyphase_signal(s2, self.OVERSAMPLE_FACTOR, history=v._oversample_history_r2)
 
+                        self.cutoff_current = float(np.clip(_base_cutoff + feg_cutoff_offset, 20.0, 20000.0))
                         s2 = self._sanitize_signal(self._apply_filter(v, s2, rank=2, cutoff_mod=vcf_lfo))
+                        self.cutoff_current = _base_cutoff
                         v_samples = s1 * (1.0 - self.rank2_mix) + s2 * self.rank2_mix
                     else:
                         v_samples = s1
-
-                    if self.sine_mix > 0:
-                        # Use and advance the voice's dedicated sine_phase accumulator
-                        # so the sub-oscillator is phase-continuous across buffer boundaries.
-                        ss, v.sine_phase = self._generate_waveform("pure_sine", f1, frame_count, v.sine_phase, oversample_factor=oversample_factor)
-
-                        # Downsample sine sub-oscillator if oversampling enabled
-                        if self.ENABLE_OVERSAMPLING:
-                            ss = self._downsample_polyphase_signal(ss, self.OVERSAMPLE_FACTOR, history=v._oversample_history_sine)
-
-                        v_samples += ss * self.sine_mix
 
                     if self.noise_level_current > 0:
                         # Blend white noise with oscillator output (noise stays at 48 kHz)
@@ -1706,6 +1851,58 @@ class SynthEngine:
     def pitch_bend_change(self, value: int): self.pitch_bend_target = ((value - 8192) / 8192.0) * 2.0
 
     def modulation_change(self, value: int): self.mod_wheel = value / 127.0
+
+    def get_current_params(self) -> dict:
+        """Return a snapshot of the current synth parameter state from the UI thread.
+
+        Reads the live engine attributes directly (safe for reading scalars from
+        the UI thread between audio callbacks). Used by modes that need to save
+        and restore state around a temporary parameter override (e.g. piano mode).
+        """
+        return {
+            "waveform":       self.waveform,
+            "octave":         self.octave,
+            "noise_level":    self.noise_level_target,
+            "amp_level":      self.amp_level,
+            "cutoff":         self.cutoff,
+            "hpf_cutoff":     self.hpf_cutoff,
+            "resonance":      self.resonance,
+            "hpf_resonance":  self.hpf_resonance,
+            "key_tracking":   self.key_tracking_target,
+            "attack":         self.attack,
+            "decay":          self.decay,
+            "sustain":        self.sustain,
+            "release":        self.release,
+            "rank2_enabled":  self.rank2_enabled,
+            "rank2_waveform": self.rank2_waveform,
+            "rank2_detune":   self.rank2_detune,
+            "rank2_mix":      self.rank2_mix,
+            "sine_mix":       self.sine_mix,
+            "lfo_freq":       self.lfo_freq,
+            "lfo_vco_mod":    self.lfo_vco_mod,
+            "lfo_vcf_mod":    self.lfo_vcf_mod,
+            "lfo_vca_mod":    self.lfo_vca_mod,
+            "lfo_shape":      self.lfo_shape,
+            "lfo_target":     self.lfo_target,
+            "lfo_depth":      self.lfo_depth,
+            "delay_time":     self.delay_time,
+            "delay_feedback": self.delay_feedback,
+            "delay_mix":      self.delay_mix,
+            "chorus_rate":    self.chorus_rate,
+            "chorus_depth":   self.chorus_depth,
+            "chorus_mix":     self.chorus_mix,
+            "chorus_voices":  self.chorus_voices,
+            "arp_enabled":    self.arp_enabled,
+            "arp_mode":       self.arp_mode,
+            "arp_gate":       self.arp_gate,
+            "arp_range":      self.arp_range,
+            "voice_type":     self.voice_type,
+            "feg_attack":     self.feg_attack,
+            "feg_decay":      self.feg_decay,
+            "feg_sustain":    self.feg_sustain,
+            "feg_release":    self.feg_release,
+            "feg_amount":     self.feg_amount,
+        }
 
     def update_parameters(self, **kwargs):
         """Update synth parameters from the UI thread.

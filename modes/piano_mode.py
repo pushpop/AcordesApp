@@ -1,4 +1,5 @@
-"""Real-time piano display and chord detection screen."""
+# ABOUTME: Piano mode — real-time MIDI keyboard visualiser with chord detection and staff display.
+# ABOUTME: Applies a dedicated piano-like sound on mount and restores the previous synth state on exit.
 from textual.widget import Widget
 from textual.containers import Vertical, Center
 from textual.widgets import Label
@@ -14,6 +15,54 @@ if TYPE_CHECKING:
     from midi.input_handler import MIDIInputHandler
     from music.chord_detector import ChordDetector
     from music.synth_engine import SynthEngine
+
+# Piano-mode exclusive sound — applied on mount, restored on exit.
+# Modelled after a bright acoustic piano: sine-based, fast attack, natural decay,
+# moderate key tracking, no LFO/delay/chorus, arpeggiator off.
+_PIANO_PARAMS: dict = {
+    "waveform":       "sine",
+    "octave":         0,
+    "noise_level":    0.0,
+    "amp_level":      0.88,
+    "cutoff":         6000.0,
+    "hpf_cutoff":     40.0,
+    "resonance":      0.15,
+    "hpf_resonance":  0.0,
+    "key_tracking":   0.75,
+    "attack":         0.004,
+    "decay":          0.55,
+    "sustain":        0.25,
+    "release":        0.45,
+    "rank2_enabled":  False,
+    "rank2_waveform": "sine",
+    "rank2_detune":   0.0,
+    "rank2_mix":      0.0,
+    "sine_mix":       0.0,
+    "lfo_freq":       1.0,
+    "lfo_vco_mod":    0.0,
+    "lfo_vcf_mod":    0.0,
+    "lfo_vca_mod":    0.0,
+    "lfo_shape":      "sine",
+    "lfo_target":     "all",
+    "lfo_depth":      0.0,
+    "delay_time":     0.25,
+    "delay_feedback": 0.3,
+    "delay_mix":      0.0,
+    "chorus_rate":    0.5,
+    "chorus_depth":   0.0,
+    "chorus_mix":     0.0,
+    "chorus_voices":  2,
+    "arp_enabled":    False,
+    "arp_mode":       "up",
+    "arp_gate":       0.5,
+    "arp_range":      1,
+    "voice_type":     "poly",
+    "feg_attack":     0.004,
+    "feg_decay":      0.3,
+    "feg_sustain":    0.0,
+    "feg_release":    0.3,
+    "feg_amount":     0.35,
+}
 
 
 class NoteEvent(Message):
@@ -103,6 +152,8 @@ class PianoMode(Widget):
         self.staff_widget = None
         # Track last displayed note set — only redraw when it actually changes
         self._last_displayed_notes: Set[int] = set()
+        # Snapshot of synth params captured on mount; restored when leaving piano mode
+        self._saved_synth_params: dict = {}
 
     def compose(self):
         """Compose the piano mode layout."""
@@ -142,6 +193,11 @@ class PianoMode(Widget):
             note_off=self._on_note_off
         )
 
+        # Snapshot the current synth state so we can restore it on exit,
+        # then apply the dedicated piano sound exclusively for this mode.
+        self._saved_synth_params = self.synth_engine.get_current_params()
+        self.synth_engine.update_parameters(**_PIANO_PARAMS)
+
         # Initialize chord display
         if self.chord_display_widget:
             self.chord_display_widget.update_display(None, [])
@@ -154,8 +210,10 @@ class PianoMode(Widget):
         self.set_interval(0.01, self._poll_midi)  # Poll every 10ms
 
     def on_unmount(self):
-        """Release all held notes when leaving Piano mode to prevent stuck voices."""
+        """Restore previous synth state and release held notes when leaving Piano mode."""
         self.synth_engine.all_notes_off()
+        if self._saved_synth_params:
+            self.synth_engine.update_parameters(**self._saved_synth_params)
 
     def _poll_midi(self):
         """Poll for MIDI messages."""

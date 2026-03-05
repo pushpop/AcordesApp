@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 # Sections arranged in visual order: row × col.
 # Arrow keys move within this grid; wrapping is per-axis.
 _SECTION_GRID = [
-    ["oscillator", "filter",  "envelope", "lfo"   ],   # row 0
-    ["chorus",     "fx",      "arpeggio", "mixer"  ],   # row 1
+    ["oscillator", "filter", "filter_eg", "amp_eg"],  # row 0 — core signal chain (VCO→VCF→VCA)
+    ["lfo", "chorus", "fx",  "arpeggio", "mixer"   ],  # row 1 — modulation + effects
 ]
 _FLAT_SECTIONS = [s for row in _SECTION_GRID for s in row]  # linear order
 
@@ -64,19 +64,6 @@ class SynthMode(Widget):
         # ── Focus-mode: randomize the currently highlighted parameter ──────
         # Shift+Minus sends the '_' character; Textual maps it to "underscore".
         Binding("underscore", "randomize_focused", "🎲 Rnd param", show=False),
-        # ── Legacy global shortcuts (active only when no section focused) ──
-        Binding("r", "adjust_resonance('up')",     "Res+",   show=False),
-        Binding("f", "adjust_resonance('down')",   "Res-",   show=False),
-        Binding("t", "adjust_attack('up')",        "Atk+",   show=False),
-        Binding("g", "adjust_attack('down')",      "Atk-",   show=False),
-        Binding("y", "adjust_decay('up')",         "Dec+",   show=False),
-        Binding("h", "adjust_decay('down')",       "Dec-",   show=False),
-        Binding("u", "adjust_sustain('up')",       "Sus+",   show=False),
-        Binding("j", "adjust_sustain('down')",     "Sus-",   show=False),
-        Binding("i", "adjust_release('up')",       "Rel+",   show=False),
-        Binding("k", "adjust_release('down')",     "Rel-",   show=False),
-        Binding("left_square_bracket",  "adjust_master_volume('down')", "MVol-", show=False),
-        Binding("right_square_bracket", "adjust_master_volume('up')",   "MVol+", show=False),
         # ── Global ────────────────────────────────────────────────────────
         Binding("space", "panic",     "Panic (All Notes Off)", show=False),
         Binding("minus", "randomize", "🎲 Randomize",          show=False),
@@ -152,7 +139,16 @@ class SynthMode(Widget):
         margin: 0;
     }
 
-    #envelope-section {
+    #amp-eg-section {
+        layout: vertical;
+        width: 1fr;
+        height: auto;
+        background: #0d0d0d;
+        padding: 0;
+        margin: 0;
+    }
+
+    #filter-eg-section {
         layout: vertical;
         width: 1fr;
         height: auto;
@@ -252,7 +248,8 @@ class SynthMode(Widget):
     _SECTION_PARAMS = {
         "oscillator": ["Wave", "Noise", "Octave"],
         "filter":     ["HPF Cut", "HPF Pk", "LPF Cut", "LPF Pk", "KTrack"],
-        "envelope":   ["Attack", "Decay", "Sustain", "Release"],
+        "amp_eg":     ["Attack", "Decay", "Sustain", "Release"],
+        "filter_eg":  ["Atk", "Dcy", "Sus", "Rel", "Amount"],
         "lfo":        ["Rate", "Depth", "Shape", "Target"],
         "chorus":     ["Rate", "Depth", "Mix", "Voices"],
         "fx":         ["Delay Time", "Delay Fdbk", "Delay Mix", "Rev Size"],
@@ -292,6 +289,12 @@ class SynthMode(Widget):
         self.decay      = params["decay"]
         self.sustain    = params["sustain"]
         self.release    = params["release"]
+
+        self.feg_attack  = params.get("feg_attack",  0.01)
+        self.feg_decay   = params.get("feg_decay",   0.3)
+        self.feg_sustain = params.get("feg_sustain", 0.0)
+        self.feg_release = params.get("feg_release", 0.3)
+        self.feg_amount  = params.get("feg_amount",  0.0)
 
         # ── LFO extended ─────────────────────────────────────────────────────
         self.lfo_freq   = params.get("lfo_freq",   1.0)
@@ -351,6 +354,11 @@ class SynthMode(Widget):
         self.decay_display          = None
         self.sustain_display        = None
         self.release_display        = None
+        self.feg_attack_display  = None
+        self.feg_decay_display   = None
+        self.feg_sustain_display = None
+        self.feg_release_display = None
+        self.feg_amount_display  = None
         # LFO displays
         self.lfo_rate_display    = None
         self.lfo_depth_display   = None
@@ -454,26 +462,56 @@ class SynthMode(Widget):
                     yield self.key_tracking_display
                     yield Label(self._section_bottom(), classes="section-bottom")
 
-                # ── ENVELOPE ─────────────────────────────────────────────
-                with Vertical(id="envelope-section"):
-                    hdr = Label(self._section_top("ENVELOPE", False), classes="section-label", id="hdr-envelope")
-                    self._section_header_ids["envelope"] = "hdr-envelope"
+                # ── FILTER EG ────────────────────────────────────────────
+                with Vertical(id="filter-eg-section"):
+                    hdr = Label(self._section_top("FILTER EG", False), classes="section-label", id="hdr-filter-eg")
+                    self._section_header_ids["filter_eg"] = "hdr-filter-eg"
                     yield hdr
-                    yield Label(self._row_label("Attack", ""), classes="control-label", id="lbl-envelope-0")
+                    yield Label(self._row_label("Atk", ""), classes="control-label", id="lbl-filter-eg-0")
+                    self.feg_attack_display = Label(self._fmt_time(self.feg_attack), classes="control-value", id="feg-attack-display")
+                    yield self.feg_attack_display
+                    yield Label(self._row_label("Dcy", ""), classes="control-label", id="lbl-filter-eg-1")
+                    self.feg_decay_display = Label(self._fmt_time(self.feg_decay), classes="control-value", id="feg-decay-display")
+                    yield self.feg_decay_display
+                    yield Label(self._row_label("Sus", ""), classes="control-label", id="lbl-filter-eg-2")
+                    self.feg_sustain_display = Label(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"), classes="control-value", id="feg-sustain-display")
+                    yield self.feg_sustain_display
+                    yield Label(self._row_label("Rel", ""), classes="control-label", id="lbl-filter-eg-3")
+                    self.feg_release_display = Label(self._fmt_time(self.feg_release), classes="control-value", id="feg-release-display")
+                    yield self.feg_release_display
+                    yield Label(self._row_label("Amount", ""), classes="control-label", id="lbl-filter-eg-4")
+                    self.feg_amount_display = Label(self._fmt_feg_amount(), classes="control-value", id="feg-amount-display")
+                    yield self.feg_amount_display
+                    yield Label(self._section_bottom(), classes="section-bottom")
+
+                # ── AMP EG ───────────────────────────────────────────────
+                with Vertical(id="amp-eg-section"):
+                    hdr = Label(self._section_top("AMP EG", False), classes="section-label", id="hdr-amp-eg")
+                    self._section_header_ids["amp_eg"] = "hdr-amp-eg"
+                    yield hdr
+                    yield Label(self._row_label("Attack", ""), classes="control-label", id="lbl-amp-eg-0")
                     self.attack_display = Label(self._fmt_time(self.attack), classes="control-value", id="attack-display")
                     yield self.attack_display
-                    yield Label(self._row_label("Decay", ""), classes="control-label", id="lbl-envelope-1")
+                    yield Label(self._row_label("Decay", ""), classes="control-label", id="lbl-amp-eg-1")
                     self.decay_display = Label(self._fmt_time(self.decay), classes="control-value", id="decay-display")
                     yield self.decay_display
-                    yield Label(self._row_label("Sustain", ""), classes="control-label", id="lbl-envelope-2")
+                    yield Label(self._row_label("Sustain", ""), classes="control-label", id="lbl-amp-eg-2")
                     self.sustain_display = Label(
                         self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"),
                         classes="control-value", id="sustain-display")
                     yield self.sustain_display
-                    yield Label(self._row_label("Release", ""), classes="control-label", id="lbl-envelope-3")
+                    yield Label(self._row_label("Release", ""), classes="control-label", id="lbl-amp-eg-3")
                     self.release_display = Label(self._fmt_time(self.release), classes="control-value", id="release-display")
                     yield self.release_display
                     yield Label(self._section_bottom(), classes="section-bottom")
+
+            # ── SPACING ───────────────────────────────────────────────────
+            yield Label("")
+            yield Label("")
+            yield Label("")
+
+            # ── ROW 2: LFO · CHORUS · FX · ARPEGGIO · MIXER ────────────
+            with Horizontal(id="synth-container-bottom"):
 
                 # ── LFO ──────────────────────────────────────────────────
                 with Vertical(id="lfo-section"):
@@ -494,14 +532,6 @@ class SynthMode(Widget):
                     self.lfo_target_display = Label(self._fmt_lfo_target(), classes="control-value", id="lfo-target-display")
                     yield self.lfo_target_display
                     yield Label(self._section_bottom(), classes="section-bottom")
-
-            # ── SPACING ───────────────────────────────────────────────────
-            yield Label("")
-            yield Label("")
-            yield Label("")
-
-            # ── ROW 2: CHORUS · FX · ARPEGGIO · MIXER ───────────────────
-            with Horizontal(id="synth-container-bottom"):
 
                 # ── CHORUS ───────────────────────────────────────────────
                 with Vertical(id="chorus-section"):
@@ -672,7 +702,7 @@ class SynthMode(Widget):
             return
         try:
             lbl = self.query_one(f"#{wid_id}", Label)
-            title = section.upper()
+            title = section.replace("_", " ").upper()
             lbl.update(self._section_top(title, self._focus_section == section))
         except Exception:
             pass
@@ -681,7 +711,7 @@ class SynthMode(Widget):
         """Re-render every param-row label in section with focus highlight."""
         params = self._SECTION_PARAMS.get(section, [])
         for idx, name in enumerate(params):
-            wid_id = f"lbl-{section}-{idx}"
+            wid_id = f"lbl-{section.replace('_', '-')}-{idx}"
             try:
                 lbl = self.query_one(f"#{wid_id}", Label)
                 active = (self._focus_section == section and self._focus_param == idx)
@@ -729,6 +759,7 @@ class SynthMode(Widget):
             # At top of section — jump to row above (same column), last param
             r, c = self._grid_pos(self._focus_section)
             nr = (r - 1) % len(_SECTION_GRID)
+            c = min(c, len(_SECTION_GRID[nr]) - 1)
             new_sec = _SECTION_GRID[nr][c]
             new_params = self._SECTION_PARAMS.get(new_sec, [])
             self._set_focus(new_sec, max(0, len(new_params) - 1))
@@ -747,6 +778,7 @@ class SynthMode(Widget):
             # At bottom of section — jump to row below (same column), first param
             r, c = self._grid_pos(self._focus_section)
             nr = (r + 1) % len(_SECTION_GRID)
+            c = min(c, len(_SECTION_GRID[nr]) - 1)
             new_sec = _SECTION_GRID[nr][c]
             self._set_focus(new_sec, 0)
 
@@ -833,12 +865,19 @@ class SynthMode(Widget):
             elif name == "LPF Cut": self._do_adjust_cutoff(direction)
             elif name == "LPF Pk":  self._do_adjust_resonance(direction)
             elif name == "KTrack":  self._do_step_key_tracking(direction)
-        # ENVELOPE
-        elif sec == "envelope":
+        # AMP EG
+        elif sec == "amp_eg":
             if name == "Attack":      self._do_adjust_attack(direction)
             elif name == "Decay":     self._do_adjust_decay(direction)
             elif name == "Sustain":   self._do_adjust_sustain(direction)
             elif name == "Release":   self._do_adjust_release(direction)
+        # FILTER EG
+        elif sec == "filter_eg":
+            if name == "Atk":    self._do_adjust_feg_attack(direction)
+            elif name == "Dcy":  self._do_adjust_feg_decay(direction)
+            elif name == "Sus":  self._do_adjust_feg_sustain(direction)
+            elif name == "Rel":  self._do_adjust_feg_release(direction)
+            elif name == "Amount": self._do_adjust_feg_amount(direction)
         # MIXER
         elif sec == "mixer":
             if name == "Voice Type":   self._do_adjust_voice_type(direction)
@@ -1167,6 +1206,41 @@ class SynthMode(Widget):
             self.arp_enabled_display.update(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
         self._mark_dirty(); self._autosave_state()
 
+    # ── Filter EG mutators ────────────────────────────────────────
+
+    def _do_adjust_feg_attack(self, direction: str):
+        step = 0.01 if self.feg_attack < 0.1 else (0.05 if self.feg_attack < 1.0 else 0.1)
+        self.feg_attack = max(0.001, self.feg_attack + (step if direction == "up" else -step))
+        self.synth_engine.update_parameters(feg_attack=self.feg_attack)
+        if self.feg_attack_display: self.feg_attack_display.update(self._fmt_time(self.feg_attack))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_feg_decay(self, direction: str):
+        step = 0.01 if self.feg_decay < 0.1 else (0.05 if self.feg_decay < 1.0 else 0.1)
+        self.feg_decay = max(0.001, self.feg_decay + (step if direction == "up" else -step))
+        self.synth_engine.update_parameters(feg_decay=self.feg_decay)
+        if self.feg_decay_display: self.feg_decay_display.update(self._fmt_time(self.feg_decay))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_feg_sustain(self, direction: str):
+        self.feg_sustain = max(0.0, min(1.0, self.feg_sustain + (0.05 if direction == "up" else -0.05)))
+        self.synth_engine.update_parameters(feg_sustain=self.feg_sustain)
+        if self.feg_sustain_display: self.feg_sustain_display.update(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_feg_release(self, direction: str):
+        step = 0.01 if self.feg_release < 0.1 else (0.05 if self.feg_release < 1.0 else 0.1)
+        self.feg_release = max(0.001, self.feg_release + (step if direction == "up" else -step))
+        self.synth_engine.update_parameters(feg_release=self.feg_release)
+        if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
+        self._mark_dirty(); self._autosave_state()
+
+    def _do_adjust_feg_amount(self, direction: str):
+        self.feg_amount = max(-1.0, min(1.0, self.feg_amount + (0.05 if direction == "up" else -0.05)))
+        self.synth_engine.update_parameters(feg_amount=self.feg_amount)
+        if self.feg_amount_display: self.feg_amount_display.update(self._fmt_feg_amount())
+        self._mark_dirty(); self._autosave_state()
+
     # ── Preset actions ───────────────────────────────────────────
 
     def action_preset_next(self):
@@ -1290,6 +1364,12 @@ class SynthMode(Widget):
         self.decay      = params.get("decay",     self.decay)
         self.sustain    = params.get("sustain",   self.sustain)
         self.release    = params.get("release",   self.release)
+        # Filter EG
+        self.feg_attack  = params.get("feg_attack",  self.feg_attack)
+        self.feg_decay   = params.get("feg_decay",   self.feg_decay)
+        self.feg_sustain = params.get("feg_sustain", self.feg_sustain)
+        self.feg_release = params.get("feg_release", self.feg_release)
+        self.feg_amount  = params.get("feg_amount",  self.feg_amount)
         # LFO
         self.lfo_freq   = params.get("lfo_freq",   self.lfo_freq)
         self.lfo_depth  = params.get("lfo_depth",  self.lfo_depth)
@@ -1330,6 +1410,11 @@ class SynthMode(Widget):
             decay=self.decay,
             sustain=self.sustain,
             release=self.release,
+            feg_attack=self.feg_attack,
+            feg_decay=self.feg_decay,
+            feg_sustain=self.feg_sustain,
+            feg_release=self.feg_release,
+            feg_amount=self.feg_amount,
             # LFO
             lfo_freq=self.lfo_freq,
             lfo_depth=self.lfo_depth,
@@ -1370,6 +1455,11 @@ class SynthMode(Widget):
             "decay":           self.decay,
             "sustain":         self.sustain,
             "release":         self.release,
+            "feg_attack":      self.feg_attack,
+            "feg_decay":       self.feg_decay,
+            "feg_sustain":     self.feg_sustain,
+            "feg_release":     self.feg_release,
+            "feg_amount":      self.feg_amount,
             # LFO
             "lfo_freq":        self.lfo_freq,
             "lfo_depth":       self.lfo_depth,
@@ -1453,50 +1543,10 @@ class SynthMode(Widget):
             return
         self._do_toggle_waveform("backward")
 
-    def action_adjust_octave(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_octave(direction)
-
     def action_adjust_volume(self, direction: str = "up"):
         if self._focused():
             return
         self._do_adjust_volume(direction)
-
-    def action_adjust_master_volume(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_master_volume(direction)
-
-    def action_adjust_cutoff(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_cutoff(direction)
-
-    def action_adjust_resonance(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_resonance(direction)
-
-    def action_adjust_attack(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_attack(direction)
-
-    def action_adjust_decay(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_decay(direction)
-
-    def action_adjust_sustain(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_sustain(direction)
-
-    def action_adjust_release(self, direction: str = "up"):
-        if self._focused():
-            return
-        self._do_adjust_release(direction)
 
     def action_panic(self):
         self.synth_engine.all_notes_off()
@@ -1527,6 +1577,10 @@ class SynthMode(Widget):
         )[0], 2)
         self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
         self.intensity = round(random.uniform(0.40, 1.0), 2)
+
+        # Randomize Filter EG amount only; timing params stay at defaults for musicality
+        self.feg_amount = round(random.uniform(-0.5, 0.8), 2)
+        self.synth_engine.update_parameters(feg_amount=self.feg_amount)
 
         # Enqueue mute gate BEFORE the param update so the engine fades out
         # before the new waveform/octave/envelope params take effect — this
@@ -1603,8 +1657,8 @@ class SynthMode(Widget):
                 self.key_tracking = random.choice(self._KEY_TRACKING_STEPS)
                 self.synth_engine.update_parameters(key_tracking=self.key_tracking)
                 if self.key_tracking_display: self.key_tracking_display.update(self._fmt_key_tracking())
-        # ── Envelope ──────────────────────────────────────────────
-        elif sec == "envelope":
+        # ── Amp EG ────────────────────────────────────────────────
+        elif sec == "amp_eg":
             if name == "Attack":
                 self.attack = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
                 self.synth_engine.update_parameters(attack=self.attack)
@@ -1623,6 +1677,30 @@ class SynthMode(Widget):
                 self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
                 self.synth_engine.update_parameters(release=self.release)
                 if self.release_display: self.release_display.update(self._fmt_time(self.release))
+        # ── Filter EG ─────────────────────────────────────────────
+        elif sec == "filter_eg":
+            label = self._SECTION_PARAMS["filter_eg"][self._focus_param]
+            if label == "Atk":
+                self.feg_attack = round(random.uniform(0.001, 2.0), 3)
+                self.synth_engine.update_parameters(feg_attack=self.feg_attack)
+                if self.feg_attack_display: self.feg_attack_display.update(self._fmt_time(self.feg_attack))
+            elif label == "Dcy":
+                self.feg_decay = round(random.uniform(0.01, 2.0), 3)
+                self.synth_engine.update_parameters(feg_decay=self.feg_decay)
+                if self.feg_decay_display: self.feg_decay_display.update(self._fmt_time(self.feg_decay))
+            elif label == "Sus":
+                self.feg_sustain = round(random.uniform(0.0, 1.0), 2)
+                self.synth_engine.update_parameters(feg_sustain=self.feg_sustain)
+                if self.feg_sustain_display: self.feg_sustain_display.update(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
+            elif label == "Rel":
+                self.feg_release = round(random.uniform(0.01, 2.0), 3)
+                self.synth_engine.update_parameters(feg_release=self.feg_release)
+                if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
+            elif label == "Amount":
+                self.feg_amount = round(random.uniform(-1.0, 1.0), 2)
+                self.synth_engine.update_parameters(feg_amount=self.feg_amount)
+                if self.feg_amount_display: self.feg_amount_display.update(self._fmt_feg_amount())
+            self._mark_dirty(); self._autosave_state()
         # ── LFO ───────────────────────────────────────────────────
         elif sec == "lfo":
             if name == "Rate":
@@ -1729,6 +1807,12 @@ class SynthMode(Widget):
         if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
         if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
         if self.release_display: self.release_display.update(self._fmt_time(self.release))
+        # Filter EG
+        if self.feg_attack_display:  self.feg_attack_display.update(self._fmt_time(self.feg_attack))
+        if self.feg_decay_display:   self.feg_decay_display.update(self._fmt_time(self.feg_decay))
+        if self.feg_sustain_display: self.feg_sustain_display.update(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
+        if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
+        if self.feg_amount_display:  self.feg_amount_display.update(self._fmt_feg_amount())
         # Mixer
         if self.voice_type_display: self.voice_type_display.update(self._fmt_voice_type())
         if self.amp_display: self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
@@ -1995,6 +2079,12 @@ class SynthMode(Widget):
         norm = (self.delay_time - 0.05) / (2.0 - 0.05)
         ms   = int(self.delay_time * 1000)
         return self._fmt_knob(norm, 0.0, 1.0, f"{ms} ms")
+
+    def _fmt_feg_amount(self) -> str:
+        """Format feg_amount as +XX% or -XX% with knob bar."""
+        pct = int(self.feg_amount * 100)
+        sign = "+" if pct >= 0 else ""
+        return self._fmt_knob(self.feg_amount, -1.0, 1.0, f"{sign}{pct}%")
 
     def _fmt_disabled_param(self, reason: str = "future") -> str:
         """Grey placeholder for params not yet implemented."""

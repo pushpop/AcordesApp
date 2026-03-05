@@ -28,20 +28,40 @@ _ADJECTIVES = [
     # English
     "amber", "hollow", "dark", "bright", "warm", "deep", "soft", "ancient",
     "crystal", "misty", "golden", "broken", "silent", "wild", "lunar",
-    "frozen", "sharp", "gentle", "distant", "heavy",
+    "frozen", "sharp", "gentle", "distant", "heavy", "faded", "slow",
+    "still", "raw", "open", "bare", "pale", "dense", "vast", "stark",
     # European Portuguese
     "escuro", "suave", "antigo", "dourado", "partido", "vazio", "nebuloso",
     "fundo", "sombrio", "brilhante", "calmo", "perdido", "eterno", "velado",
+    "sereno", "profundo", "lento", "nublado", "fraco", "alto", "claro",
+    # German
+    "dunkel", "weich", "tief", "still", "fern", "rauh", "warm", "kalt",
+    "leise", "sanft", "golden", "ewig", "breit", "hohl", "grau",
+    "zart", "fremd", "weit", "alt", "leer",
+    # French
+    "sombre", "doux", "ancien", "doré", "brisé", "vide", "brumeux",
+    "profond", "calme", "perdu", "éternel", "lent", "froid", "pur",
+    "clair", "creux", "grave", "sourd", "vaste", "nu",
 ]
 
 _NOUNS = [
     # English
     "reed", "fifth", "chord", "wave", "drift", "bell", "pulse", "pad",
     "string", "key", "echo", "tone", "veil", "dawn", "bloom",
-    "harp", "bass", "fade", "crest", "flute",
+    "harp", "bass", "fade", "crest", "flute", "mist", "arc", "void",
+    "peak", "rift", "dust", "gleam", "shift", "fold", "grid",
     # European Portuguese
     "corda", "onda", "sino", "pulso", "acorde", "eco", "tom", "aurora",
     "ventos", "nevoa", "som", "bruma", "ritmo", "voz", "marcha",
+    "sombra", "fio", "vazio", "cume", "luz",
+    # German
+    "klang", "welle", "saite", "glocke", "puls", "ton", "drift", "nebel",
+    "stille", "chor", "bass", "raum", "stimme", "licht", "grenze",
+    "tiefe", "schall", "hauch", "klang", "pfad",
+    # French
+    "corde", "onde", "cloche", "pulse", "accord", "écho", "voix", "aube",
+    "brume", "son", "rythme", "marche", "voile", "sommet", "vide",
+    "lueur", "seuil", "flux", "creux", "strie",
 ]
 
 # Default parameter values — mirrors SynthEngine.__init__ defaults
@@ -90,6 +110,14 @@ DEFAULT_PARAMS: dict = {
     "arp_range":   1,        # 1–4 octave span
     # Voice Type
     "voice_type": "poly",    # "mono" | "poly" | "unison"
+    # Filter EG — separate ADSR for filter cutoff modulation.
+    # feg_amount=0.0 = completely bypassed (default); backward-compatible.
+    # feg_amount range: -1.0 (full downward sweep) to +1.0 (full upward sweep).
+    "feg_attack":  0.01,   # seconds, 0.001–4.0
+    "feg_decay":   0.3,    # seconds, 0.001–4.0
+    "feg_sustain": 0.0,    # 0.0–1.0 fraction of peak modulation held
+    "feg_release": 0.3,    # seconds, 0.001–4.0
+    "feg_amount":  0.0,    # -1.0–+1.0 modulation depth (0 = bypass)
 }
 
 PARAM_KEYS = list(DEFAULT_PARAMS.keys())
@@ -238,16 +266,20 @@ class PresetManager:
         existing_names = {p.name.lower() for p in self.presets}
         existing_files = {p.filename for p in self.presets}
 
-        for _ in range(100):
-            adj = random.choice(_ADJECTIVES)
-            noun = random.choice(_NOUNS)
-            name = f"{adj} {noun}"
-            slug = f"{adj}_{noun}.json"
+        for _ in range(200):
+            adj  = random.choice(_ADJECTIVES)
+            noun1 = random.choice(_NOUNS)
+            noun2 = random.choice(_NOUNS)
+            # Avoid repeating the same word twice
+            if noun1 == noun2:
+                continue
+            name = f"{adj} {noun1} {noun2}"
+            slug = f"{adj}_{noun1}_{noun2}.json"
             if name.lower() not in existing_names and slug not in existing_files:
                 return name
 
         # Fallback with number suffix
-        adj = random.choice(_ADJECTIVES)
-        noun = random.choice(_NOUNS)
-        suffix = random.randint(2, 99)
-        return f"{adj} {noun} {suffix}"
+        adj  = random.choice(_ADJECTIVES)
+        noun1 = random.choice(_NOUNS)
+        suffix = random.randint(2, 999)
+        return f"{adj} {noun1} {suffix}"
