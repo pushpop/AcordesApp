@@ -3,11 +3,11 @@
 # Silent when everything is already set up — only prints when setup work is needed.
 
 $ErrorActionPreference = "Stop"
-$ScriptDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PinFile    = Join-Path $ScriptDir ".python-version"
-$VenvDir    = Join-Path $ScriptDir ".venv"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PinFile = Join-Path $ScriptDir ".python-version"
+$VenvDir = Join-Path $ScriptDir ".venv"
 
-# ── 1. Check if uv is installed ───────────────────────────────────────────────
+# Check if uv is installed
 if (-not (Get-Command "uv" -ErrorAction SilentlyContinue)) {
     Write-Host ""
     Write-Host " ERROR: uv is not installed." -ForegroundColor Red
@@ -23,11 +23,12 @@ if (-not (Get-Command "uv" -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# ── 2. Pin Python version — only when .python-version is missing ──────────────
+# Pin Python version — only when .python-version is missing
 if (-not (Test-Path $PinFile)) {
     Write-Host " First run — setting up Acordes..." -ForegroundColor Cyan
     Write-Host ""
     Write-Host " Pinning Python 3.12..."
+    Write-Host ""
 
     & uv python pin 3.12 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -43,19 +44,23 @@ if (-not (Test-Path $PinFile)) {
             exit 1
         }
         Write-Host " Pinned Python 3.11"
-    } else {
+        Write-Host ""
+    }
+    else {
         Write-Host " Pinned Python 3.12"
+        Write-Host ""
     }
 }
 
-# ── 3. Sync dependencies — only when .venv is missing ────────────────────────
+# Sync dependencies — only when .venv is missing
 if (-not (Test-Path $VenvDir)) {
     if (-not (Test-Path $PinFile)) {
-        # Haven't printed the header yet (venv missing but pin file existed)
         Write-Host " First run — setting up Acordes..." -ForegroundColor Cyan
         Write-Host ""
     }
+
     Write-Host " Installing dependencies (this may take a minute)..."
+    Write-Host ""
 
     & uv sync --quiet 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -76,7 +81,8 @@ if (-not (Test-Path $VenvDir)) {
 
     Write-Host " Done." -ForegroundColor Green
     Write-Host ""
-} else {
+}
+else {
     # .venv exists — sync silently to pick up any new dependencies
     & uv sync --quiet 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -89,7 +95,7 @@ if (-not (Test-Path $VenvDir)) {
     }
 }
 
-# ── 4. Launch ──────────────────────────────────────────────────────────────────
+# Launch Acordes
 & uv run python (Join-Path $ScriptDir "main.py")
 $code = $LASTEXITCODE
 
