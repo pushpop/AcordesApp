@@ -43,12 +43,16 @@ config.json
 patterns/
 presets/tambor/
 
-# Screenshots
+# Screenshots and local test outputs
 imgs/
+*.png
+*.jpg
 
-# Claude Code settings
+# IDE and editor settings
 .claude/
-
-# Gemini settings
 .gemini/
-GEMINI.md
+
+# Development notes and planning docs (local only)
+*.TODO
+*.NOTES
+*.PLANNING

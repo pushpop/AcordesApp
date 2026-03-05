@@ -5,6 +5,110 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-03-05
+
+### Changed
+- **Launcher Scripts Optimization**: Silent, efficient startup
+  - `run.ps1` and `run.sh` now detect cached setup (`.python-version` and `.venv` files) and skip setup output on subsequent runs
+  - Only prints progress when doing actual work (first setup, missing dependencies, or errors)
+  - Subsequent runs launch the app silently with zero unnecessary output
+  - Error messages remain clear and helpful for troubleshooting
+
+- **uv Integration Complete**: Cross-platform Python & dependency management
+  - `pyproject.toml` created (PEP 517 compliant, no build-system needed for script apps)
+  - `uv python pin` ensures Python 3.12/3.11 availability (auto-installs if needed)
+  - `uv sync` replaces pip for fast, reliable dependency installation
+  - `.python-version` file persists Python selection across runs
+  - Works identically on Windows, Linux, and macOS
+
+### Fixed
+- **pyproject.toml Warnings**: Removed invalid `[tool.uv]` section that was causing TOML parse warnings
+
+---
+
+## [1.7.9] - 2026-03-05
+
+### Added
+- **uv Project Configuration** (`pyproject.toml`): Professional Python project setup
+  - `pyproject.toml` defines project metadata, dependencies, and build configuration
+  - Enables `uv sync` for fast, reliable dependency installation across all platforms
+  - Python requirement pinned to 3.11+ (compatible with PyAudio/python-rtmidi wheels)
+  - Project metadata includes version, description, keywords, and author info
+
+- **Velocity Curves**: Five configurable MIDI velocity response curves to control dynamic sensitivity
+  - **Linear**: 1:1 identity mapping (no remapping)
+  - **Soft**: √ compression curve (gentle playing triggers fuller volume)
+  - **Normal**: 50/50 blend of linear + soft (balanced, all-around response)
+  - **Strong**: Power 1.8 exponential (must play harder to reach full output)
+  - **Very Strong**: Power 3.0 aggressive exponential (quiet = nearly silent)
+  - Selectable in Config Mode, applied globally to all MIDI input
+  - Lookup-table driven (`music/velocity_curves.py`) for zero CPU overhead
+  - Thread-safe remapping in MIDI input handler before callbacks fire
+
+### Changed
+- **Config Mode UI**: Expanded to include velocity curve selector below MIDI device list
+  - Two-section layout: MIDI Devices (top) and Velocity Curves (bottom)
+  - Tab/Shift+Tab navigation between sections
+  - Space to select curve
+  - Curves saved to config.json and restored on restart
+
+### Technical
+- New module: `music/velocity_curves.py` with 5 pre-built 128-entry lookup tables
+- `midi/input_handler.py`: Now accepts optional `config_manager` parameter in `__init__`
+- Velocity remapping applied in `_handle_note_on()` before callbacks fire
+- All modes (Piano, Synth, Compendium, Tambor) automatically receive curve-adjusted velocities
+
+---
+
+## [1.7.8] - 2026-03-04
+
+### Changed
+- **Project Organization**: Cleanup of excess development documentation
+  - Removed 9 planning/development markdown files (ARTIFACT_ELIMINATION_TEST.md, AUDIO_THREADING_PLAN.md, COMPENDIUM_*.md, PRESET_BROWSER_*.md, SYNTH_SUBPROCESS_DESIGN.md, TEST_PRESET_BROWSER.md)
+  - Removed requirements-windows.txt (outdated stub)
+  - Removed run.bat (Windows CMD launcher — use run.ps1 instead)
+
+- **Documentation Reorganization**:
+  - **README.md**: Cleaner structure with broad project overview, architecture, and quick-start guide
+    - Removed version history (moved to CHANGELOG.md)
+    - Removed keyboard shortcut list (moved to KEYBINDS.md)
+    - Removed command-line launcher references (PowerShell/Linux/macOS only)
+  - **KEYBINDS.md**: New comprehensive keyboard shortcut reference for all modes and features
+  - **CHANGELOG.md**: Now contains complete version history with technical details
+
+---
+
+## [1.7.7] - 2026-03-01
+
+### Fixed
+- **Focus-Mode Acceleration**: Time-based exponential parameter adjustment
+  - Acceleration dead zone: 1000 ms (no multiplier)
+  - Time constant: 2500 ms (reaches 2× speed after extended hold)
+  - Max cap: 2× multiplier (slow, musical growth)
+  - Percentage parameters: 0.01 (1%) per single tap
+  - Works across all parameter types (additive, multiplicative, knob-style)
+
+- **EG Parameter Minimums & Resonance Caps**:
+  - Attack minimum: 8 ms (was 1 ms — prevents hard transients)
+  - Decay minimum: 5 ms (was 1 ms)
+  - Release minimum: 8 ms (was 1 ms)
+  - Filter Resonance max: 0.80 (was 0.90 — eliminates self-oscillation artifacts)
+  - HPF Resonance max: 0.85 (was 0.99)
+  - All clamped on preset load in `_apply_params()`
+
+- **Parameter Display Accuracy**:
+  - `_fmt_time()`: Log-scale bounds updated to [5ms, 5s] (was [1ms, 5s])
+  - `_fmt_resonance()`: Divides by 0.80 (was 0.90)
+  - `_fmt_hpf_resonance()`: Divides by 0.85 (was 0.99)
+  - Slider fills now accurately reflect new min/max ranges
+
+- **Parameter Persistence Bug**:
+  - `_load_initial_params()` was loading preset only, ignoring synth_state
+  - Fixed to layer: defaults → preset → synth_state (synth_state now takes priority)
+  - CHORUS/FX mix values now correctly restored on app restart
+
+---
+
 ## [1.7.0] - 2026-03-03
 
 ### Added

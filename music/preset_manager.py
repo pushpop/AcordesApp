@@ -76,10 +76,10 @@ DEFAULT_PARAMS: dict = {
     "hpf_resonance": 0.0,
     "key_tracking": 0.5,
     "filter_mode": "ladder",  # kept for backward-compat with old presets; ignored by engine
-    "attack": 0.01,
+    "attack": 0.01,   # min 0.008 — enforced by UI adjust; legacy presets clamped in _apply_params
     "decay": 0.2,
     "sustain": 0.7,
-    "release": 0.1,
+    "release": 0.1,   # min 0.008 — same
     "intensity": 1.0,
     "rank2_enabled": False,
     "rank2_waveform": "sawtooth",

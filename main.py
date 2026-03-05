@@ -379,7 +379,7 @@ class MainScreen(Screen):
             else: # Defaults to main_menu
                 self.action_show_main_menu(save_history=False)
 
-        config = ConfigMode(self.app_context["device_manager"])
+        config = ConfigMode(self.app_context["device_manager"], self.app_context["config_manager"])
         self.app.push_screen(config, on_closed)
 
     def action_quit_app(self):
@@ -394,7 +394,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.7.9"
+    VERSION = "1.8.0"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """
@@ -405,7 +405,7 @@ class AcordesApp(App):
         # Initialize config and components
         self.config_manager = ConfigManager()
         self.device_manager = MIDIDeviceManager(self.config_manager)
-        self.midi_handler = MIDIInputHandler()
+        self.midi_handler = MIDIInputHandler(config_manager=self.config_manager)
         self.chord_detector = ChordDetector()
         self.chord_library = ChordLibrary()
         self.synth_engine = SynthEngineSubprocess()
@@ -446,7 +446,7 @@ class AcordesApp(App):
                 main_screen = MainScreen(self.app_context)
                 self.push_screen(main_screen)
 
-            config = ConfigMode(self.device_manager)
+            config = ConfigMode(self.device_manager, self.config_manager)
             self.push_screen(config, on_config_closed)
         else:
             main_screen = MainScreen(self.app_context)

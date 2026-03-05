@@ -4,20 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Running the app
 
+The app uses **`uv`** to manage Python versions and dependencies across all platforms (Windows, Linux, macOS). This ensures consistent, reproducible builds regardless of which Python version you have installed.
+
 ```bash
-# Windows (auto-creates venv, installs deps on first run)
-run.bat           # Command Prompt
-.\run.ps1         # PowerShell
+# Install uv (one-time setup)
+# See README.md for platform-specific installation instructions
 
-# Linux / macOS
-./run.sh
+# Run via launcher (auto-manages Python version + dependencies)
+.\run.ps1         # Windows (PowerShell)
+./run.sh          # Linux / macOS
 
-# Direct (after venv exists)
-venv\Scripts\python.exe main.py   # Windows
-./venv/bin/python main.py         # Linux/macOS
+# Or run directly
+uv run python main.py
 ```
 
-**Python version:** Use 3.11 or 3.12. PyAudio and python-rtmidi have no pre-built wheels for 3.13+. The Windows launchers auto-select 3.12 via the `py` launcher when available.
+**Python version:** `uv python pin` ensures Python 3.12 (falls back to 3.11 if unavailable). PyAudio and python-rtmidi have no pre-built wheels for 3.13+, so `uv` automatically selects the compatible version and installs it if needed.
+
+**Project Configuration:**
+- `pyproject.toml` — Modern Python project setup (PEP 517), defines metadata and dependencies
+- `requirements.txt` — Kept for reference; `uv sync` uses `pyproject.toml`
+- `.python-version` — Auto-created by `uv python pin` (do not edit manually)
 
 There are no tests, no linting config, and no CI pipeline.
 

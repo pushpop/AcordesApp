@@ -333,6 +333,11 @@ class SynthMode(Widget):
         self._focus_section: Optional[str] = None
         self._focus_param: int = 0
 
+        # Focus-mode acceleration tracking — for smooth key-hold acceleration
+        self._focus_adjust_start_time: Optional[float] = None  # When adjustment started
+        self._focus_adjust_last_param_id: Optional[str] = None  # Last adjusted param (section+index)
+        self._focus_accel_mult: float = 1.0  # Current acceleration multiplier for adjust methods
+
         # Noise parameter adaptive increment tracking
         self._noise_last_adjust_time = 0.0  # Timestamp of last adjustment
         self._noise_repeat_count = 0  # How many times adjusted in sequence
@@ -387,6 +392,11 @@ class SynthMode(Widget):
         self._section_header_ids: dict = {}
 
     def _load_initial_params(self) -> dict:
+        # Load parameters in order: preset → synth_state → defaults
+        # Synth state takes priority (preserves parameter tweaks even after preset load)
+        out = dict(DEFAULT_PARAMS)
+
+        # First: load preset if one was previously selected
         last_file = self.config_manager.get_last_preset()
         if last_file:
             idx = self.preset_manager.find_index_by_filename(last_file)
@@ -395,14 +405,17 @@ class SynthMode(Widget):
                 self._current_preset = preset
                 self._preset_index = idx
                 self._dirty = False
-                return self.preset_manager.extract_params(preset)
+                out.update(self.preset_manager.extract_params(preset))
+
+        # Second: overlay synth_state on top (preserves individual tweaks)
         state = self.config_manager.get_synth_state()
         if state:
-            out = dict(DEFAULT_PARAMS)
             out.update({k: state[k] for k in PARAM_KEYS if k in state})
-            self._dirty = True
-            return out
-        return dict(DEFAULT_PARAMS)
+            # If we had a preset loaded, tweaks make it dirty
+            if self._current_preset:
+                self._dirty = True
+
+        return out
 
     def compose(self):
         self.header = HeaderWidget(
@@ -840,6 +853,44 @@ class SynthMode(Widget):
         else:
             self._do_adjust_octave("down")
 
+    def _calc_focus_adjustment_acceleration(self) -> float:
+        """Calculate exponential acceleration multiplier for focus-mode parameter adjustments.
+
+        Acceleration curve:
+        - 0-1000ms: 1.0× (very long dead zone — protects all normal interactions)
+        - 1000ms+: multiplier = 1.0 + ((hold_time - 1000ms) / 2500ms)^1.5
+        - Capped at 2.0× max (minimal acceleration)
+
+        Resets when switching to a different parameter.
+        """
+        import time
+
+        # Identify current parameter
+        param_id = f"{self._focus_section}:{self._focus_param}"
+
+        # Check if we switched parameters
+        if param_id != self._focus_adjust_last_param_id:
+            self._focus_adjust_start_time = None  # Reset timer
+            self._focus_adjust_last_param_id = param_id
+
+        # Initialize timer on first adjustment
+        if self._focus_adjust_start_time is None:
+            self._focus_adjust_start_time = time.time()
+            return 1.0
+
+        # Calculate hold time in milliseconds
+        hold_time_ms = (time.time() - self._focus_adjust_start_time) * 1000
+
+        # Dead zone: no acceleration for first 1000ms (protects normal tapping and adjustments)
+        if hold_time_ms < 1000:
+            return 1.0
+
+        # Acceleration phase: extremely gentle curve with very long time constant
+        accel_elapsed = hold_time_ms - 1000  # Time since acceleration started
+        multiplier = 1.0 + ((accel_elapsed / 2500.0) ** 1.5)  # Extremely slow ramp: 2500ms time constant
+
+        return min(multiplier, 2.0)  # Cap at 2.0× maximum (minimal acceleration)
+
     def _adjust_focused_param(self, direction: str):
         """Dispatch to the correct adjustment action for the focused param.
         Calls _do_* helpers that bypass the focus guard on action methods."""
@@ -849,6 +900,9 @@ class SynthMode(Widget):
         if not params or pidx >= len(params):
             return
         name = params[pidx]
+
+        # Calculate and store acceleration multiplier for this adjustment
+        self._focus_accel_mult = self._calc_focus_adjustment_acceleration()
 
         # OSC
         if sec == "oscillator":
@@ -959,7 +1013,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_volume(self, direction: str = "up"):
-        self.amp_level = min(1.0, self.amp_level + 0.05) if direction == "up" else max(0.0, self.amp_level - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.amp_level = min(1.0, self.amp_level + step) if direction == "up" else max(0.0, self.amp_level - step)
         self.synth_engine.update_parameters(amp_level=self.amp_level)
         if self.amp_display:
             self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
@@ -994,7 +1049,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_cutoff(self, direction: str = "up"):
-        self.cutoff = min(20000.0, self.cutoff * 1.1) if direction == "up" else max(20.0, self.cutoff / 1.1)
+        accel_ratio = 1.1 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.1
+        self.cutoff = min(20000.0, self.cutoff * accel_ratio) if direction == "up" else max(20.0, self.cutoff / accel_ratio)
         self.synth_engine.update_parameters(cutoff=self.cutoff)
         if self.cutoff_display:
             self.cutoff_display.update(self._fmt_cutoff())
@@ -1002,7 +1058,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_resonance(self, direction: str = "up"):
-        self.resonance = min(0.9, self.resonance + 0.05) if direction == "up" else max(0.0, self.resonance - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.resonance = min(0.80, self.resonance + step) if direction == "up" else max(0.0, self.resonance - step)
         self.synth_engine.update_parameters(resonance=self.resonance)
         if self.resonance_display:
             self.resonance_display.update(self._fmt_resonance())
@@ -1010,7 +1067,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_hpf_cutoff(self, direction: str = "up"):
-        self.hpf_cutoff = min(4000.0, self.hpf_cutoff * 1.15) if direction == "up" else max(20.0, self.hpf_cutoff / 1.15)
+        accel_ratio = 1.15 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.15
+        self.hpf_cutoff = min(4000.0, self.hpf_cutoff * accel_ratio) if direction == "up" else max(20.0, self.hpf_cutoff / accel_ratio)
         self.synth_engine.update_parameters(hpf_cutoff=self.hpf_cutoff)
         if self.hpf_cutoff_display:
             self.hpf_cutoff_display.update(self._fmt_hpf_cutoff())
@@ -1018,7 +1076,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_hpf_resonance(self, direction: str = "up"):
-        self.hpf_resonance = min(0.99, self.hpf_resonance + 0.05) if direction == "up" else max(0.0, self.hpf_resonance - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.hpf_resonance = min(0.85, self.hpf_resonance + step) if direction == "up" else max(0.0, self.hpf_resonance - step)
         self.synth_engine.update_parameters(hpf_resonance=self.hpf_resonance)
         if self.hpf_resonance_display:
             self.hpf_resonance_display.update(self._fmt_hpf_resonance())
@@ -1044,7 +1103,9 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_attack(self, direction: str = "up"):
-        self.attack = min(5.0, self.attack * 1.15) if direction == "up" else max(0.001, self.attack / 1.15)
+        # Apply acceleration multiplier to the adjustment ratio (for focus-mode smooth acceleration)
+        accel_ratio = 1.15 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.15
+        self.attack = min(5.0, self.attack * accel_ratio) if direction == "up" else max(0.008, self.attack / accel_ratio)
         self.synth_engine.update_parameters(attack=self.attack)
         if self.attack_display:
             self.attack_display.update(self._fmt_time(self.attack))
@@ -1052,7 +1113,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_decay(self, direction: str = "up"):
-        self.decay = min(5.0, self.decay * 1.15) if direction == "up" else max(0.001, self.decay / 1.15)
+        accel_ratio = 1.15 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.15
+        self.decay = min(5.0, self.decay * accel_ratio) if direction == "up" else max(0.005, self.decay / accel_ratio)
         self.synth_engine.update_parameters(decay=self.decay)
         if self.decay_display:
             self.decay_display.update(self._fmt_time(self.decay))
@@ -1060,7 +1122,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_sustain(self, direction: str = "up"):
-        self.sustain = min(1.0, self.sustain + 0.05) if direction == "up" else max(0.0, self.sustain - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.sustain = min(1.0, self.sustain + step) if direction == "up" else max(0.0, self.sustain - step)
         self.synth_engine.update_parameters(sustain=self.sustain)
         if self.sustain_display:
             self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
@@ -1068,7 +1131,8 @@ class SynthMode(Widget):
         self._autosave_state()
 
     def _do_adjust_release(self, direction: str = "up"):
-        self.release = min(5.0, self.release * 1.15) if direction == "up" else max(0.001, self.release / 1.15)
+        accel_ratio = 1.15 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.15
+        self.release = min(5.0, self.release * accel_ratio) if direction == "up" else max(0.008, self.release / accel_ratio)
         self.synth_engine.update_parameters(release=self.release)
         if self.release_display:
             self.release_display.update(self._fmt_time(self.release))
@@ -1078,14 +1142,16 @@ class SynthMode(Widget):
     # ── LFO mutators ─────────────────────────────────────────────
 
     def _do_adjust_lfo_rate(self, direction: str = "up"):
-        self.lfo_freq = min(20.0, self.lfo_freq * 1.2) if direction == "up" else max(0.05, self.lfo_freq / 1.2)
+        accel_ratio = 1.2 ** self._focus_accel_mult if self._focus_accel_mult > 1.0 else 1.2
+        self.lfo_freq = min(20.0, self.lfo_freq * accel_ratio) if direction == "up" else max(0.05, self.lfo_freq / accel_ratio)
         self.synth_engine.update_parameters(lfo_freq=self.lfo_freq)
         if self.lfo_rate_display:
             self.lfo_rate_display.update(self._fmt_lfo_rate())
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_lfo_depth(self, direction: str = "up"):
-        self.lfo_depth = min(1.0, self.lfo_depth + 0.05) if direction == "up" else max(0.0, self.lfo_depth - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.lfo_depth = min(1.0, self.lfo_depth + step) if direction == "up" else max(0.0, self.lfo_depth - step)
         self.synth_engine.update_parameters(lfo_depth=self.lfo_depth)
         if self.lfo_depth_display:
             self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
@@ -1121,14 +1187,16 @@ class SynthMode(Widget):
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_chorus_depth(self, direction: str = "up"):
-        self.chorus_depth = min(1.0, self.chorus_depth + 0.05) if direction == "up" else max(0.0, self.chorus_depth - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.chorus_depth = min(1.0, self.chorus_depth + step) if direction == "up" else max(0.0, self.chorus_depth - step)
         self.synth_engine.update_parameters(chorus_depth=self.chorus_depth)
         if self.chorus_depth_display:
             self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_chorus_mix(self, direction: str = "up"):
-        self.chorus_mix = min(1.0, self.chorus_mix + 0.05) if direction == "up" else max(0.0, self.chorus_mix - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.chorus_mix = min(1.0, self.chorus_mix + step) if direction == "up" else max(0.0, self.chorus_mix - step)
         self.synth_engine.update_parameters(chorus_mix=self.chorus_mix)
         if self.chorus_mix_display:
             self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
@@ -1151,14 +1219,16 @@ class SynthMode(Widget):
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_delay_feedback(self, direction: str = "up"):
-        self.delay_feedback = min(0.9, self.delay_feedback + 0.05) if direction == "up" else max(0.0, self.delay_feedback - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.delay_feedback = min(0.9, self.delay_feedback + step) if direction == "up" else max(0.0, self.delay_feedback - step)
         self.synth_engine.update_parameters(delay_feedback=self.delay_feedback)
         if self.delay_feedback_display:
             self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_delay_mix(self, direction: str = "up"):
-        self.delay_mix = min(1.0, self.delay_mix + 0.05) if direction == "up" else max(0.0, self.delay_mix - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.delay_mix = min(1.0, self.delay_mix + step) if direction == "up" else max(0.0, self.delay_mix - step)
         self.synth_engine.update_parameters(delay_mix=self.delay_mix)
         if self.delay_mix_display:
             self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
@@ -1186,7 +1256,8 @@ class SynthMode(Widget):
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_arp_gate(self, direction: str = "up"):
-        self.arp_gate = min(1.0, self.arp_gate + 0.05) if direction == "up" else max(0.05, self.arp_gate - 0.05)
+        step = 0.01 * self._focus_accel_mult  # Apply focus-mode acceleration to step (0.01 = 1% for ultra-fine control)
+        self.arp_gate = min(1.0, self.arp_gate + step) if direction == "up" else max(0.05, self.arp_gate - step)
         self.synth_engine.update_parameters(arp_gate=self.arp_gate)
         if self.arp_gate_display:
             self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
@@ -1210,14 +1281,16 @@ class SynthMode(Widget):
 
     def _do_adjust_feg_attack(self, direction: str):
         step = 0.01 if self.feg_attack < 0.1 else (0.05 if self.feg_attack < 1.0 else 0.1)
-        self.feg_attack = max(0.001, self.feg_attack + (step if direction == "up" else -step))
+        step *= self._focus_accel_mult  # Apply focus-mode acceleration
+        self.feg_attack = max(0.008, min(4.0, self.feg_attack + (step if direction == "up" else -step)))
         self.synth_engine.update_parameters(feg_attack=self.feg_attack)
         if self.feg_attack_display: self.feg_attack_display.update(self._fmt_time(self.feg_attack))
         self._mark_dirty(); self._autosave_state()
 
     def _do_adjust_feg_decay(self, direction: str):
         step = 0.01 if self.feg_decay < 0.1 else (0.05 if self.feg_decay < 1.0 else 0.1)
-        self.feg_decay = max(0.001, self.feg_decay + (step if direction == "up" else -step))
+        step *= self._focus_accel_mult  # Apply focus-mode acceleration
+        self.feg_decay = max(0.005, min(4.0, self.feg_decay + (step if direction == "up" else -step)))
         self.synth_engine.update_parameters(feg_decay=self.feg_decay)
         if self.feg_decay_display: self.feg_decay_display.update(self._fmt_time(self.feg_decay))
         self._mark_dirty(); self._autosave_state()
@@ -1230,7 +1303,8 @@ class SynthMode(Widget):
 
     def _do_adjust_feg_release(self, direction: str):
         step = 0.01 if self.feg_release < 0.1 else (0.05 if self.feg_release < 1.0 else 0.1)
-        self.feg_release = max(0.001, self.feg_release + (step if direction == "up" else -step))
+        step *= self._focus_accel_mult  # Apply focus-mode acceleration
+        self.feg_release = max(0.005, min(4.0, self.feg_release + (step if direction == "up" else -step)))
         self.synth_engine.update_parameters(feg_release=self.feg_release)
         if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
         self._mark_dirty(); self._autosave_state()
@@ -1354,21 +1428,22 @@ class SynthMode(Widget):
         self.amp_level  = params.get("amp_level", self.amp_level)
         self.cutoff        = params.get("cutoff",        self.cutoff)
         self.hpf_cutoff    = params.get("hpf_cutoff",    self.hpf_cutoff)
-        self.resonance     = params.get("resonance",     self.resonance)
-        self.hpf_resonance = params.get("hpf_resonance", self.hpf_resonance)
+        self.resonance     = min(0.80, params.get("resonance",     self.resonance))
+        self.hpf_resonance = min(0.85, params.get("hpf_resonance", self.hpf_resonance))
         self.key_tracking  = params.get("key_tracking",  self.key_tracking)
         # Snap key_tracking to nearest discrete step when loading from old presets
         steps = self._KEY_TRACKING_STEPS
         self.key_tracking = steps[min(range(len(steps)), key=lambda i: abs(steps[i] - self.key_tracking))]
-        self.attack      = params.get("attack",      self.attack)
-        self.decay      = params.get("decay",     self.decay)
-        self.sustain    = params.get("sustain",   self.sustain)
-        self.release    = params.get("release",   self.release)
-        # Filter EG
-        self.feg_attack  = params.get("feg_attack",  self.feg_attack)
-        self.feg_decay   = params.get("feg_decay",   self.feg_decay)
+        # Clamp EG times to safe minimums — legacy presets may have sub-threshold values
+        self.attack      = max(0.008, params.get("attack",      self.attack))
+        self.decay       = max(0.005, params.get("decay",       self.decay))
+        self.sustain     = params.get("sustain",   self.sustain)
+        self.release     = max(0.008, params.get("release",     self.release))
+        # Filter EG — same floor policy
+        self.feg_attack  = max(0.008, params.get("feg_attack",  self.feg_attack))
+        self.feg_decay   = max(0.005, params.get("feg_decay",   self.feg_decay))
         self.feg_sustain = params.get("feg_sustain", self.feg_sustain)
-        self.feg_release = params.get("feg_release", self.feg_release)
+        self.feg_release = max(0.005, params.get("feg_release", self.feg_release))
         self.feg_amount  = params.get("feg_amount",  self.feg_amount)
         # LFO
         self.lfo_freq   = params.get("lfo_freq",   self.lfo_freq)
@@ -1567,19 +1642,18 @@ class SynthMode(Widget):
             [0.0, random.uniform(0.0, 0.4), random.uniform(0.4, 0.8)],
             weights=[60, 30, 10]
         )[0], 2)
-        self.key_tracking = random.choice(self._KEY_TRACKING_STEPS)
         self.voice_type = random.choice(["mono", "poly", "unison"])
-        self.attack = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
-        self.decay = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
+        self.attack = round(10 ** random.uniform(math.log10(0.008), math.log10(2.0)), 4)
+        self.decay = round(10 ** random.uniform(math.log10(0.005), math.log10(2.0)), 4)
         self.sustain = round(random.choices(
             [random.uniform(0.0, 0.3), random.uniform(0.3, 0.7), random.uniform(0.7, 1.0)],
             weights=[25, 35, 40]
         )[0], 2)
-        self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
+        self.release = round(10 ** random.uniform(math.log10(0.008), math.log10(3.0)), 4)
         self.intensity = round(random.uniform(0.40, 1.0), 2)
 
         # Randomize Filter EG amount only; timing params stay at defaults for musicality
-        self.feg_amount = round(random.uniform(-0.5, 0.8), 2)
+        self.feg_amount = round(random.uniform(0.5, 1.0), 2)
         self.synth_engine.update_parameters(feg_amount=self.feg_amount)
 
         # Enqueue mute gate BEFORE the param update so the engine fades out
@@ -1654,17 +1728,15 @@ class SynthMode(Widget):
                 self.synth_engine.update_parameters(resonance=self.resonance)
                 if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
             elif name == "KTrack":
-                self.key_tracking = random.choice(self._KEY_TRACKING_STEPS)
-                self.synth_engine.update_parameters(key_tracking=self.key_tracking)
-                if self.key_tracking_display: self.key_tracking_display.update(self._fmt_key_tracking())
+                pass  # Key Tracking is excluded from randomization — user sets this manually
         # ── Amp EG ────────────────────────────────────────────────
         elif sec == "amp_eg":
             if name == "Attack":
-                self.attack = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
+                self.attack = round(10 ** random.uniform(math.log10(0.008), math.log10(2.0)), 4)
                 self.synth_engine.update_parameters(attack=self.attack)
                 if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
             elif name == "Decay":
-                self.decay = round(10 ** random.uniform(math.log10(0.001), math.log10(2.0)), 4)
+                self.decay = round(10 ** random.uniform(math.log10(0.005), math.log10(2.0)), 4)
                 self.synth_engine.update_parameters(decay=self.decay)
                 if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
             elif name == "Sustain":
@@ -1674,18 +1746,18 @@ class SynthMode(Widget):
                 self.synth_engine.update_parameters(sustain=self.sustain)
                 if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
             elif name == "Release":
-                self.release = round(10 ** random.uniform(math.log10(0.01), math.log10(3.0)), 4)
+                self.release = round(10 ** random.uniform(math.log10(0.008), math.log10(3.0)), 4)
                 self.synth_engine.update_parameters(release=self.release)
                 if self.release_display: self.release_display.update(self._fmt_time(self.release))
         # ── Filter EG ─────────────────────────────────────────────
         elif sec == "filter_eg":
             label = self._SECTION_PARAMS["filter_eg"][self._focus_param]
             if label == "Atk":
-                self.feg_attack = round(random.uniform(0.001, 2.0), 3)
+                self.feg_attack = round(random.uniform(0.008, 2.0), 3)
                 self.synth_engine.update_parameters(feg_attack=self.feg_attack)
                 if self.feg_attack_display: self.feg_attack_display.update(self._fmt_time(self.feg_attack))
             elif label == "Dcy":
-                self.feg_decay = round(random.uniform(0.01, 2.0), 3)
+                self.feg_decay = round(random.uniform(0.005, 2.0), 3)
                 self.synth_engine.update_parameters(feg_decay=self.feg_decay)
                 if self.feg_decay_display: self.feg_decay_display.update(self._fmt_time(self.feg_decay))
             elif label == "Sus":
@@ -1697,7 +1769,7 @@ class SynthMode(Widget):
                 self.synth_engine.update_parameters(feg_release=self.feg_release)
                 if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
             elif label == "Amount":
-                self.feg_amount = round(random.uniform(-1.0, 1.0), 2)
+                self.feg_amount = round(random.uniform(0.5, 1.0), 2)
                 self.synth_engine.update_parameters(feg_amount=self.feg_amount)
                 if self.feg_amount_display: self.feg_amount_display.update(self._fmt_feg_amount())
             self._mark_dirty(); self._autosave_state()
@@ -1910,8 +1982,9 @@ class SynthMode(Widget):
     # ── Time and frequency formatters ─────────────────────────────
 
     def _fmt_time(self, t: float) -> str:
-        log_t = math.log10(max(0.001, t))
-        log_min = math.log10(0.001)
+        # Log-scale display: min=5ms (lowest of all EG time minimums), max=5s
+        log_t = math.log10(max(0.005, t))
+        log_min = math.log10(0.005)
         log_max = math.log10(5.0)
         norm = (log_t - log_min) / (log_max - log_min)
         label = f"{t * 1000:.0f}ms" if t < 1.0 else f"{t:.2f}s"
@@ -1926,7 +1999,7 @@ class SynthMode(Widget):
         return self._fmt_knob(norm, 0.0, 1.0, label)
 
     def _fmt_resonance(self) -> str:
-        return self._fmt_knob(self.resonance / 0.9, 0.0, 1.0, f"{int(self.resonance * 100)}%")
+        return self._fmt_knob(self.resonance / 0.80, 0.0, 1.0, f"{int(self.resonance * 100)}%")
 
     def _fmt_hpf_cutoff(self) -> str:
         log_c = math.log10(max(20.0, self.hpf_cutoff))
@@ -1937,7 +2010,7 @@ class SynthMode(Widget):
         return self._fmt_knob(norm, 0.0, 1.0, label)
 
     def _fmt_hpf_resonance(self) -> str:
-        return self._fmt_knob(self.hpf_resonance / 0.99, 0.0, 1.0, f"{int(self.hpf_resonance * 100)}%")
+        return self._fmt_knob(self.hpf_resonance / 0.85, 0.0, 1.0, f"{int(self.hpf_resonance * 100)}%")
 
     def _fmt_key_tracking(self) -> str:
         """Five-mode selector display for key tracking: 0%·25%·50%·75%·100%."""

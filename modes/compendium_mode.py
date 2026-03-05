@@ -300,11 +300,31 @@ class CompendiumTreeBuilder:
 class CompendiumDetailPanel(Static):
     """Display detailed information about selected items."""
 
+    # Roman numeral conversion table for chord intervals
+    _ROMAN_NUMERALS = {
+        "1": "I",   "2": "II",  "3": "III", "4": "IV",  "5": "V",
+        "6": "VI",  "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+        "11": "XI", "12": "XII", "13": "XIII"
+    }
+
     def __init__(self, data_manager: CompendiumDataManager):
         """Initialize detail panel."""
         super().__init__()
         self.data_manager = data_manager
         self.current_item: Optional[Dict[str, Any]] = None
+
+    def _interval_to_roman(self, interval: str) -> str:
+        """Convert numeric interval to Roman numeral (e.g. 'b3' → 'bIII', '5' → 'V')."""
+        # Extract accidentals (b, #) and the base number
+        accidental = ""
+        base_num = interval
+        if interval and interval[0] in ("b", "#"):
+            accidental = interval[0]
+            base_num = interval[1:]
+
+        # Convert base number to Roman numeral
+        roman = self._ROMAN_NUMERALS.get(base_num, base_num)
+        return accidental + roman
 
     def render_item(self, item: Dict[str, Any]):
         """Render and display item details."""
@@ -338,7 +358,12 @@ class CompendiumDetailPanel(Static):
             detail_text += "[METADATA]\n"
             for key, value in item['metadata'].items():
                 if isinstance(value, list):
-                    detail_text += f"  {key}: {', '.join(str(v) for v in value)}\n"
+                    # Special case: convert intervals to Roman numerals
+                    if key == "intervals":
+                        roman_intervals = [self._interval_to_roman(str(v)) for v in value]
+                        detail_text += f"  {key}: {', '.join(roman_intervals)}\n"
+                    else:
+                        detail_text += f"  {key}: {', '.join(str(v) for v in value)}\n"
                 else:
                     detail_text += f"  {key}: {value}\n"
             detail_text += "\n"

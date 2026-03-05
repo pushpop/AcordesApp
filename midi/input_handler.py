@@ -1,13 +1,16 @@
 """Real-time MIDI input processing."""
+# ABOUTME: Handles MIDI input reading, note tracking, and velocity curve remapping.
+# ABOUTME: Velocity is remapped through the user-selected curve before callbacks fire.
 import mido
 from typing import Set, Optional, Callable
 from threading import Lock
+from music.velocity_curves import apply_curve
 
 
 class MIDIInputHandler:
     """Handles MIDI input reading and note tracking."""
 
-    def __init__(self):
+    def __init__(self, config_manager=None):
         self.port: Optional[mido.ports.BaseInput] = None
         self.active_notes: Set[int] = set()
         self.notes_lock = Lock()
@@ -15,6 +18,8 @@ class MIDIInputHandler:
         self._note_off_callback: Optional[Callable[[int], None]] = None
         self._pitch_bend_callback: Optional[Callable[[int], None]] = None
         self._control_change_callback: Optional[Callable[[int, int], None]] = None
+        # Optional config_manager reference for velocity curve lookup
+        self._config_manager = config_manager
 
     def open_device(self, device_name: str) -> bool:
         """Open a MIDI input device.
@@ -92,12 +97,20 @@ class MIDIInputHandler:
             print(f"Error polling MIDI messages: {e}")
 
     def _handle_note_on(self, note: int, velocity: int):
-        """Handle NOTE_ON message with velocity."""
+        """Handle NOTE_ON message with velocity.
+
+        Velocity is remapped through the currently selected velocity curve
+        before the callback fires, so all modes receive curve-adjusted velocity.
+        """
         with self.notes_lock:
             self.active_notes.add(note)
 
         if self._note_on_callback:
-            self._note_on_callback(note, velocity)
+            mapped_velocity = velocity
+            if self._config_manager is not None and velocity > 0:
+                curve_name = self._config_manager.get_velocity_curve()
+                mapped_velocity = apply_curve(velocity, curve_name)
+            self._note_on_callback(note, mapped_velocity)
 
     def _handle_note_off(self, note: int, velocity: int = 0):
         """Handle NOTE_OFF message with optional release velocity."""

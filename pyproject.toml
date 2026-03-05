@@ -1,0 +1,21 @@
+[project]
+name = "acordes"
+version = "1.8.0"
+description = "A professional polyphonic MIDI synthesizer and piano TUI application"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Jorge" }]
+keywords = ["midi", "synthesizer", "piano", "tui", "music"]
+
+dependencies = [
+    "textual>=0.75.0",
+    "mido>=1.3.0",
+    "python-rtmidi>=1.4.0",
+    "pygame>=2.0.0",
+    "mingus>=0.6.1",
+    "numpy>=1.24.0",
+    "pyaudio>=0.2.13",
+    "scipy>=1.10.0",
+]
+

@@ -26,6 +26,7 @@ class ConfigManager:
         """Return default configuration."""
         return {
             "selected_midi_device": None,
+            "velocity_curve": "Linear",  # Default velocity curve type
             "last_synth_preset": None,
             "synth_state": None,
             "metronome_bpm": 120,
@@ -48,6 +49,17 @@ class ConfigManager:
     def set_selected_device(self, device_name: Optional[str]):
         """Save the selected MIDI device."""
         self.config["selected_midi_device"] = device_name
+        self.save_config()
+
+    # ── Velocity curve ───────────────────────────────────────────
+
+    def get_velocity_curve(self) -> str:
+        """Get the saved velocity curve type (default: 'Linear')."""
+        return self.config.get("velocity_curve", "Linear")
+
+    def set_velocity_curve(self, curve_name: str):
+        """Save the selected velocity curve type."""
+        self.config["velocity_curve"] = curve_name
         self.save_config()
 
     # ── Synth preset persistence ─────────────────────────────────

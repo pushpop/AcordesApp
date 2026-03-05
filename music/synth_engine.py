@@ -104,18 +104,27 @@ class Voice:
 
         # Filter EG per-voice state — one-shot ADSR that modulates filter cutoff.
         # Resets on every note trigger; independent of the amp envelope lifecycle.
-        self.feg_time:         float = 0.0    # elapsed time since last trigger
-        self.feg_is_releasing: bool  = False  # True after note-off
-        self.feg_release_start: float = 0.0   # FEG level captured at note-off
+        self.feg_time:          float = 0.0    # elapsed time since last trigger
+        self.feg_is_releasing:  bool  = False  # True after note-off
+        self.feg_release_start: float = 0.0   # feg_time value at note-off (for t_rel)
+        self.feg_release_level: float = 0.0   # actual FEG level captured at note-off
 
-        # Pre-gate progress for sine/pure_sine in MONO and UNISON voice modes.
-        # Tracks linear 0→1 progress over 10ms after each note trigger; the actual
+        # Pre-gate progress for MONO and UNISON voice modes.
+        # Tracks linear 0→1 progress over 30ms after each note trigger; the actual
         # gate multiplier applied to the oscillator output is computed as an S-curve
         # (1 - cos(π·progress)) / 2 so both the start and end of the fade-in have
         # zero slope — no instantaneous amplitude steps at either endpoint.
         # Applied between oscillator and filter so the filter sees a smoothly growing
-        # signal from phase=0.  Default 1.0 = fully open; zero impact on all other paths.
+        # signal.  Default 1.0 = fully open; zero impact on all other paths.
         self.pre_gate_progress: float = 1.0
+
+        # Per-voice filter cutoff smoothing: tracks the effective fl_lpf / fl_hpf used
+        # in the previous buffer.  Interpolating toward the new value each buffer prevents
+        # sudden coefficient jumps (from FEG restart, key-tracking note changes, or large
+        # EG amounts) from creating state/coefficient mismatches that high-resonance filters
+        # amplify into audible spikes.  -1.0 = uninitialised (set on first use).
+        self.smooth_fl_lpf: float = -1.0
+        self.smooth_fl_hpf: float = -1.0
 
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
@@ -974,6 +983,23 @@ class SynthEngine:
         fl_lpf = float(np.clip(self.cutoff_current * cutoff_mod * track_mult, 20.0, 20000.0))
         fl_hpf = float(np.clip(self.hpf_cutoff_current * track_mult, 20.0, fl_lpf * 0.9))
 
+        # Per-voice coefficient smoothing: interpolate from previous buffer's value to the
+        # new target.  Sudden jumps (FEG restart, key-tracking note change, high EG amount)
+        # would otherwise create a state/coefficient mismatch that high-resonance filters
+        # amplify into audible spikes.  Coefficient 0.65 → reaches ~94% of a step change
+        # within ~6 buffers (~63ms) — still responsive enough to track LFO/EG sweeps
+        # without perceptible lag, but slow enough to protect high-Q filters (k≈0.77,
+        # feedback≈3.1) from state/coefficient mismatch transients.
+        _SMOOTH_K = 0.65
+        if voice.smooth_fl_lpf < 0.0:   # first use: initialise to current value
+            voice.smooth_fl_lpf = fl_lpf
+            voice.smooth_fl_hpf = fl_hpf
+        else:
+            voice.smooth_fl_lpf = voice.smooth_fl_lpf * _SMOOTH_K + fl_lpf * (1.0 - _SMOOTH_K)
+            voice.smooth_fl_hpf = voice.smooth_fl_hpf * _SMOOTH_K + fl_hpf * (1.0 - _SMOOTH_K)
+        fl_lpf = voice.smooth_fl_lpf
+        fl_hpf = voice.smooth_fl_hpf
+
         # ── HPF stage: resonant Chamberlin SVF (HP output) ───────────────────
         # Reuses the per-voice svf state slots (previously for LPF-SVF mode).
         hpf_lp_s = voice.filter_state_svf1_lp if rank == 1 else voice.filter_state_svf2_lp
@@ -999,6 +1025,25 @@ class SynthEngine:
 
         return filtered * filter_comp
 
+    def _feg_level_snapshot(self, voice: Voice) -> float:
+        """Return the current FEG level without advancing feg_time (no side effects).
+
+        Used to capture the exact level at note-off so feg_release_level is correct
+        regardless of which ADSR phase the FEG was in (attack, decay, or sustain=0).
+        """
+        t = voice.feg_time
+        if voice.feg_is_releasing:
+            t_rel = max(0.0, t - voice.feg_release_start)
+            return float(np.clip(voice.feg_release_level * np.exp(-t_rel / max(0.001, self.feg_release)), 0.0, 1.0))
+        atk = max(0.001, self.feg_attack)
+        dcy = max(0.001, self.feg_decay)
+        sus = float(np.clip(self.feg_sustain, 0.0, 1.0))
+        if t < atk:
+            return float(t / atk)
+        elif t < atk + dcy:
+            return float(1.0 - ((t - atk) / dcy) * (1.0 - sus))
+        return sus
+
     def _compute_feg_value(self, voice: Voice, num_samples: int) -> float:
         """Compute the Filter EG scalar (0.0–1.0) for the current buffer.
 
@@ -1014,12 +1059,13 @@ class SynthEngine:
         t = voice.feg_time
 
         if voice.feg_is_releasing:
-            # Exponential release from the level held at note-off.
-            # feg_release_start stores the elapsed feg_time at note-off; we use
-            # the time *since* note-off to drive the release decay.
+            # Exponential release from feg_release_level (the actual level at note-off).
+            # Decaying from 1.0 unconditionally was wrong: if the FEG had already reached
+            # sustain=0% before key release, the release would jump to 1.0 then decay —
+            # a sudden large cutoff step that high-resonance filters amplify into a spike.
             t_rel = max(0.0, t - voice.feg_release_start)
             time_const = max(0.001, self.feg_release)
-            level = np.exp(-t_rel / time_const)
+            level = voice.feg_release_level * np.exp(-t_rel / time_const)
             voice.feg_time += dt
             return float(np.clip(level, 0.0, 1.0))
         else:
@@ -1262,55 +1308,45 @@ class SynthEngine:
         self._fx_tail_samples = self._FX_TAIL_MAX
 
         if self.voice_type == "mono":
-            # Mono mode: single voice.
-            # Release all other voices
+            # Single-voice MONO with true legato soft trigger.
+            # Release all other voices immediately (should be silent in mono mode anyway).
             for i, v in enumerate(self.voices):
                 if i != self.mono_voice_index:
                     v.release(self.attack, self.decay, self.sustain, 1.0)
             mono_v = self.voices[self.mono_voice_index]
 
-            # Use soft trigger whenever the voice has amplitude (playing OR releasing).
-            # Even a voice that just entered release this same buffer still has amplitude
-            # and its onset_ramp is already complete — hard trigger drops output to 0 → click.
             has_amplitude = mono_v.last_envelope_level > 0.001
             if has_amplitude:
-                # Soft trigger: update note params without resetting filter, DC blocker, or
-                # onset_ramp. Keeping those continuous prevents the 0-amplitude drop that hard
-                # trigger (onset_ramp=0) causes. steal_start_level crossfade fades the current
-                # amplitude to the new attack curve over 8ms.
+                # True legato soft trigger: update note params without resetting phase,
+                # filter states, DC blocker, or onset_ramp.  The oscillator phase continues
+                # uninterrupted — only the frequency and envelope update.  This avoids the
+                # C⁰ phase discontinuity (value jump) that causes clicks.  What remains is
+                # only a C¹ discontinuity (slope change as frequency updates), which is
+                # imperceptible.  steal_start_level crossfade handles envelope continuity.
                 mono_v.steal_start_level = mono_v.last_envelope_level
                 mono_v.midi_note = note
                 mono_v.base_frequency = freq
                 mono_v.frequency = freq
-                mono_v.velocity_target = vel  # velocity_current smooths toward this ~66ms
+                mono_v.velocity_target = vel
                 mono_v.note_active = True
                 mono_v.is_releasing = False
                 mono_v.envelope_time = 0.0
                 mono_v.age = 0.0
                 mono_v.onset_ms = onset_ms_for_note
-                # FEG restarts on every new note in soft-trigger path too.
-                mono_v.feg_time = 0.0
-                mono_v.feg_is_releasing = False
-                mono_v.feg_release_start = 0.0
-                # onset_samples, filter states, DC blocker, and phase preserved.
-                # Arm engine-level crossfade: hides FIR frequency-change transient.
+                # Arm engine-level crossfade to bridge any FIR frequency-change transient.
                 self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
-                # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
-                # The existing steal crossfade (steal_start_level) fades out the old
-                # note's amplitude over 8ms while the pre-gate fades in the new signal
-                # over 10ms — sequential out→in eliminates the filter-discharge spike.
-                if self.waveform in ("sine", "pure_sine"):
-                    mono_v.phase = 0.0
-                    mono_v.pre_gate_progress = 0.0
+                # Phase, pre_gate_progress, and feg_time are intentionally NOT reset here.
+                # True legato: oscillator phase continues (C¹ only — inaudible), filter
+                # states stay consistent with the signal they were processing, and the
+                # Filter EG continues from its current position rather than restarting.
+                # Restarting feg_time causes a sudden filter coefficient jump while the
+                # filter has stored energy — with high resonance this creates a spike.
             else:
-                # Hard trigger from true silence: full reset via trigger().
+                # Hard trigger from true silence: full reset.
                 mono_v.trigger(note, freq, vel)
                 mono_v.onset_ms = onset_ms_for_note
-                # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
-                # The onset ramp still runs post-envelope for DC blocker settling.
-                if self.waveform in ("sine", "pure_sine"):
-                    mono_v.phase = 0.0
-                    mono_v.pre_gate_progress = 0.0
+                mono_v.phase = 0.0
+                mono_v.pre_gate_progress = 0.0
 
         elif self.voice_type == "unison":
             # Unison mode: all voices play same note with detuning spread.
@@ -1338,27 +1374,22 @@ class SynthEngine:
                     v.envelope_time = 0.0
                     v.age = 0.0
                     v.onset_ms = onset_ms_for_note
-                    # FEG restarts on every new note.
-                    v.feg_time = 0.0
-                    v.feg_is_releasing = False
-                    v.feg_release_start = 0.0
-                    # onset_samples, filter states, DC blocker, and phase preserved.
                     # Arm engine-level crossfade (same as MONO).
                     self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
-                    # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
-                    # Each UNISON voice gets its own gate; filter/DC states kept continuous.
-                    # steal_start_level preserved so the envelope's 8ms steal crossfade
-                    # fades out the old amplitude in parallel with the gate fade-in.
-                    if self.waveform in ("sine", "pure_sine"):
-                        v.phase = 0.0
-                        v.pre_gate_progress = 0.0
+                    # True legato for UNISON (same reasoning as MONO soft trigger):
+                    # phase, pre_gate_progress, and feg_time are NOT reset.
+                    # Resetting feg_time causes a sudden filter coefficient jump while
+                    # the filter has stored energy — with high resonance this creates a
+                    # spike.  Resetting phase + pre_gate creates a 30ms window where the
+                    # filter resonates freely with no input, then interference spikes when
+                    # the new signal re-enters.  Keeping all three continuous eliminates
+                    # both spike sources.
                 else:
                     # Hard trigger from true silence: full reset
                     v.trigger(note, detuned_freq, vel)
-                    # For sine/pure_sine: reset phase to 0 and open S-curve pre-gate.
-                    if self.waveform in ("sine", "pure_sine"):
-                        v.phase = 0.0
-                        v.pre_gate_progress = 0.0
+                    # Reset phase and open S-curve pre-gate for all waveforms.
+                    v.phase = 0.0
+                    v.pre_gate_progress = 0.0
                     v.onset_ms = onset_ms_for_note
 
         else:  # "poly" mode (default)
@@ -1392,6 +1423,11 @@ class SynthEngine:
                 best_v.dc_blocker_x = best_v.dc_blocker_y = 0.0
                 best_v.trigger(note, freq, vel)
                 best_v.onset_ms = onset_ms_for_note
+                # Stolen voice was already past its onset period — skip the onset_ramp.
+                # onset_ramp + steal_start_level both fading in simultaneously creates a
+                # double-damped attack (audible stutter gap). Only one mechanism should
+                # handle the transition; steal_start_level (8ms CROSS crossfade) does it.
+                best_v.onset_samples = int(self.sample_rate * onset_ms_for_note / 1000.0) + 1
 
     def _release_note(self, note: int, velocity: float = 0.5):
         if self.voice_type == "mono":
@@ -1406,6 +1442,7 @@ class SynthEngine:
                 mono_v = self.voices[self.mono_voice_index]
                 if mono_v.note_active:
                     mono_v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                    mono_v.feg_release_level = self._feg_level_snapshot(mono_v)
                     mono_v.feg_is_releasing = True
                     mono_v.feg_release_start = mono_v.feg_time
         elif self.voice_type == "unison":
@@ -1419,12 +1456,14 @@ class SynthEngine:
                 for v in self.voices:
                     if v.note_active:
                         v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                        v.feg_release_level = self._feg_level_snapshot(v)
                         v.feg_is_releasing = True
                         v.feg_release_start = v.feg_time
         else:
             for v in self.voices:
                 if v.midi_note == note and v.note_active:
                     v.release(self.attack, self.decay, self.sustain, 1.0, velocity)
+                    v.feg_release_level = self._feg_level_snapshot(v)
                     v.feg_is_releasing = True
                     v.feg_release_start = v.feg_time
 
@@ -1606,9 +1645,8 @@ class SynthEngine:
                     # fading out the old note's amplitude in parallel, creating a natural
                     # sequential out→in transition.  Default progress=1.0 = no effect.
                     if (self.voice_type in ("mono", "unison")
-                            and self.waveform in ("sine", "pure_sine")
                             and v.pre_gate_progress < 1.0):
-                        _GATE_RAMP_S = 0.010 * self.sample_rate  # 10ms in samples
+                        _GATE_RAMP_S = 0.030 * self.sample_rate  # 30ms in samples
                         _rate = 1.0 / _GATE_RAMP_S
                         _prog_start = v.pre_gate_progress
                         _prog_end = min(1.0, _prog_start + _rate * frame_count)
