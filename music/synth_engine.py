@@ -408,7 +408,7 @@ class SynthEngine:
                 self.audio = pyaudio.PyAudio()
                 default_output = self.audio.get_default_output_device_info()
                 self.stream = self.audio.open(
-                    format=pyaudio.paInt16, channels=2, rate=self.sample_rate,
+                    format=pyaudio.paInt24, channels=2, rate=self.sample_rate,
                     output=True, output_device_index=default_output['index'],
                     frames_per_buffer=self.buffer_size, stream_callback=self._audio_callback, start=False
                 )
@@ -1599,7 +1599,7 @@ class SynthEngine:
                 # triggered (in _trigger_note) and decremented here while draining so
                 # the callback returns to silence naturally once the tail expires.
                 if self._fx_tail_samples <= 0:
-                    return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
+                    return (np.zeros(frame_count * 2, dtype=np.int32).tobytes(), pyaudio.paContinue)
                 self._fx_tail_samples = max(0, self._fx_tail_samples - frame_count)
                 # Fall through: voices produce silence, FX blocks drain their buffers.
 
@@ -1850,12 +1850,12 @@ class SynthEngine:
             # output value — eliminates tanh/gain rounding mismatch at buffer boundaries.
             self._last_output_L = float(mixed_l[-1])
             self._last_output_R = float(mixed_r[-1])
-            out = np.empty(frame_count * 2, dtype=np.int16)
-            out[0::2] = np.clip(mixed_l * 32767, -32767, 32767)
-            out[1::2] = np.clip(mixed_r * 32767, -32767, 32767)
+            out = np.empty(frame_count * 2, dtype=np.int32)
+            out[0::2] = np.clip(mixed_l * 8388607, -8388607, 8388607)
+            out[1::2] = np.clip(mixed_r * 8388607, -8388607, 8388607)
             return (out.tobytes(), pyaudio.paContinue)
         except Exception as e:
-            return (np.zeros(frame_count * 2, dtype=np.int16).tobytes(), pyaudio.paContinue)
+            return (np.zeros(frame_count * 2, dtype=np.int32).tobytes(), pyaudio.paContinue)
 
     def note_on(self, note: int, velocity: int = 127):
         self.held_notes.add(note)
