@@ -1599,7 +1599,8 @@ class SynthEngine:
                 # triggered (in _trigger_note) and decremented here while draining so
                 # the callback returns to silence naturally once the tail expires.
                 if self._fx_tail_samples <= 0:
-                    return (np.zeros(frame_count * 2, dtype=np.int32).tobytes(), pyaudio.paContinue)
+                    # Silence: 3 bytes per sample × 2 channels × frame_count frames
+                    return (bytes(frame_count * 2 * 3), pyaudio.paContinue)
                 self._fx_tail_samples = max(0, self._fx_tail_samples - frame_count)
                 # Fall through: voices produce silence, FX blocks drain their buffers.
 
@@ -1853,9 +1854,12 @@ class SynthEngine:
             out = np.empty(frame_count * 2, dtype=np.int32)
             out[0::2] = np.clip(mixed_l * 8388607, -8388607, 8388607)
             out[1::2] = np.clip(mixed_r * 8388607, -8388607, 8388607)
-            return (out.tobytes(), pyaudio.paContinue)
+            # paInt24 expects 3 bytes per sample — strip the MSB from each int32 (little-endian layout)
+            out24 = out.astype('<i4').view(np.uint8).reshape(-1, 4)[:, :3].tobytes()
+            return (out24, pyaudio.paContinue)
         except Exception as e:
-            return (np.zeros(frame_count * 2, dtype=np.int32).tobytes(), pyaudio.paContinue)
+            # Silence: 3 bytes per sample × 2 channels × frame_count frames
+            return (bytes(frame_count * 2 * 3), pyaudio.paContinue)
 
     def note_on(self, note: int, velocity: int = 127):
         self.held_notes.add(note)
