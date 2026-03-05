@@ -23,7 +23,6 @@ from midi.input_handler import MIDIInputHandler
 from music.chord_detector import ChordDetector
 from music.chord_library import ChordLibrary
 from music.synth_engine import SynthEngine
-from music.synth_engine_subprocess import SynthEngineSubprocess
 
 from modes.config_mode import ConfigMode
 from modes.piano_mode import PianoMode
@@ -408,7 +407,7 @@ class AcordesApp(App):
         self.midi_handler = MIDIInputHandler(config_manager=self.config_manager)
         self.chord_detector = ChordDetector()
         self.chord_library = ChordLibrary()
-        self.synth_engine = SynthEngineSubprocess()
+        self.synth_engine = SynthEngine()
 
         # Pre-load/Warm-up audio system
         self.synth_engine.warm_up()
