@@ -75,6 +75,8 @@ DEFAULT_PARAMS: dict = {
     "resonance": 0.3,
     "hpf_resonance": 0.0,
     "key_tracking": 0.5,
+    "filter_drive": 1.0,      # pre-filter gain multiplier (0.5–8.0); 1.0 = clean/neutral
+    "filter_routing": "lp_hp", # SVF→Ladder routing: "lp_hp" | "bp_lp" | "notch_lp" | "lp_lp"
     "filter_mode": "ladder",  # kept for backward-compat with old presets; ignored by engine
     "attack": 0.01,   # min 0.008 — enforced by UI adjust; legacy presets clamped in _apply_params
     "decay": 0.2,

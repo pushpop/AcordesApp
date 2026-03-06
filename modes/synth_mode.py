@@ -68,6 +68,9 @@ class SynthMode(Widget):
         # ── Global ────────────────────────────────────────────────────────
         Binding("space", "panic",     "Panic (All Notes Off)", show=False),
         Binding("minus", "randomize", "🎲 Randomize",          show=False),
+        Binding("i", "init_patch",   "Init Patch",            show=False),
+        # Focus-mode: reset highlighted param to init value
+        Binding("r", "reset_focused_param", "Reset param",    show=False),
     ]
 
     CSS = """
@@ -247,9 +250,9 @@ class SynthMode(Widget):
     # Each entry: display label for the param row.
     # nav_up/down steps through these; dispatch in _adjust_focused_param uses the name.
     _SECTION_PARAMS = {
-        "oscillator": ["Wave", "Noise", "Octave"],
-        "filter":     ["HPF Cut", "HPF Pk", "LPF Cut", "LPF Pk", "KTrack"],
-        "amp_eg":     ["Attack", "Decay", "Sustain", "Release"],
+        "oscillator": ["Wave", "Noise", "Octave", "Drive"],
+        "filter":     ["HPF Cut", "HPF Pk", "LPF Cut", "LPF Pk", "Route"],
+        "amp_eg":     ["Attack", "Decay", "Sustain", "Release", "KTrack"],
         "filter_eg":  ["Atk", "Dcy", "Sus", "Rel", "Amount"],
         "lfo":        ["Rate", "Depth", "Shape", "Target"],
         "chorus":     ["Rate", "Depth", "Mix", "Voices"],
@@ -287,6 +290,8 @@ class SynthMode(Widget):
         self.resonance    = params["resonance"]
         self.hpf_resonance = params.get("hpf_resonance", 0.0)
         self.key_tracking = params.get("key_tracking", 0.5)
+        self.filter_drive   = params.get("filter_drive",   1.0)
+        self.filter_routing = params.get("filter_routing", "lp_hp")
         self.attack     = params["attack"]
         self.decay      = params["decay"]
         self.sustain    = params["sustain"]
@@ -357,6 +362,8 @@ class SynthMode(Widget):
         self.cutoff_display        = None
         self.resonance_display     = None
         self.key_tracking_display  = None
+        self.filter_drive_display   = None
+        self.filter_routing_display = None
         self.attack_display         = None
         self.decay_display          = None
         self.sustain_display        = None
@@ -445,14 +452,15 @@ class SynthMode(Widget):
                     yield Label(self._row_label("Shape", ""), classes="control-label")
                     self.waveform_shape_display = Label(self._fmt_waveform_shape(), classes="control-value", id="waveform-shape-display")
                     yield self.waveform_shape_display
-                    yield Label(self._row_sep(), classes="control-label")
                     yield Label(self._row_label("Noise", ""), classes="control-label", id="lbl-oscillator-1")
                     self.noise_display = Label(self._fmt_knob(self.noise_level, 0.0, 1.0, f"{int(self.noise_level * 100)}%"), classes="control-value", id="noise-display")
                     yield self.noise_display
-                    yield Label(self._row_sep(), classes="control-label")
                     yield Label(self._row_label("Octave", ""), classes="control-label", id="lbl-oscillator-2")
                     self.octave_display = Label(self._fmt_octave(), classes="control-value", id="octave-display")
                     yield self.octave_display
+                    yield Label(self._row_label("Drive", ""), classes="control-label", id="lbl-oscillator-3")
+                    self.filter_drive_display = Label(self._fmt_filter_drive(), classes="control-value", id="filter-drive-display")
+                    yield self.filter_drive_display
                     yield Label(self._section_bottom(), classes="section-bottom")
 
                 # ── FILTER ───────────────────────────────────────────────
@@ -472,9 +480,9 @@ class SynthMode(Widget):
                     yield Label(self._row_label("LPF Pk", ""), classes="control-label", id="lbl-filter-3")
                     self.resonance_display = Label(self._fmt_resonance(), classes="control-value", id="resonance-display")
                     yield self.resonance_display
-                    yield Label(self._row_label("KTrack", ""), classes="control-label", id="lbl-filter-4")
-                    self.key_tracking_display = Label(self._fmt_key_tracking(), classes="control-value", id="key-tracking-display")
-                    yield self.key_tracking_display
+                    yield Label(self._row_label("Route", ""), classes="control-label", id="lbl-filter-4")
+                    self.filter_routing_display = Label(self._fmt_filter_routing(), classes="control-value", id="filter-routing-display")
+                    yield self.filter_routing_display
                     yield Label(self._section_bottom(), classes="section-bottom")
 
                 # ── FILTER EG ────────────────────────────────────────────
@@ -518,6 +526,9 @@ class SynthMode(Widget):
                     yield Label(self._row_label("Release", ""), classes="control-label", id="lbl-amp-eg-3")
                     self.release_display = Label(self._fmt_time(self.release), classes="control-value", id="release-display")
                     yield self.release_display
+                    yield Label(self._row_label("KTrack", ""), classes="control-label", id="lbl-amp-eg-4")
+                    self.key_tracking_display = Label(self._fmt_key_tracking(), classes="control-value", id="key-tracking-display")
+                    yield self.key_tracking_display
                     yield Label(self._section_bottom(), classes="section-bottom")
 
             # ── SPACING ───────────────────────────────────────────────────
@@ -924,19 +935,22 @@ class SynthMode(Widget):
                 self._do_adjust_noise_level(direction)
             elif name == "Octave":
                 self._do_adjust_octave(direction)
+            elif name == "Drive":
+                self._do_adjust_filter_drive(direction)
         # FILTER
         elif sec == "filter":
             if name == "HPF Cut":   self._do_adjust_hpf_cutoff(direction)
             elif name == "HPF Pk":  self._do_adjust_hpf_resonance(direction)
             elif name == "LPF Cut": self._do_adjust_cutoff(direction)
             elif name == "LPF Pk":  self._do_adjust_resonance(direction)
-            elif name == "KTrack":  self._do_step_key_tracking(direction)
+            elif name == "Route":   self._do_cycle_filter_routing(direction)
         # AMP EG
         elif sec == "amp_eg":
             if name == "Attack":      self._do_adjust_attack(direction)
             elif name == "Decay":     self._do_adjust_decay(direction)
             elif name == "Sustain":   self._do_adjust_sustain(direction)
             elif name == "Release":   self._do_adjust_release(direction)
+            elif name == "KTrack":    self._do_step_key_tracking(direction)
         # FILTER EG
         elif sec == "filter_eg":
             if name == "Atk":    self._do_adjust_feg_attack(direction)
@@ -1111,6 +1125,34 @@ class SynthMode(Widget):
         self.synth_engine.update_parameters(key_tracking=self.key_tracking)
         if self.key_tracking_display:
             self.key_tracking_display.update(self._fmt_key_tracking())
+        self._mark_dirty()
+        self._autosave_state()
+
+    _FILTER_ROUTING_OPTIONS = ["lp_hp", "bp_lp", "notch_lp", "lp_lp"]
+
+    def _do_adjust_filter_drive(self, direction: str = "up"):
+        step = 0.1 * self._focus_accel_mult
+        if direction == "up":
+            self.filter_drive = min(8.0, round(self.filter_drive + step, 2))
+        else:
+            self.filter_drive = max(0.5, round(self.filter_drive - step, 2))
+        self.synth_engine.update_parameters(filter_drive=self.filter_drive)
+        if self.filter_drive_display:
+            self.filter_drive_display.update(self._fmt_filter_drive())
+        self._mark_dirty()
+        self._autosave_state()
+
+    def _do_cycle_filter_routing(self, direction: str = "up"):
+        opts = self._FILTER_ROUTING_OPTIONS
+        idx = opts.index(self.filter_routing) if self.filter_routing in opts else 0
+        if direction == "up":
+            idx = (idx + 1) % len(opts)
+        else:
+            idx = (idx - 1) % len(opts)
+        self.filter_routing = opts[idx]
+        self.synth_engine.update_parameters(filter_routing=self.filter_routing)
+        if self.filter_routing_display:
+            self.filter_routing_display.update(self._fmt_filter_routing())
         self._mark_dirty()
         self._autosave_state()
 
@@ -1442,7 +1484,9 @@ class SynthMode(Widget):
         self.hpf_cutoff    = params.get("hpf_cutoff",    self.hpf_cutoff)
         self.resonance     = min(0.80, params.get("resonance",     self.resonance))
         self.hpf_resonance = min(0.85, params.get("hpf_resonance", self.hpf_resonance))
-        self.key_tracking  = params.get("key_tracking",  self.key_tracking)
+        self.key_tracking    = params.get("key_tracking",    self.key_tracking)
+        self.filter_drive    = params.get("filter_drive",    self.filter_drive)
+        self.filter_routing  = params.get("filter_routing",  self.filter_routing)
         # Snap key_tracking to nearest discrete step when loading from old presets
         steps = self._KEY_TRACKING_STEPS
         self.key_tracking = steps[min(range(len(steps)), key=lambda i: abs(steps[i] - self.key_tracking))]
@@ -1493,6 +1537,8 @@ class SynthMode(Widget):
             resonance=self.resonance,
             hpf_resonance=self.hpf_resonance,
             key_tracking=self.key_tracking,
+            filter_drive=self.filter_drive,
+            filter_routing=self.filter_routing,
             attack=self.attack,
             decay=self.decay,
             sustain=self.sustain,
@@ -1538,6 +1584,8 @@ class SynthMode(Widget):
             "resonance":       self.resonance,
             "hpf_resonance":   self.hpf_resonance,
             "key_tracking":    self.key_tracking,
+            "filter_drive":    self.filter_drive,
+            "filter_routing":  self.filter_routing,
             "attack":          self.attack,
             "decay":           self.decay,
             "sustain":         self.sustain,
@@ -1635,6 +1683,245 @@ class SynthMode(Widget):
             return
         self._do_adjust_volume(direction)
 
+    # ── Init patch ──────────────────────────────────────────────────
+    # A clean slate: pure sine, all filters wide open, no FX, no modulation.
+    # This is what you get when you press "i" — the same role as "Init" on hardware.
+    _INIT_PATCH = {
+        "waveform":       "pure_sine",
+        "noise_level":    0.0,
+        "octave":         0,
+        "filter_drive":   1.0,
+        "filter_routing": "lp_hp",
+        "hpf_cutoff":     20.0,
+        "hpf_resonance":  0.0,
+        "cutoff":         20000.0,
+        "resonance":      0.0,
+        "key_tracking":   0.5,
+        "attack":         0.01,
+        "decay":          0.2,
+        "sustain":        0.7,
+        "release":        0.3,
+        "feg_attack":     0.01,
+        "feg_decay":      0.3,
+        "feg_sustain":    0.0,
+        "feg_release":    0.3,
+        "feg_amount":     0.0,
+        "lfo_freq":       1.0,
+        "lfo_depth":      0.0,
+        "lfo_shape":      "sine",
+        "lfo_target":     "all",
+        "delay_time":     0.25,
+        "delay_feedback": 0.3,
+        "delay_mix":      0.0,
+        "chorus_rate":    0.5,
+        "chorus_depth":   0.0,
+        "chorus_mix":     0.0,
+        "chorus_voices":  2,
+        "arp_enabled":    False,
+        "arp_mode":       "up",
+        "arp_gate":       0.5,
+        "arp_range":      1,
+        "voice_type":     "poly",
+        "amp_level":      0.95,
+    }
+
+    def action_init_patch(self):
+        """Reset to a clean init patch (pure sine, all filters open, no FX)."""
+        self.synth_engine.midi_event_queue.put({'type': 'mute_gate'})
+        self._apply_params(self._INIT_PATCH)
+        self._current_preset = None
+        self._preset_index   = -1
+        self._dirty          = True
+        self._suggested_preset_name = None
+        self._update_preset_ui()
+        self._autosave_state()
+        self._show_notification("Init patch loaded", timeout=2)
+
+    def action_reset_focused_param(self):
+        """Reset the currently highlighted parameter to its init value.
+
+        Only active in focus mode. Each param resets to the value in _INIT_PATCH
+        so the result is consistent and predictable regardless of current state.
+        """
+        if not self._focused():
+            return
+        sec  = self._focus_section
+        name = self._SECTION_PARAMS[sec][self._focus_param]
+        ini  = self._INIT_PATCH
+
+        def _push_and_refresh(param: str, display_attr: str, fmt_fn):
+            self.synth_engine.update_parameters(**{param: getattr(self, param)})
+            widget = getattr(self, display_attr, None)
+            if widget:
+                widget.update(fmt_fn())
+            self._mark_dirty()
+            self._autosave_state()
+
+        if sec == "oscillator":
+            if name == "Wave":
+                self.waveform = ini["waveform"]
+                self.synth_engine.update_parameters(waveform=self.waveform)
+                if self.waveform_display: self.waveform_display.update(self._fmt_waveform())
+                if self.waveform_shape_display: self.waveform_shape_display.update(self._fmt_waveform_shape())
+            elif name == "Noise":
+                self.noise_level = ini["noise_level"]
+                _push_and_refresh("noise_level", "noise_display",
+                                  lambda: self._fmt_knob(self.noise_level, 0.0, 1.0, f"{int(self.noise_level * 100)}%"))
+            elif name == "Octave":
+                self.octave = ini["octave"]
+                _push_and_refresh("octave", "octave_display", self._fmt_octave)
+            elif name == "Drive":
+                self.filter_drive = ini["filter_drive"]
+                _push_and_refresh("filter_drive", "filter_drive_display", self._fmt_filter_drive)
+
+        elif sec == "filter":
+            if name == "HPF Cut":
+                self.hpf_cutoff = ini["hpf_cutoff"]
+                _push_and_refresh("hpf_cutoff", "hpf_cutoff_display", self._fmt_hpf_cutoff)
+            elif name == "HPF Pk":
+                self.hpf_resonance = ini["hpf_resonance"]
+                _push_and_refresh("hpf_resonance", "hpf_resonance_display", self._fmt_hpf_resonance)
+            elif name == "LPF Cut":
+                self.cutoff = ini["cutoff"]
+                _push_and_refresh("cutoff", "cutoff_display", self._fmt_cutoff)
+            elif name == "LPF Pk":
+                self.resonance = ini["resonance"]
+                _push_and_refresh("resonance", "resonance_display", self._fmt_resonance)
+            elif name == "Route":
+                self.filter_routing = ini["filter_routing"]
+                _push_and_refresh("filter_routing", "filter_routing_display", self._fmt_filter_routing)
+
+        elif sec == "amp_eg":
+            if name == "Attack":
+                self.attack = ini["attack"]
+                _push_and_refresh("attack", "attack_display", lambda: self._fmt_time(self.attack))
+            elif name == "Decay":
+                self.decay = ini["decay"]
+                _push_and_refresh("decay", "decay_display", lambda: self._fmt_time(self.decay))
+            elif name == "Sustain":
+                self.sustain = ini["sustain"]
+                self.synth_engine.update_parameters(sustain=self.sustain)
+                if self.sustain_display:
+                    self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Release":
+                self.release = ini["release"]
+                _push_and_refresh("release", "release_display", lambda: self._fmt_time(self.release))
+            elif name == "KTrack":
+                self.key_tracking = ini["key_tracking"]
+                steps = self._KEY_TRACKING_STEPS
+                self.key_tracking = steps[min(range(len(steps)), key=lambda i: abs(steps[i] - self.key_tracking))]
+                self.synth_engine.update_parameters(key_tracking=self.key_tracking)
+                if self.key_tracking_display: self.key_tracking_display.update(self._fmt_key_tracking())
+                self._mark_dirty(); self._autosave_state()
+
+        elif sec == "filter_eg":
+            if name == "Atk":
+                self.feg_attack = ini["feg_attack"]
+                _push_and_refresh("feg_attack", "feg_attack_display", lambda: self._fmt_time(self.feg_attack))
+            elif name == "Dcy":
+                self.feg_decay = ini["feg_decay"]
+                _push_and_refresh("feg_decay", "feg_decay_display", lambda: self._fmt_time(self.feg_decay))
+            elif name == "Sus":
+                self.feg_sustain = ini["feg_sustain"]
+                self.synth_engine.update_parameters(feg_sustain=self.feg_sustain)
+                if self.feg_sustain_display:
+                    self.feg_sustain_display.update(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Rel":
+                self.feg_release = ini["feg_release"]
+                _push_and_refresh("feg_release", "feg_release_display", lambda: self._fmt_time(self.feg_release))
+            elif name == "Amount":
+                self.feg_amount = ini["feg_amount"]
+                _push_and_refresh("feg_amount", "feg_amount_display", self._fmt_feg_amount)
+
+        elif sec == "lfo":
+            if name == "Rate":
+                self.lfo_freq = ini["lfo_freq"]
+                _push_and_refresh("lfo_freq", "lfo_rate_display", self._fmt_lfo_rate)
+            elif name == "Depth":
+                self.lfo_depth = ini["lfo_depth"]
+                self.synth_engine.update_parameters(lfo_depth=self.lfo_depth)
+                if self.lfo_depth_display:
+                    self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Shape":
+                self.lfo_shape = ini["lfo_shape"]
+                _push_and_refresh("lfo_shape", "lfo_shape_display", self._fmt_lfo_shape)
+            elif name == "Target":
+                self.lfo_target = ini["lfo_target"]
+                _push_and_refresh("lfo_target", "lfo_target_display", self._fmt_lfo_target)
+
+        elif sec == "chorus":
+            if name == "Rate":
+                self.chorus_rate = ini["chorus_rate"]
+                _push_and_refresh("chorus_rate", "chorus_rate_display", self._fmt_chorus_rate)
+            elif name == "Depth":
+                self.chorus_depth = ini["chorus_depth"]
+                self.synth_engine.update_parameters(chorus_depth=self.chorus_depth)
+                if self.chorus_depth_display:
+                    self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Mix":
+                self.chorus_mix = ini["chorus_mix"]
+                self.synth_engine.update_parameters(chorus_mix=self.chorus_mix)
+                if self.chorus_mix_display:
+                    self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Voices":
+                self.chorus_voices = ini["chorus_voices"]
+                _push_and_refresh("chorus_voices", "chorus_voices_display", self._fmt_chorus_voices)
+
+        elif sec == "fx":
+            if name == "Delay Time":
+                self.delay_time = ini["delay_time"]
+                _push_and_refresh("delay_time", "delay_time_display", self._fmt_delay_time)
+            elif name == "Delay Fdbk":
+                self.delay_feedback = ini["delay_feedback"]
+                self.synth_engine.update_parameters(delay_feedback=self.delay_feedback)
+                if self.delay_feedback_display:
+                    self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Delay Mix":
+                self.delay_mix = ini["delay_mix"]
+                self.synth_engine.update_parameters(delay_mix=self.delay_mix)
+                if self.delay_mix_display:
+                    self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+
+        elif sec == "arpeggio":
+            if name == "Mode":
+                self.arp_mode = ini["arp_mode"]
+                _push_and_refresh("arp_mode", "arp_mode_display", self._fmt_arp_mode)
+            elif name == "Gate":
+                self.arp_gate = ini["arp_gate"]
+                self.synth_engine.update_parameters(arp_gate=self.arp_gate)
+                if self.arp_gate_display:
+                    self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+            elif name == "Range":
+                self.arp_range = ini["arp_range"]
+                _push_and_refresh("arp_range", "arp_range_display", self._fmt_arp_range)
+            elif name == "ON/OFF":
+                self.arp_enabled = ini["arp_enabled"]
+                self.synth_engine.update_parameters(arp_enabled=self.arp_enabled)
+                if self.arp_enabled_display:
+                    self.arp_enabled_display.update(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
+                self._mark_dirty(); self._autosave_state()
+
+        elif sec == "mixer":
+            if name == "Voice Type":
+                self.voice_type = ini["voice_type"]
+                _push_and_refresh("voice_type", "voice_type_display", self._fmt_voice_type)
+            elif name == "Amp":
+                self.amp_level = ini["amp_level"]
+                self.synth_engine.update_parameters(amp_level=self.amp_level)
+                if self.amp_display:
+                    self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
+                self._mark_dirty(); self._autosave_state()
+
+        self._show_notification(f"{name} → init", timeout=1)
+
     def action_panic(self):
         self.synth_engine.all_notes_off()
         self._show_notification("🛑 All notes off (Panic)", severity="warning", timeout=2)
@@ -1719,6 +2006,8 @@ class SynthMode(Widget):
                 self.octave = random.choices([-2, -1, 0, 1, 2], weights=[1, 2, 4, 2, 1])[0]
                 self.synth_engine.update_parameters(octave=self.octave)
                 if self.octave_display: self.octave_display.update(self._fmt_octave())
+            elif name == "Drive":
+                pass  # Drive excluded from randomization — user sets this manually
         # ── Filter ────────────────────────────────────────────────
         elif sec == "filter":
             if name == "HPF Cut":
@@ -1739,8 +2028,8 @@ class SynthMode(Widget):
                     weights=[50, 35, 15])[0], 2)
                 self.synth_engine.update_parameters(resonance=self.resonance)
                 if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
-            elif name == "KTrack":
-                pass  # Key Tracking is excluded from randomization — user sets this manually
+            elif name == "Route":
+                pass  # Filter routing excluded from randomization — user sets this manually
         # ── Amp EG ────────────────────────────────────────────────
         elif sec == "amp_eg":
             if name == "Attack":
@@ -1761,6 +2050,8 @@ class SynthMode(Widget):
                 self.release = round(10 ** random.uniform(math.log10(0.008), math.log10(3.0)), 4)
                 self.synth_engine.update_parameters(release=self.release)
                 if self.release_display: self.release_display.update(self._fmt_time(self.release))
+            elif name == "KTrack":
+                pass  # Key Tracking excluded from randomization — user sets this manually
         # ── Filter EG ─────────────────────────────────────────────
         elif sec == "filter_eg":
             label = self._SECTION_PARAMS["filter_eg"][self._focus_param]
@@ -1887,6 +2178,8 @@ class SynthMode(Widget):
         if self.cutoff_display: self.cutoff_display.update(self._fmt_cutoff())
         if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
         if self.key_tracking_display: self.key_tracking_display.update(self._fmt_key_tracking())
+        if self.filter_drive_display: self.filter_drive_display.update(self._fmt_filter_drive())
+        if self.filter_routing_display: self.filter_routing_display.update(self._fmt_filter_routing())
         if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
         if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
         if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
@@ -2030,6 +2323,35 @@ class SynthMode(Widget):
         labels = ["0%", "25%", "50%", "75%", "100%"]
         # Find current step
         idx = min(range(len(steps)), key=lambda i: abs(steps[i] - self.key_tracking))
+        parts = []
+        for i, lbl in enumerate(labels):
+            if i == idx:
+                parts.append(f"[bold #00ff00 reverse]{lbl}[/]")
+            else:
+                parts.append(f"[#446644]{lbl}[/]")
+        line  = "·".join(parts)
+        plain = "·".join(labels)
+        pad   = max(0, self._W - len(plain))
+        lp    = pad // 2
+        rp    = pad - lp
+        return f"[#00cc00]│[/]{' ' * lp}{line}{' ' * rp}[#00cc00]│[/]"
+
+    def _fmt_filter_drive(self) -> str:
+        """Filter drive knob display (0.5x–8.0x)."""
+        return self._fmt_knob(self.filter_drive, 0.5, 8.0, f"{self.filter_drive:.1f}x")
+
+    _FILTER_ROUTING_LABELS = {
+        "lp_hp":    "HP+LP",
+        "bp_lp":    "BP+LP",
+        "notch_lp": "NT+LP",
+        "lp_lp":    "LP+LP",
+    }
+
+    def _fmt_filter_routing(self) -> str:
+        """Four-mode selector display for filter routing."""
+        opts = self._FILTER_ROUTING_OPTIONS
+        labels = [self._FILTER_ROUTING_LABELS[o] for o in opts]
+        idx = opts.index(self.filter_routing) if self.filter_routing in opts else 0
         parts = []
         for i, lbl in enumerate(labels):
             if i == idx:

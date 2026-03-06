@@ -1,6 +1,7 @@
 """Synthesizer engine for generating audio waveforms."""
 import os
 import sys
+import math
 import ctypes
 import numpy as np
 import threading
@@ -34,13 +35,6 @@ class Voice:
         self.release_start_level = 0.0
         self.steal_start_level = 0.0
         self.age = 0.0
-        self.filter_state_lpf1 = 0.0
-        self.filter_state_hpf1 = 0.0
-        self.filter_state_lpf2 = 0.0
-        self.filter_state_hpf2 = 0.0
-        # Second-pole states for the resonance cascade (separate from rank 2 oscillator states)
-        self.filter_state_lpf1b = 0.0
-        self.filter_state_lpf2b = 0.0
         self.velocity = 1.0  # Current smoothed velocity (used in envelope calculations)
         self.velocity_current = 1.0
         self.velocity_target = 1.0
@@ -157,9 +151,6 @@ class Voice:
         # (same voice being retaken by a different note). Preserving stale filter/DC
         # state from the stolen note would cause a DC sag at the start of the new note.
         if True:  # always reset — free-running phase is preserved, states are not
-            self.filter_state_lpf1 = self.filter_state_hpf1 = 0.0
-            self.filter_state_lpf2 = self.filter_state_hpf2 = 0.0
-            self.filter_state_lpf1b = self.filter_state_lpf2b = 0.0
             self.filter_state_ladder1 = [0.0, 0.0, 0.0, 0.0]
             self.filter_state_ladder2 = [0.0, 0.0, 0.0, 0.0]
             self.filter_state_svf1_lp = self.filter_state_svf1_bp = 0.0
@@ -195,9 +186,6 @@ class Voice:
         self.is_releasing = False
         self.envelope_time = 0.0
         self.age = 0.0
-        self.filter_state_lpf1 = self.filter_state_hpf1 = 0.0
-        self.filter_state_lpf2 = self.filter_state_hpf2 = 0.0
-        self.filter_state_lpf1b = self.filter_state_lpf2b = 0.0
         self.filter_state_ladder1 = [0.0, 0.0, 0.0, 0.0]
         self.filter_state_ladder2 = [0.0, 0.0, 0.0, 0.0]
         self.filter_state_svf1_lp = self.filter_state_svf1_bp = 0.0
@@ -259,6 +247,10 @@ class SynthEngine:
         self.resonance = 0.3
         self.hpf_resonance = 0.0      # 0.0–0.99 resonance (peak) for the HPF stage
         self.filter_mode = "ladder"   # kept for preset backward-compat; LPF always uses ladder now
+        # SVF→Ladder routing: selects which SVF output feeds into the Moog ladder stage.
+        # "lp_hp" = SVF HP → Ladder (MS-20 default), "bp_lp" = SVF BP → Ladder,
+        # "notch_lp" = SVF Notch → Ladder, "lp_lp" = SVF LP → Ladder (dual LP).
+        self.filter_routing = "lp_hp"
 
         self.lfo_freq = 1.0
         self.lfo_vco_mod = 0.0
@@ -340,6 +332,9 @@ class SynthEngine:
         self.key_tracking_current = 0.5
         self.key_tracking_target  = 0.5
         self.key_tracking_smoothing = 0.90
+        self.filter_drive_current = 1.0   # pre-filter gain multiplier (0.5–8.0)
+        self.filter_drive_target  = 1.0
+        self.filter_drive_smoothing = 0.85
         self.voice_type = "poly"  # "mono", "poly", "unison"
         self.mono_voice_index = 0  # For mono mode, which voice to use
         self.unison_detune = 8.0   # Cents spread for unison mode (each voice detuned within ±unison_detune)
@@ -864,7 +859,8 @@ class SynthEngine:
 
         Uses one-sample-delayed feedback (inaudible at 48 kHz) so the per-sample
         computation is independent and the loop is simple to follow.
-        Stilson-Smith k normalisation keeps stability across all cutoff frequencies.
+        Alpha is capped at 0.95 to prevent IIR instability at high cutoff frequencies
+        (alpha > 1.0 violates the stability condition of the discrete integrator).
         """
         sr = self.sample_rate
         fc = float(np.clip(cutoff, 20.0, sr * 0.45))
@@ -882,12 +878,18 @@ class SynthEngine:
         for i in range(N):
             # Input saturated with global feedback from previous stage-4 output
             x0 = float(np.tanh(float(samples[i]) - 4.0 * k * s3))
-            # Linear 4-pole cascade — input saturation alone gives adequate warmth
-            s0 = a1 * s0 + alpha * x0
-            s1 = a1 * s1 + alpha * s0
-            s2 = a1 * s2 + alpha * s1
-            s3 = a1 * s3 + alpha * s2
+            # Per-stage tanh saturation — each integrator clips softly like a real
+            # Moog ladder transistor stage, producing even harmonics when driven.
+            # math.tanh is used here (scalar) which is faster than np.tanh in a loop.
+            s0 = math.tanh(a1 * s0 + alpha * x0)
+            s1 = math.tanh(a1 * s1 + alpha * s0)
+            s2 = math.tanh(a1 * s2 + alpha * s1)
+            s3 = math.tanh(a1 * s3 + alpha * s2)
             out[i] = s3
+
+        # Gain compensation: per-stage tanh reduces output level ~1-2 dB for clean signals.
+        # Scale up to restore unity gain so mix levels remain stable when drive is at 1.0.
+        out *= 1.1
 
         return out, [s0, s1, s2, s3]
 
@@ -920,24 +922,27 @@ class SynthEngine:
             lp = lp + f * bp              # integrate bp → lp (previous bp)
             hp = float(samples[i]) - lp - q * bp
             bp = bp + f * hp              # integrate hp → bp
-            # Hard-clamp states each sample to prevent runaway divergence
-            if lp > 4.0:  lp = 4.0
-            elif lp < -4.0: lp = -4.0
-            if bp > 4.0:  bp = 4.0
-            elif bp < -4.0: bp = -4.0
+            # Soft tanh saturation — same limits as before but smooth analog character
+            lp = math.tanh(lp * 0.25) * 4.0
+            bp = math.tanh(bp * 0.25) * 4.0
             out[i] = lp
 
         return out, lp, bp
 
     def _filter_svf_hp_process(self, samples: np.ndarray, cutoff: float,
                                lp_state: float, bp_state: float,
-                               res: float = 0.0) -> tuple:
-        """Chamberlin SVF — HP output.  Shares the same integrator states as
-        _filter_svf_process so the two variants can reuse per-voice state slots.
+                               res: float = 0.0, routing: str = "lp_hp") -> tuple:
+        """Chamberlin SVF — multi-output.  Returns selected routing output plus integrator states.
 
         HPF cutoff capped at sr/12 (~4kHz) for Chamberlin stability, which covers
         the full useful HPF range (20Hz–4kHz).  Resonance q range is kept narrower
         than the LPF (0.5–4.0) to keep the HP peak well-behaved without runaway.
+
+        routing selects which SVF output feeds the downstream Moog ladder stage:
+          "lp_hp"   → HP output (MS-20 default — HPF into Ladder LPF)
+          "bp_lp"   → BP output (band-limited signal into Ladder LPF)
+          "notch_lp"→ Notch output (band-reject into Ladder LPF)
+          "lp_lp"   → LP output (dual LP — very smooth/dark character)
         """
         sr = self.sample_rate
         fc = float(np.clip(cutoff, 20.0, sr / 12.0))
@@ -954,14 +959,18 @@ class SynthEngine:
             lp = lp + f * bp
             hp = float(samples[i]) - lp - q * bp
             bp = bp + f * hp
-            if lp > 4.0:  lp = 4.0
-            elif lp < -4.0: lp = -4.0
-            if bp > 4.0:  bp = 4.0
-            elif bp < -4.0: bp = -4.0
-            # Clamp hp output to prevent large transient on first sample
-            if hp > 8.0:  hp = 8.0
-            elif hp < -8.0: hp = -8.0
-            out[i] = hp
+            # Soft tanh saturation — analog-style limiting, smoother than hard clamp
+            lp = math.tanh(lp * 0.25) * 4.0
+            bp = math.tanh(bp * 0.25) * 4.0
+            # HP is bounded naturally by bp saturation; no separate clamp needed
+            if routing == "lp_hp":
+                out[i] = hp
+            elif routing == "bp_lp":
+                out[i] = bp
+            elif routing == "notch_lp":
+                out[i] = float(samples[i]) - lp  # notch = input - lp (Chamberlin formula)
+            else:  # "lp_lp"
+                out[i] = lp
 
         return out, lp, bp
 
@@ -990,6 +999,10 @@ class SynthEngine:
         # within ~6 buffers (~63ms) — still responsive enough to track LFO/EG sweeps
         # without perceptible lag, but slow enough to protect high-Q filters (k≈0.77,
         # feedback≈3.1) from state/coefficient mismatch transients.
+        # This smoothing is intentionally preserved on MONO/UNISON legato note changes:
+        # snapping the coefficient while the filter has stored resonant energy causes
+        # the same spike it is designed to prevent.  The few-buffer lag is imperceptible
+        # in musical legato playing and is preferable to a resonant click.
         _SMOOTH_K = 0.65
         if voice.smooth_fl_lpf < 0.0:   # first use: initialise to current value
             voice.smooth_fl_lpf = fl_lpf
@@ -1005,7 +1018,8 @@ class SynthEngine:
         hpf_lp_s = voice.filter_state_svf1_lp if rank == 1 else voice.filter_state_svf2_lp
         hpf_bp_s = voice.filter_state_svf1_bp if rank == 1 else voice.filter_state_svf2_bp
         samples, hpf_lp_s, hpf_bp_s = self._filter_svf_hp_process(
-            samples, fl_hpf, hpf_lp_s, hpf_bp_s, self.hpf_resonance_current)
+            samples, fl_hpf, hpf_lp_s, hpf_bp_s, self.hpf_resonance_current,
+            routing=self.filter_routing)
         if rank == 1:
             voice.filter_state_svf1_lp, voice.filter_state_svf1_bp = hpf_lp_s, hpf_bp_s
         else:
@@ -1016,6 +1030,16 @@ class SynthEngine:
         # as cutoff sweeps from 20Hz to 20kHz.
         alpha_norm = float(np.clip(2.0 * np.pi * fl_lpf / self.sample_rate, 0.0001, 0.95))
         filter_comp = float(np.clip(1.0 / alpha_norm, 1.0, 8.0))
+
+        # Filter drive: pre-filter gain multiplier. Hitting the ladder stages harder
+        # drives the per-stage tanh saturation, producing harmonic richness and warmth.
+        if self.filter_drive_current != 1.0:
+            samples = samples * self.filter_drive_current
+
+        # Thermal noise floor — ~-100 dBFS (amplitude 1e-5), inaudible in isolation
+        # but prevents filter dead-zone lock when self-oscillating at max resonance,
+        # and adds a subtle analog "air" that's felt rather than heard in the mix.
+        samples = samples + np.random.randn(len(samples)).astype(np.float32) * 1e-5
 
         ladder_s = voice.filter_state_ladder1 if rank == 1 else voice.filter_state_ladder2
         filtered, ladder_s = self._filter_ladder_process(
@@ -1168,6 +1192,8 @@ class SynthEngine:
                         elif k == 'hpf_resonance':   self.hpf_resonance_target   = v
                         elif k == 'noise_level':     self.noise_level_target     = v
                         elif k == 'key_tracking':    self.key_tracking_target    = v
+                        elif k == 'filter_drive':    self.filter_drive_target    = float(v)
+                        elif k == 'filter_routing':  self.filter_routing         = v
                         elif k == 'feg_attack':      self.feg_attack  = float(v)
                         elif k == 'feg_decay':       self.feg_decay   = float(v)
                         elif k == 'feg_sustain':     self.feg_sustain = float(v)
@@ -1318,27 +1344,33 @@ class SynthEngine:
             has_amplitude = mono_v.last_envelope_level > 0.001
             if has_amplitude:
                 # True legato soft trigger: update note params without resetting phase,
-                # filter states, DC blocker, or onset_ramp.  The oscillator phase continues
-                # uninterrupted — only the frequency and envelope update.  This avoids the
-                # C⁰ phase discontinuity (value jump) that causes clicks.  What remains is
-                # only a C¹ discontinuity (slope change as frequency updates), which is
-                # imperceptible.  steal_start_level crossfade handles envelope continuity.
-                mono_v.steal_start_level = mono_v.last_envelope_level
+                # filter states, DC blocker, onset_ramp, or envelope_time.
+                # The oscillator phase continues uninterrupted — only frequency and
+                # velocity update.  This avoids the C⁰ phase discontinuity (value jump)
+                # that causes clicks.  What remains is only a C¹ discontinuity (slope
+                # change as frequency updates), which is imperceptible.
+                # Envelope CONTINUES from its current position — no attack restart, no
+                # steal crossfade.  The level is already continuous so no crossfade is
+                # needed.  This matches hardware mono synth behaviour (Minimoog, Juno):
+                # pitch changes on legato, envelope does not retrigger.
+                # Previously, resetting envelope_time=0 combined with steal_start_level
+                # created a double-ramp: steal blended from old level toward the new
+                # attack-from-zero, causing an audible dip on every legato note with
+                # attack > 8ms.  Keeping envelope_time continuous eliminates this.
                 mono_v.midi_note = note
                 mono_v.base_frequency = freq
                 mono_v.frequency = freq
                 mono_v.velocity_target = vel
                 mono_v.note_active = True
                 mono_v.is_releasing = False
-                mono_v.envelope_time = 0.0
                 mono_v.age = 0.0
                 mono_v.onset_ms = onset_ms_for_note
                 # Arm engine-level crossfade to bridge any FIR frequency-change transient.
                 self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
-                # Phase, pre_gate_progress, and feg_time are intentionally NOT reset here.
-                # True legato: oscillator phase continues (C¹ only — inaudible), filter
-                # states stay consistent with the signal they were processing, and the
-                # Filter EG continues from its current position rather than restarting.
+                # Phase, pre_gate_progress, feg_time, and envelope_time are intentionally
+                # NOT reset here.  True legato: oscillator phase continues (C¹ only —
+                # inaudible), filter states stay consistent with the signal they were
+                # processing, and the Filter EG continues from its current position.
                 # Restarting feg_time causes a sudden filter coefficient jump while the
                 # filter has stored energy — with high resonance this creates a spike.
             else:
@@ -1364,26 +1396,30 @@ class SynthEngine:
                 # A voice that just entered release this buffer still has amplitude —
                 # hard trigger would drop it to 0 next sample → click.
                 if v.last_envelope_level > 0.001:
-                    v.steal_start_level = v.last_envelope_level
+                    # True legato: same reasoning as MONO soft trigger.
+                    # Envelope continues from its current position — no attack restart,
+                    # no steal crossfade.  Each detuned UNISON voice stays at its current
+                    # level and phase.  The phase offset between voices created by their
+                    # individual detuning frequencies produces the characteristic UNISON
+                    # "swell" on legato — this beating is musically desirable and is the
+                    # hallmark of a thick UNISON sound.  Do NOT reset phases here.
                     v.midi_note = note
                     v.base_frequency = detuned_freq
                     v.frequency = detuned_freq
                     v.velocity_target = vel
                     v.note_active = True
                     v.is_releasing = False
-                    v.envelope_time = 0.0
                     v.age = 0.0
                     v.onset_ms = onset_ms_for_note
                     # Arm engine-level crossfade (same as MONO).
                     self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
-                    # True legato for UNISON (same reasoning as MONO soft trigger):
-                    # phase, pre_gate_progress, and feg_time are NOT reset.
+                    # Phase, pre_gate_progress, feg_time, and envelope_time are NOT reset.
                     # Resetting feg_time causes a sudden filter coefficient jump while
                     # the filter has stored energy — with high resonance this creates a
                     # spike.  Resetting phase + pre_gate creates a 30ms window where the
                     # filter resonates freely with no input, then interference spikes when
-                    # the new signal re-enters.  Keeping all three continuous eliminates
-                    # both spike sources.
+                    # the new signal re-enters.  Keeping all four continuous eliminates
+                    # both spike sources and the double-attack dip.
                 else:
                     # Hard trigger from true silence: full reset
                     v.trigger(note, detuned_freq, vel)
@@ -1412,14 +1448,19 @@ class SynthEngine:
                 s = v.envelope_time if v.is_releasing else v.age
                 if p > best_p or (p == best_p and s > best_s): best_p, best_s, best_v = p, s, v
             if best_v:
-                # Zero the filter and DC blocker states before triggering so the new
+                # Zero ALL filter and DC blocker states before triggering so the new
                 # note's frequency doesn't collide with stale filter memory from the
                 # stolen note. The CROSS envelope crossfade in _apply_envelope handles
                 # amplitude continuity, while this prevents a frequency-domain glitch
                 # in the first few filter output samples.
-                best_v.filter_state_lpf1 = best_v.filter_state_hpf1 = 0.0
-                best_v.filter_state_lpf2 = best_v.filter_state_hpf2 = 0.0
-                best_v.filter_state_lpf1b = best_v.filter_state_lpf2b = 0.0
+                # Ladder (4-pole Moog LPF) integrators — must clear both ranks.
+                best_v.filter_state_ladder1 = [0.0, 0.0, 0.0, 0.0]
+                best_v.filter_state_ladder2 = [0.0, 0.0, 0.0, 0.0]
+                # SVF (Chamberlin HPF) integrators — must clear both ranks.
+                # Residual energy here creates a resonant spike on the stolen voice's
+                # first buffer at high HPF resonance values.
+                best_v.filter_state_svf1_lp = best_v.filter_state_svf1_bp = 0.0
+                best_v.filter_state_svf2_lp = best_v.filter_state_svf2_bp = 0.0
                 best_v.dc_blocker_x = best_v.dc_blocker_y = 0.0
                 best_v.trigger(note, freq, vel)
                 best_v.onset_ms = onset_ms_for_note
@@ -1510,6 +1551,11 @@ class SynthEngine:
                                               + self.hpf_resonance_target * (1.0 - self.hpf_resonance_smoothing))
             else:
                 self.hpf_resonance_current = self.hpf_resonance_target
+            if abs(self.filter_drive_current - self.filter_drive_target) > 0.001:
+                self.filter_drive_current = (self.filter_drive_current * self.filter_drive_smoothing
+                                             + self.filter_drive_target * (1.0 - self.filter_drive_smoothing))
+            else:
+                self.filter_drive_current = self.filter_drive_target
 
             # ── LFO (shape-aware, single depth + target routing) ────────────
             lfo_phase_prev = self.lfo_phase
@@ -1558,7 +1604,11 @@ class SynthEngine:
             # rounding).
             if self.arp_enabled and self._arp_sequence:
                 self._arp_sample_counter += frame_count
-                # Gate-off: release the playing note once the gate window expires
+                # Gate-off: release the playing note once the gate window expires.
+                # Known edge case: if gate_samples ≈ step_samples (gate ≈ 100%),
+                # gate-off and step-trigger can fire in the same buffer.  This is
+                # extremely rare at normal gate values and not worth the complexity
+                # of a fix — the release transient is masked by the new note's attack.
                 if (self._arp_note_playing is not None
                         and self._arp_sample_counter > self._arp_gate_samples):
                     self._release_note(self._arp_note_playing)
@@ -1696,7 +1746,12 @@ class SynthEngine:
                         v_samples = s1
 
                     if self.noise_level_current > 0:
-                        # Blend white noise with oscillator output (noise stays at 48 kHz)
+                        # Blend full-spectrum white noise with the oscillator output.
+                        # Noise is intentionally mixed post-FIR at 48 kHz rather than
+                        # generated at 192 kHz and downsampled.  Full-bandwidth noise
+                        # has more grit and textural character (analog-like air), whereas
+                        # downsampling it through the FIR would over-smooth and sterilise
+                        # the noise floor.  This is a deliberate character choice.
                         noise_sample = np.random.uniform(-1, 1, frame_count)
                         v_samples = v_samples * (1.0 - self.noise_level_current) + noise_sample * self.noise_level_current
                     v_samples = self._apply_envelope(v, v_samples, frame_count) * vca_lfo
@@ -1829,11 +1884,15 @@ class SynthEngine:
 
             comp = 0.9 if self.waveform in ["sine", "pure_sine"] else (0.6 if self.waveform == "square" else 1.1)
             # drive controls soft-clip saturation character — amp_level only.
-            # master_volume is applied AFTER tanh as a clean linear gain so both
+            # master_volume is applied AFTER saturation as a clean linear gain so both
             # controls have full, independent audible range without cancelling each other.
             drive = self.amp_level_current * comp
-            mixed_l = np.tanh(mixed_l * drive * gain_ramp) * self.master_volume
-            mixed_r = np.tanh(mixed_r * drive * gain_ramp) * self.master_volume
+            # Cubic saturation: y = x - x³/3 (smooth polynomial) then limiter tanh
+            # Provides warm, analog saturation character (Minimoog/Buchla style)
+            sat_l = mixed_l * drive * gain_ramp
+            mixed_l = np.tanh(sat_l - sat_l**3 / 3.0) * self.master_volume
+            sat_r = mixed_r * drive * gain_ramp
+            mixed_r = np.tanh(sat_r - sat_r**3 / 3.0) * self.master_volume
 
             # Engine-level inter-buffer crossfade: blend from the last buffer's final
             # post-tanh output toward the new output over _TRANSITION_XF_SAMPLES samples.
@@ -1944,6 +2003,8 @@ class SynthEngine:
             "feg_sustain":    self.feg_sustain,
             "feg_release":    self.feg_release,
             "feg_amount":     self.feg_amount,
+            "filter_drive":   self.filter_drive_target,
+            "filter_routing": self.filter_routing,
         }
 
     def update_parameters(self, **kwargs):

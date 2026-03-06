@@ -5,6 +5,79 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.5] - 2026-03-06
+
+### Added
+
+**Filter Character & Analog Warmth**:
+- **Per-Stage Ladder Saturation** (`music/synth_engine.py`):
+  - Added `math.tanh()` saturation at each of the 4 integrator stages in the Moog ladder filter
+  - Gain compensation (1.1× scaling) restores unity output level for clean signals at drive=1.0
+  - Produces rich even harmonics when driven hard, matches hardware Moog character
+  - Transforms linear filter into soft, continuous saturation curve across all resonance values
+
+- **Filter Drive Parameter** (0.5–8.0× multiplier):
+  - Pre-filter gain control in `synth_engine.py`: `filter_drive_current/target/smoothing` with 0.85 smoothing coefficient
+  - Applied in `_apply_filter()` before ladder input
+  - New UI control in Oscillator section: "Drive" knob (adjustable 0.1 steps via Q/E)
+  - Maps directly to filter saturation intensity; 1.0 = clean/neutral
+  - Persisted in presets via `preset_manager.py` DEFAULT_PARAMS
+
+- **SVF Soft Saturation** (replacing hard clamps):
+  - `_filter_svf_hp_process()` and `_filter_svf_process()`: Replaced hard clamps (if lp > 4.0) with `math.tanh(lp * 0.25) * 4.0`
+  - Applied to lp and bp integrator states; hp naturally bounded by bp saturation
+  - Smoother, more analog saturation vs. digital-sounding hard clipping
+  - Same saturation limits (±4.0, ±8.0) prevent state blowup
+
+- **Filter Routing Modes** (4 SVF→Ladder topologies):
+  - `_filter_svf_hp_process()`: Added `routing` parameter to select output
+  - Four modes: "lp_hp" (default MS-20: SVF HP→Ladder LP), "bp_lp" (SVF BP→Ladder), "notch_lp" (SVF Notch→Ladder), "lp_lp" (dual LP)
+  - Notch computed as `input - lp` per Chamberlin formula
+  - New UI control in Filter section: "Route" selector (cycle via Q/E)
+  - Persisted in presets as `filter_routing` parameter
+
+- **Thermal Noise Floor**:
+  - Inaudible (-100 dBFS) random noise injection in `_apply_filter()` before ladder
+  - `np.random.randn() * 1e-5` prevents filter dead-zone lock during self-oscillation
+  - Adds subtle analog "air" texture inaudible in isolation but felt in the mix
+  - Always-on (no parameter), unaffected by drive/resonance settings
+
+**Patch Management**:
+- **Init Patch** (`action_init_patch()` via "i" key):
+  - Resets to clean starting point: pure_sine waveform, oct 0, filters wide open (20 Hz HPF, 20 kHz LPF)
+  - Disables all FX (no chorus/delay), no modulation (LFO depth=0), ADSR 10ms/200ms/70%/300ms
+  - Sets filter_drive=1.0 (clean), filter_routing="lp_hp" (default), voice_type="poly"
+  - Sends mute gate before reset, marks as unsaved (no preset name persisted)
+  - `_INIT_PATCH` constant dict contains all 40 parameters for reproducibility
+
+- **Reset Focused Parameter** (`action_reset_focused_param()` via "r" key in focus mode):
+  - Resets only the currently highlighted parameter to its init value from `_INIT_PATCH`
+  - Works in all sections (Oscillator, Filter, Amp EG, Filter EG, LFO, Chorus, FX, Arpeggio, Mixer)
+  - Updates display widget immediately, marks dirty, auto-saves
+  - Shows notification: "{ParamName} → init"
+  - Silently ignored when not in focus mode
+
+**UI & Help Bar**:
+- Updated `SynthHelpBar` in `main.py` to display "R: Reset" and "I: Init" shortcuts
+- Reorganized help bar into two logical lines: focus controls, preset/volume/saving, panic/randomize
+- Moved Key Tracking from Filter section to Amp EG section for better parameter organization
+- Removed horizontal divider lines from Oscillator section
+
+### Technical Details
+
+**Files Modified**:
+- `music/synth_engine.py`: Added `import math`; filter saturation, drive, routing, thermal noise
+- `modes/synth_mode.py`: New section params, state vars, adjusters, formatters, reset logic, init patch dict, help bar
+- `music/preset_manager.py`: Added `filter_drive` and `filter_routing` to DEFAULT_PARAMS
+- `main.py`: Updated VERSION to "1.8.5", updated SynthHelpBar display
+
+**Parameter Changes**:
+- Engine: `filter_drive_current/target/smoothing`, `filter_routing` (string enum: "lp_hp"|"bp_lp"|"notch_lp"|"lp_lp")
+- UI: Added state: `self.filter_drive`, `self.filter_routing`; widgets: `filter_drive_display`, `filter_routing_display`
+- Presets: 40 parameters now include `filter_drive` (default 1.0) and `filter_routing` (default "lp_hp")
+
+---
+
 ## [1.8.0] - 2026-03-05
 
 ### Changed

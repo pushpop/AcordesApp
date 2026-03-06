@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.7.9
+**Latest Version**: 1.8.5
 
 ---
 
@@ -48,13 +48,13 @@ A full 8-voice polyphonic synthesizer with real-time MIDI playback:
 **Synthesis Architecture**:
 - **Dual Rank per Voice**: Two independent synthesis paths per note (Rank I & II)
 - **Oscillators**: Sine, Square, Sawtooth, Triangle waveforms with PolyBLEP anti-aliasing and 4× internal oversampling
-- **Filters**: HPF (High-Pass) → LPF (Low-Pass) series design per rank with keyboard tracking
+- **Dual-Filter Architecture**: MS-20 inspired HPF → LPF series (per rank) with selectable filter routing, soft saturation, per-stage resonance
 - **Sine Reinforcement**: Post-filter sine wave for low-end solidity
 - **Global LFO**: Modulates VCO (pitch), VCF (filter), and VCA (amplitude)
 
 **Synthesis Parameters** (8 sections):
 - **Oscillator**: Waveform, Octave (-2 to +2), Noise Level
-- **Filter**: Cutoff (20 Hz–20 kHz, log), Resonance, Type (Ladder / SVF), Key Tracking
+- **Filter**: HPF/LPF Cutoff & Resonance, Filter Drive (0.5–8.0× pre-filter gain), Filter Routing (HP+LP / BP+LP / NT+LP / LP+LP), Key Tracking
 - **Filter EG**: Independent envelope for filter modulation
 - **Amp EG**: Amplitude envelope (ADSR)
 - **LFO**: Shape (SIN/TRI/SQR/S&H), Rate, Depth, Target routing
@@ -206,6 +206,20 @@ python main.py
 6. **Browse Presets**: Press **N** → scroll through 128 factory presets
 
 For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
+
+### What's New (v1.8.5)
+
+**Filter & Character**:
+- Per-stage Moog ladder saturation for warm, even-harmonic richness
+- Filter Drive (0.5–8.0×) to control saturation intensity
+- Four filter routing modes: HP+LP, BP+LP, Notch+LP, LP+LP
+- Soft SVF saturation and inaudible thermal noise floor
+
+**Patch Control**:
+- **I**: Init Patch (clean sine, filters open, no FX)
+- **R** (focus mode): Reset highlighted parameter to init value
+
+See **[CHANGELOG.md](CHANGELOG.md)** for full technical details.
 
 ---
 
