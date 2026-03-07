@@ -136,7 +136,7 @@ class CompendiumHelpBar(Static):
     def render(self) -> str:
         """Render the help bar with two lines of keybinds."""
         line1 = "SPACE: Play Chord | E: Expand All | ↑↓←→: Navigate"
-        line2 = ""
+        line2 = "TAB: Search"
         return line1 if not line2 else f"{line1}\n{line2}"
 
 
