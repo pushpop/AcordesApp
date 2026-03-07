@@ -81,7 +81,7 @@ class SynthMode(Widget):
         padding: 0;
         margin: 0;
         align: center top;
-        background: #111111 10%;
+        background: #111111;
     }
 
     #synth-grid {
@@ -120,7 +120,7 @@ class SynthMode(Widget):
     #controls-help {
         width: 100%;
         height: 1;
-        background: #111111 10%;
+        background: #111111;
         border-top: solid #1a3a1a;
         padding: 0 1;
         margin: 0;
