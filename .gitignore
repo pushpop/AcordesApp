@@ -61,3 +61,8 @@ imgs/
 *.TODO
 *.NOTES
 *.PLANNING
+
+# Debug and test files (development only)
+debug*.py
+test_*.py
+analyze_*.py
