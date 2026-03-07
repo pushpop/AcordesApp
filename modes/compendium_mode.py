@@ -548,9 +548,9 @@ class CompendiumMode(Widget):
         detail_panel.clear_display()
 
     def on_unmount(self):
-        """Silence notes and restore synth state when leaving compendium mode."""
+        """Cancel timers and restore synth state when leaving compendium mode."""
         self._cancel_play_timers()
-        self.synth_engine.all_notes_off()
+        # Note: _switch_mode already called soft_all_notes_off() before unmounting.
         if self._saved_synth_params:
             self.synth_engine.update_parameters(**self._saved_synth_params)
 

@@ -250,9 +250,10 @@ class MainScreen(Screen):
         - Deferred (non-blocking): widget mounting, help bars, focus
         This prevents UI thread from blocking the audio thread during mode switches.
         """
-        # Silence any notes that may still be held from the current mode.
-        # MUST be synchronous to prevent note latching.
-        self.app_context["synth_engine"].all_notes_off()
+        # Fade out any notes still sounding from the current mode before switching.
+        # soft_all_notes_off() ramps to silence over ~8ms then resets voices,
+        # eliminating the click that all_notes_off() causes mid-note.
+        self.app_context["synth_engine"].soft_all_notes_off()
 
         # Unmount old mode immediately (fast operation)
         content = self.query_one("#content-area")

@@ -355,6 +355,9 @@ class SynthEngine:
         self._mute_ramp_remaining = 0   # samples of fade-out still pending
         self._mute_ramp_fadein    = 0   # samples of fade-in still pending
         self._MUTE_RAMP_LEN       = 384
+        # When True, the mute ramp will reset all voices at its bottom instead
+        # of arming a fade-in. Used by soft_all_notes_off() for click-free mode switches.
+        self._pending_all_notes_off = False
 
         # Engine-level inter-buffer crossfade: eliminates clicks when MONO/UNISON
         # note transitions change frequency mid-buffer.  The FIR downsampler sees a
@@ -1239,6 +1242,14 @@ class SynthEngine:
                 self._arp_note_playing = None; self._arp_sample_counter = 0
                 # Stop FX tail drain immediately — panic/all_notes_off means silence NOW.
                 self._fx_tail_samples = 0
+                self._pending_all_notes_off = False  # cancel any pending soft silence
+            elif e['type'] == 'soft_all_notes_off':
+                # Arm the mute ramp for a click-free 8ms fade-out, then reset all
+                # voices at the bottom. Used during mode switches so notes release
+                # smoothly instead of hard-cutting. No fade-in follows.
+                self._mute_ramp_remaining = self._MUTE_RAMP_LEN
+                self._mute_ramp_fadein    = 0
+                self._pending_all_notes_off = True
             elif e['type'] == 'mute_gate':
                 # Arm a short output fade-out so that instantly-applied params
                 # (waveform, octave, envelope) from action_randomize don't click.
@@ -1883,7 +1894,17 @@ class SynthEngine:
                 mixed_r *= ramp
                 self._mute_ramp_remaining = max(0, self._mute_ramp_remaining - frame_count)
                 if self._mute_ramp_remaining == 0:
-                    self._mute_ramp_fadein = self._MUTE_RAMP_LEN  # arm fade-in
+                    if self._pending_all_notes_off:
+                        # Mode-switch path: silence all voices at the bottom of the
+                        # fade, then stop. No fade-in — new mode starts from silence.
+                        for v in self.voices:
+                            v.reset()
+                        self._arp_held_notes.clear(); self._arp_sequence.clear()
+                        self._arp_note_playing = None; self._arp_sample_counter = 0
+                        self._fx_tail_samples = 0
+                        self._pending_all_notes_off = False
+                    else:
+                        self._mute_ramp_fadein = self._MUTE_RAMP_LEN  # arm fade-in
 
             if self._mute_ramp_fadein > 0:
                 ramp_start = 1.0 - (self._mute_ramp_fadein / self._MUTE_RAMP_LEN)
@@ -1959,6 +1980,19 @@ class SynthEngine:
         self._held_notes_ordered.clear()
         self._held_notes_vel.clear()
         self.midi_event_queue.put({'type': 'all_notes_off'})
+
+    def soft_all_notes_off(self):
+        """Click-free mode-switch silence: 8ms fade-out then reset all voices.
+
+        Uses the existing mute ramp to ramp the output to zero before cutting,
+        eliminating the amplitude discontinuity that causes audible clicks when
+        switching modes while notes are sounding. No fade-in follows — the new
+        mode starts from silence. Use all_notes_off() for panic/emergency cuts.
+        """
+        self.held_notes.clear()
+        self._held_notes_ordered.clear()
+        self._held_notes_vel.clear()
+        self.midi_event_queue.put({'type': 'soft_all_notes_off'})
 
     def pitch_bend_change(self, value: int): self.pitch_bend_target = ((value - 8192) / 8192.0) * 2.0
 

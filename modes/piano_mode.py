@@ -210,8 +210,8 @@ class PianoMode(Widget):
         self.set_interval(0.01, self._poll_midi)  # Poll every 10ms
 
     def on_unmount(self):
-        """Restore previous synth state and release held notes when leaving Piano mode."""
-        self.synth_engine.all_notes_off()
+        """Restore previous synth state when leaving Piano mode."""
+        # Note: _switch_mode already called soft_all_notes_off() before unmounting.
         if self._saved_synth_params:
             self.synth_engine.update_parameters(**self._saved_synth_params)
 
