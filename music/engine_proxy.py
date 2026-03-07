@@ -7,7 +7,7 @@ import threading
 from music.preset_manager import DEFAULT_PARAMS
 
 
-def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr):
+def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, output_device_index=None):
     """Entry point for the audio subprocess.
 
     Constructs SynthEngine, signals the main process when ready, then
@@ -21,7 +21,7 @@ def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr):
         # Import here so only the audio process loads PyAudio/numpy.
         from music.synth_engine import SynthEngine
 
-        engine = SynthEngine()
+        engine = SynthEngine(output_device_index=output_device_index)
         engine.warm_up()
         ready_event.set()
 
@@ -85,7 +85,8 @@ class SynthEngineProxy:
     implemented here.  No mode code needs to change.
     """
 
-    def __init__(self):
+    def __init__(self, output_device_index=None):
+        self._output_device_index = output_device_index
         self._cmd_queue = multiprocessing.Queue()
         self._ready_event = multiprocessing.Event()
         self._error_event = multiprocessing.Event()
@@ -110,6 +111,7 @@ class SynthEngineProxy:
                 self._ready_event,
                 self._error_event,
                 self._error_msg_arr,
+                output_device_index,
             ),
             daemon=True,
             name="acordes-audio",
@@ -145,6 +147,35 @@ class SynthEngineProxy:
         self._process.join(timeout=3.0)
         if self._process.is_alive():
             self._process.terminate()
+
+    def restart_with_device(self, output_device_index):
+        """Shut down the current audio process and start a new one with a different device.
+
+        Resets the ready/error events and replaces the subprocess.
+        Caller must wait for is_available() before sending commands.
+        """
+        self.close()
+        self._output_device_index = output_device_index
+        self._cmd_queue = multiprocessing.Queue()
+        self.midi_event_queue = self._cmd_queue
+        self._ready_event = multiprocessing.Event()
+        self._error_event = multiprocessing.Event()
+        self._error_msg_arr = multiprocessing.Array('c', 256)
+        self.held_notes.clear()
+
+        self._process = multiprocessing.Process(
+            target=_audio_process_main,
+            args=(
+                self._cmd_queue,
+                self._ready_event,
+                self._error_event,
+                self._error_msg_arr,
+                output_device_index,
+            ),
+            daemon=True,
+            name="acordes-audio",
+        )
+        self._process.start()
 
     # ── Note events ───────────────────────────────────────────────
 

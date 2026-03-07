@@ -5,6 +5,41 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.9] - 2026-03-07
+
+### Added
+
+**Audio Output Device Selection**:
+- Added audio device selection to Config Mode (new third section: Audio Output)
+- TAB now cycles through three lists: MIDI Input → Audio Output → Velocity Curve
+- On first launch (no saved audio device), app shows Config Mode before starting audio engine
+- User must select audio device before engine initializes
+- On subsequent launches, saves audio device index is used automatically
+- Fixes Linux/ALSA sound card selection issues (Fedora, Ubuntu, etc.)
+
+**Audio Device Deduplication** (`music/synth_engine.py`):
+- Windows: PyAudio lists same physical device multiple times (once per host API: MME, DirectSound, WASAPI, WDM-KS)
+- New `list_output_devices()` deduplicates by device name, preferring WASAPI for best latency
+- Cleans up device list to show one entry per unique device
+
+**Engine Startup Deferral** (`main.py`):
+- Audio engine (`SynthEngineProxy`) is now lazily initialized
+- On first launch: waits for user to select audio device in Config Mode before starting
+- On subsequent launches: starts engine immediately with saved device
+- Improves startup flow and allows reliable audio device configuration on first use
+
+**Launcher Improvements** (`run.sh`):
+- Cleaner output: `uv sync` runs silently on success, verbose output only on failure
+- Improved PATH handling: early export of `~/.local/bin` and `~/.cargo/bin` for uv detection
+- Better error messages for dependency installation failures
+
+### Changed
+
+- `config_manager.py`: Added `audio_device_index` and `audio_device_name` persistence
+- `music/engine_proxy.py`: Added `restart_with_device()` method to switch audio device mid-session
+- `modes/config_mode.py`: Complete rewrite with Audio Output Device section, 3-way TAB cycling
+- `main.py`: Restructured startup flow to defer engine creation until audio device is chosen
+
 ## [1.8.8] - 2026-03-07
 
 ### Fixed

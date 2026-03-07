@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.8.8
+**Latest Version**: 1.8.9
 
 ---
 
@@ -33,7 +33,9 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 
 ### Config Mode
 - Display and select MIDI input devices
+- Display and select audio output devices (Windows, macOS, Linux/ALSA)
 - Configure velocity curve response (5 types: Linear, Soft, Normal, Strong, Very Strong)
+- TAB to cycle between MIDI, Audio, and Velocity Curve sections
 
 ### Piano Mode
 - Real-time visual 3-octave piano keyboard
@@ -211,17 +213,19 @@ python main.py
 
 For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
 
-### What's New (v1.8.5)
+### What's New (v1.8.9)
 
-**Filter & Character**:
-- Per-stage Moog ladder saturation for warm, even-harmonic richness
-- Filter Drive (0.5–8.0×) to control saturation intensity
-- Four filter routing modes: HP+LP, BP+LP, Notch+LP, LP+LP
-- Soft SVF saturation and inaudible thermal noise floor
+**Audio Device Selection**:
+- Select audio output device at startup (Windows, macOS, Linux/ALSA)
+- On first launch, app defers engine initialization until audio device is chosen in Config Mode
+- On subsequent launches, the saved audio device is used automatically
+- Fixes ALSA sound card selection issues on Fedora and other Linux distributions
+- Windows: PyAudio device deduplication (removes Host API duplicates, prefers WASAPI for best latency)
 
-**Patch Control**:
-- **I**: Init Patch (clean sine, filters open, no FX)
-- **R** (focus mode): Reset highlighted parameter to init value
+**Launcher Improvements**:
+- `run.sh`: Cleaner startup output (dependencies installed silently unless error occurs)
+- Improved PATH handling for uv detection on Linux/macOS
+- Better error messages when dependency installation fails
 
 See **[CHANGELOG.md](CHANGELOG.md)** for full technical details.
 

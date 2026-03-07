@@ -202,15 +202,61 @@ class Voice:
         self._oversample_history_sine[:] = 0.0
 
 
+def list_output_devices() -> list:
+    """Return all PyAudio output-capable devices as [(index, name), ...].
+
+    Creates a temporary PyAudio instance for enumeration only, then closes it.
+    Safe to call from the UI process before the audio engine is started.
+    Returns an empty list if PyAudio is unavailable.
+    """
+    if not AUDIO_AVAILABLE or pyaudio is None:
+        return []
+    pa = None
+    try:
+        pa = pyaudio.PyAudio()
+
+        # On Windows, PortAudio lists the same physical device once per host API
+        # (MME, DirectSound, WASAPI, WDM-KS). Collect all candidates, then keep
+        # one entry per unique name, preferring WASAPI (host API index 3 on most
+        # Windows installs) for best latency. Falls back to whatever entry appears
+        # last if WASAPI is not available for that device.
+        candidates = {}  # name -> (index, host_api_index)
+        for i in range(pa.get_device_count()):
+            info = pa.get_device_info_by_index(i)
+            if info.get('maxOutputChannels', 0) > 0:
+                name = info['name']
+                host_api = info.get('hostApi', -1)
+                existing = candidates.get(name)
+                if existing is None:
+                    candidates[name] = (i, host_api)
+                else:
+                    # Prefer WASAPI (host API type 3 = paWASAPI in PortAudio enum).
+                    wasapi_type = 3
+                    host_api_info = pa.get_host_api_info_by_index(host_api)
+                    if host_api_info.get('type') == wasapi_type:
+                        candidates[name] = (i, host_api)
+
+        return [(idx, name) for name, (idx, _) in candidates.items()]
+    except Exception:
+        return []
+    finally:
+        if pa is not None:
+            try:
+                pa.terminate()
+            except Exception:
+                pass
+
+
 class SynthEngine:
     """8-voice polyphonic synthesizer engine with stabilized gain and master volume."""
 
-    def __init__(self):
+    def __init__(self, output_device_index=None):
         self.sample_rate = 48000
         self.buffer_size = 512
         self.num_voices = 8
         self.audio = None
         self.stream = None
+        self._output_device_index = output_device_index  # None = use system default
         self.running = False
 
         self.waveform = "sine"
@@ -426,10 +472,14 @@ class SynthEngine:
         if AUDIO_AVAILABLE and pyaudio is not None:
             try:
                 self.audio = pyaudio.PyAudio()
-                default_output = self.audio.get_default_output_device_info()
+                # Use caller-specified device or fall back to system default
+                if self._output_device_index is not None:
+                    device_index = self._output_device_index
+                else:
+                    device_index = self.audio.get_default_output_device_info()['index']
                 self.stream = self.audio.open(
                     format=pyaudio.paInt24, channels=2, rate=self.sample_rate,
-                    output=True, output_device_index=default_output['index'],
+                    output=True, output_device_index=device_index,
                     frames_per_buffer=self.buffer_size, stream_callback=self._audio_callback, start=False
                 )
                 self.stream.start_stream()

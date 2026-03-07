@@ -441,7 +441,17 @@ class MainScreen(Screen):
             else: # Defaults to main_menu
                 self.action_show_main_menu(save_history=False)
 
-        config = ConfigMode(self.app_context["device_manager"], self.app_context["config_manager"])
+        def on_audio_device_change(new_device_index):
+            """Restart the audio subprocess with the newly selected output device."""
+            engine = self.app_context["synth_engine"]
+            engine.all_notes_off()
+            engine.restart_with_device(new_device_index)
+
+        config = ConfigMode(
+            self.app_context["device_manager"],
+            self.app_context["config_manager"],
+            on_audio_device_change=on_audio_device_change,
+        )
         self.app.push_screen(config, on_closed)
 
     def action_quit_app(self):
@@ -456,7 +466,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.8.8"
+    VERSION = "1.8.9"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """
@@ -471,19 +481,16 @@ class AcordesApp(App):
         self.chord_library = ChordLibrary()
         self.chord_detector = ChordDetector(chord_library=self.chord_library)
 
-        # Start the audio engine in a separate process.  The proxy returns
-        # immediately; the child process signals ready_event when PyAudio is up.
-        self.synth_engine = SynthEngineProxy()
-
-        # Auto-open saved MIDI device (non-blocking; just opens the port).
-        selected_device = self.device_manager.get_selected_device()
-        if selected_device:
-            self.midi_handler.open_device(selected_device)
+        # Audio engine is created lazily: only once the audio output device is known.
+        # On first launch (no saved device) the engine starts after config completes.
+        # On subsequent launches the saved device index is used immediately.
+        self.synth_engine = None
 
         # Register disconnect handler.
         self.midi_handler._disconnect_callback = self._on_midi_disconnect
 
         # App context shared with MainScreen and all modes.
+        # synth_engine is None until _start_audio_engine() is called.
         self.app_context = {
             "device_manager": self.device_manager,
             "midi_handler": self.midi_handler,
@@ -501,26 +508,56 @@ class AcordesApp(App):
             "mode_before_config": "main_menu",
         }
 
-    def on_mount(self):
-        """Called when app mounts — show loading screen while audio process starts."""
-        self.update_sub_title()
+    def _start_audio_engine(self, device_index=None):
+        """Create the audio subprocess with the given device index and show the loading screen."""
+        self.synth_engine = SynthEngineProxy(output_device_index=device_index)
+        self.app_context["synth_engine"] = self.synth_engine
+
+        # Auto-open saved MIDI device now that we have an engine to pair with.
+        selected_device = self.device_manager.get_selected_device()
+        if selected_device and not self.midi_handler.is_device_open():
+            self.midi_handler.open_device(selected_device)
+
         loading = LoadingScreen(self.synth_engine, self._after_engine_ready)
         self.push_screen(loading)
+
+    def on_mount(self):
+        """Called when app mounts.
+
+        First launch (no saved audio device): show config so the user can pick
+        their audio output and MIDI device before the engine starts.
+
+        Subsequent launches: start the engine immediately with the saved device.
+        """
+        self.update_sub_title()
+        saved_audio_index = self.config_manager.get_audio_device_index()
+
+        if saved_audio_index is None:
+            # First launch — no audio device configured yet.
+            # Show config screen; engine starts after user completes setup.
+            def on_first_config_closed(result):
+                chosen_index = self.config_manager.get_audio_device_index()
+                self._start_audio_engine(chosen_index)
+
+            config = ConfigMode(self.device_manager, self.config_manager)
+            self.push_screen(config, on_first_config_closed)
+        else:
+            # Subsequent launch — start engine with saved device directly.
+            self._start_audio_engine(saved_audio_index)
 
     def _after_engine_ready(self):
         """Called by LoadingScreen once the audio process signals ready."""
         self.pop_screen()  # dismiss loading screen
 
-        # Always push MainScreen first so there is always a screen below config.
-        # When ConfigMode is dismissed (Escape or device selected) it simply pops,
-        # revealing MainScreen which is already fully composed with main_menu.
+        # Push MainScreen; it always shows first so config (if needed) overlays on top.
         main_screen = MainScreen(self.app_context)
         self.push_screen(main_screen)
 
+        # Show config only if MIDI device is still not set.
+        # Audio device is already configured at this point.
         if not self.device_manager.get_selected_device():
             def on_config_closed(result):
                 self.update_sub_title()
-                # Reconnect MIDI if user selected a device
                 selected = self.device_manager.get_selected_device()
                 if selected and not self.midi_handler.is_device_open():
                     self.midi_handler.open_device(selected)

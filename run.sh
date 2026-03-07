@@ -9,6 +9,10 @@ PIN_FILE="$SCRIPT_DIR/.python-version"
 VENV_DIR="$SCRIPT_DIR/.venv"
 
 # ── 1. Auto-install uv if missing ─────────────────────────────────────────────
+# Extend PATH to include common uv install locations so the command -v check
+# works even in non-interactive shells that may have a minimal PATH.
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
 if ! command -v uv &>/dev/null; then
     echo ""
     echo " uv not found — installing automatically..."
@@ -108,19 +112,18 @@ fi
 
 # ── 4. Sync dependencies ───────────────────────────────────────────────────────
 if [ ! -d "$VENV_DIR" ]; then
-    if [ ! -f "$PIN_FILE" ]; then
-        echo " First run — setting up Acordes..."
-        echo ""
-    fi
     echo " Installing dependencies (this may take a minute)..."
 
-    if ! uv sync 2>&1; then
+    # Capture output; only show it on failure so the terminal stays clean.
+    SYNC_LOG="$(uv sync 2>&1)" || {
         echo ""
         echo " ================================================================"
         echo " ERROR: Dependency installation failed."
         echo " ================================================================"
         echo ""
-        echo " If PyAudio failed to build, install system audio libraries:"
+        echo "$SYNC_LOG"
+        echo ""
+        echo " If PyAudio failed to build, install system audio libraries first:"
         echo "   Fedora : sudo dnf install portaudio-devel python3-devel gcc"
         echo "   Ubuntu : sudo apt install portaudio19-dev python3-dev gcc"
         echo "   Arch   : sudo pacman -S portaudio python gcc"
@@ -130,7 +133,7 @@ if [ ! -d "$VENV_DIR" ]; then
         echo " ================================================================"
         echo ""
         exit 1
-    fi
+    }
 
     echo " Done."
     echo ""

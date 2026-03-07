@@ -30,6 +30,8 @@ class ConfigManager:
             "last_synth_preset": None,
             "synth_state": None,
             "metronome_bpm": 120,
+            "audio_device_index": None,  # PyAudio output device index (None = not yet chosen)
+            "audio_device_name": None,   # Human-readable name for display
         }
 
     def save_config(self):
@@ -81,6 +83,22 @@ class ConfigManager:
         """Persist current synth parameters (autosave on every change)."""
         self.config["synth_state"] = params
         self.save_config()
+
+    # ── Audio output device ───────────────────────────────────────
+
+    def get_audio_device_index(self) -> Optional[int]:
+        """Get the saved PyAudio output device index (None = not yet chosen)."""
+        return self.config.get("audio_device_index")
+
+    def set_audio_device(self, index: Optional[int], name: Optional[str]):
+        """Save the selected audio output device index and display name."""
+        self.config["audio_device_index"] = index
+        self.config["audio_device_name"] = name
+        self.save_config()
+
+    def get_audio_device_name(self) -> Optional[str]:
+        """Get the saved audio output device display name."""
+        return self.config.get("audio_device_name")
 
     # ── Shared BPM (Metronome ↔ Arpeggiator) ─────────────────────
 

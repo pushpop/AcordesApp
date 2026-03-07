@@ -1,10 +1,12 @@
-"""MIDI device configuration screen."""
+# ABOUTME: Configuration screen for MIDI input, audio output, and velocity curve settings.
+# ABOUTME: Appears on first launch (no audio device) or when user presses C from the main app.
+"""MIDI device, audio output, and velocity curve configuration screen."""
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Header, Footer, Static, ListView, ListItem, Label
 from textual.binding import Binding
 from components.header_widget import HeaderWidget
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Callable, List, Tuple
 
 if TYPE_CHECKING:
     from midi.device_manager import MIDIDeviceManager
@@ -12,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class ConfigMode(Screen):
-    """Screen for configuring MIDI devices and velocity curves."""
+    """Screen for configuring MIDI devices, audio output, and velocity curves."""
 
     BINDINGS = [
         Binding("escape", "dismiss", "Close", show=True),
@@ -48,7 +50,26 @@ class ConfigMode(Screen):
 
     #device-list {
         width: 100%;
-        height: 8;
+        height: 6;
+        border: solid #ffd700;
+        margin: 0 0 1 0;
+    }
+
+    #audio-section {
+        width: 100%;
+        height: auto;
+    }
+
+    #audio-label {
+        width: 100%;
+        color: #ffd700;
+        text-style: bold;
+        margin-top: 1;
+    }
+
+    #audio-list {
+        width: 100%;
+        height: 6;
         border: solid #ffd700;
         margin: 0 0 1 0;
     }
@@ -87,6 +108,13 @@ class ConfigMode(Screen):
         margin: 1 0 0 0;
     }
 
+    #selected-audio {
+        width: 100%;
+        content-align: left middle;
+        color: #00ff00;
+        margin: 1 0 0 0;
+    }
+
     #selected-curve {
         width: 100%;
         content-align: left middle;
@@ -95,35 +123,46 @@ class ConfigMode(Screen):
     }
     """
 
-    def __init__(self, device_manager: 'MIDIDeviceManager', config_manager: 'ConfigManager'):
+    def __init__(
+        self,
+        device_manager: 'MIDIDeviceManager',
+        config_manager: 'ConfigManager',
+        on_audio_device_change: Optional[Callable[[int], None]] = None,
+    ):
         super().__init__()
         self.device_manager = device_manager
         self.config_manager = config_manager
-        self.devices = []
-        self.pending_device = None  # Track pending device selection before applying
+        # Callback invoked when user selects a new audio device (engine is running).
+        # If None, audio selection is saved to config only (engine not yet running).
+        self.on_audio_device_change = on_audio_device_change
 
-        # Velocity curves: 5 curve types (data will be defined later)
-        self.velocity_curves = [
-            "Linear",
-            "Soft",
-            "Normal",
-            "Strong",
-            "Very Strong"
-        ]
-        # Load saved velocity curve, or default to Linear
+        self.devices: List[str] = []
+        self.pending_device: Optional[str] = None
+
+        # Audio output devices: list of (index, name) tuples
+        self.audio_devices: List[Tuple[int, str]] = []
+        self.pending_audio_index: Optional[int] = config_manager.get_audio_device_index()
+
+        self.velocity_curves = ["Linear", "Soft", "Normal", "Strong", "Very Strong"]
         self.pending_curve = config_manager.get_velocity_curve()
 
     def compose(self):
         """Compose the config mode layout."""
         yield Header()
         with Vertical(id="config-container"):
-            yield HeaderWidget(title="MIDI CONFIGURATION", subtitle="Device & Velocity Curve")
+            yield HeaderWidget(title="CONFIGURATION", subtitle="MIDI, Audio Output & Velocity Curve")
 
             # MIDI Device Section
             with Vertical(id="device-section"):
                 yield Label("MIDI INPUT DEVICE", id="device-label")
                 yield ListView(id="device-list")
                 yield Label("", id="selected-device")
+
+            # Audio Output Section
+            with Vertical(id="audio-section"):
+                yield Label("AUDIO OUTPUT DEVICE", id="audio-label")
+                yield ListView(id="audio-list")
+                yield Label("", id="selected-audio")
 
             # Velocity Curve Section
             with Vertical(id="curve-section"):
@@ -139,129 +178,169 @@ class ConfigMode(Screen):
 
     def on_mount(self):
         """Called when screen is mounted."""
-        # Initialize device list
         self.pending_device = self.device_manager.get_selected_device()
         self.refresh_device_list()
-
-        # Initialize velocity curve list
+        self.refresh_audio_list()
         self.refresh_curve_list()
 
-        # Set initial focus on device list
+        # Start focus on MIDI device list
         device_list = self.query_one("#device-list", ListView)
         if self.devices:
             device_list.index = 0
         device_list.focus()
 
     def refresh_device_list(self):
-        """Refresh the list of MIDI devices."""
+        """Refresh the list of MIDI input devices."""
         list_view = self.query_one("#device-list", ListView)
         list_view.clear()
 
         self.devices = self.device_manager.get_input_devices()
 
         if not self.devices:
-            # Show helpful error message if available
             if self.device_manager.last_error:
                 list_view.append(ListItem(Label("❌ " + self.device_manager.last_error)))
             else:
                 list_view.append(ListItem(Label("No MIDI devices found")))
         else:
             for device in self.devices:
-                is_pending = device == self.pending_device
-                if is_pending:
-                    list_view.append(ListItem(Label(f"☑ {device}")))
-                else:
-                    list_view.append(ListItem(Label(f"☐ {device}")))
+                marker = "☑" if device == self.pending_device else "☐"
+                list_view.append(ListItem(Label(f"{marker} {device}")))
 
-        self.update_selected_display()
+        self._update_device_label()
+
+    def refresh_audio_list(self):
+        """Refresh the list of PyAudio output devices."""
+        from music.synth_engine import list_output_devices
+        list_view = self.query_one("#audio-list", ListView)
+        list_view.clear()
+
+        self.audio_devices = list_output_devices()
+
+        if not self.audio_devices:
+            list_view.append(ListItem(Label("No audio output devices found")))
+        else:
+            for idx, name in self.audio_devices:
+                marker = "☑" if idx == self.pending_audio_index else "☐"
+                list_view.append(ListItem(Label(f"{marker} {name}")))
+
+        self._update_audio_label()
 
     def refresh_curve_list(self):
-        """Refresh the list of velocity curves."""
+        """Refresh the velocity curve list."""
         list_view = self.query_one("#curve-list", ListView)
         list_view.clear()
 
         for curve in self.velocity_curves:
-            is_pending = curve == self.pending_curve
-            if is_pending:
-                list_view.append(ListItem(Label(f"☑ {curve}")))
-            else:
-                list_view.append(ListItem(Label(f"☐ {curve}")))
+            marker = "☑" if curve == self.pending_curve else "☐"
+            list_view.append(ListItem(Label(f"{marker} {curve}")))
 
-        self.update_selected_display()
+        self._update_curve_label()
 
-    def update_selected_display(self):
-        """Update the selected device and curve displays."""
-        selected_device = self.device_manager.get_selected_device()
-        device_label = self.query_one("#selected-device", Label)
-
-        if self.pending_device and self.pending_device != selected_device:
-            device_label.update(f"Active: {selected_device or 'None'} | Pending: {self.pending_device}")
-        elif selected_device:
-            device_label.update(f"Active: {selected_device}")
+    def _update_device_label(self):
+        """Update the MIDI device status label."""
+        label = self.query_one("#selected-device", Label)
+        active = self.device_manager.get_selected_device()
+        if self.pending_device and self.pending_device != active:
+            label.update(f"Active: {active or 'None'} | Pending: {self.pending_device}")
+        elif active:
+            label.update(f"Active: {active}")
         else:
-            device_label.update("No device selected")
+            label.update("No device selected")
 
-        # Update velocity curve display
-        curve_label = self.query_one("#selected-curve", Label)
-        curve_label.update(f"Selected: {self.pending_curve}")
+    def _update_audio_label(self):
+        """Update the audio output device status label."""
+        label = self.query_one("#selected-audio", Label)
+        saved_name = self.config_manager.get_audio_device_name()
+        if self.pending_audio_index is not None:
+            # Find name for pending index
+            name = next((n for i, n in self.audio_devices if i == self.pending_audio_index), saved_name or "Unknown")
+            label.update(f"Selected: {name}")
+        else:
+            label.update("No audio device selected")
+
+    def _update_curve_label(self):
+        """Update the velocity curve status label."""
+        label = self.query_one("#selected-curve", Label)
+        label.update(f"Selected: {self.pending_curve}")
 
     def action_refresh_devices(self):
-        """Refresh the device list."""
+        """Refresh all device lists."""
         self.refresh_device_list()
+        self.refresh_audio_list()
 
-    def _curve_list_is_focused(self) -> bool:
-        """Return True if the velocity curve list currently has Textual focus."""
-        return self.focused is self.query_one("#curve-list", ListView)
+    def _focused_list_id(self) -> str:
+        """Return the ID of whichever list currently has focus."""
+        for list_id in ("#device-list", "#audio-list", "#curve-list"):
+            lv = self.query_one(list_id, ListView)
+            if self.focused is lv:
+                return list_id
+        return "#device-list"
 
     def action_toggle_list_focus(self):
-        """Tab — toggle focus between device list and velocity curve list."""
-        device_list = self.query_one("#device-list", ListView)
-        curve_list = self.query_one("#curve-list", ListView)
+        """Tab — cycle focus: device → audio → curve → device."""
+        current = self._focused_list_id()
 
-        # Toggle focus between the two lists
-        if self.focused is device_list:
-            # Switch from device list to curve list
+        if current == "#device-list":
+            next_id = "#audio-list"
+            # Auto-highlight current audio selection
+            if self.pending_audio_index is not None:
+                indices = [i for i, _ in self.audio_devices]
+                if self.pending_audio_index in indices:
+                    self.query_one("#audio-list", ListView).index = indices.index(self.pending_audio_index)
+        elif current == "#audio-list":
+            next_id = "#curve-list"
+            # Auto-highlight current curve selection
             if self.pending_curve in self.velocity_curves:
-                curve_list.index = self.velocity_curves.index(self.pending_curve)
-            curve_list.focus()
+                self.query_one("#curve-list", ListView).index = self.velocity_curves.index(self.pending_curve)
         else:
-            # Switch from curve list back to device list
+            next_id = "#device-list"
+            # Auto-highlight current MIDI selection
             if self.pending_device in self.devices:
-                device_list.index = self.devices.index(self.pending_device)
-            device_list.focus()
+                self.query_one("#device-list", ListView).index = self.devices.index(self.pending_device)
+
+        self.query_one(next_id, ListView).focus()
 
     def action_select_item(self):
-        """Space — select highlighted item in whichever list currently has focus."""
-        if self._curve_list_is_focused():
+        """Space — select highlighted item in the focused list."""
+        current = self._focused_list_id()
+        if current == "#curve-list":
             self._select_curve()
+        elif current == "#audio-list":
+            self._select_audio_device()
         else:
             self._select_device()
 
     def _select_device(self):
-        """Select the highlighted device."""
+        """Apply the highlighted MIDI device."""
         list_view = self.query_one("#device-list", ListView)
+        if list_view.index is not None and self.devices and 0 <= list_view.index < len(self.devices):
+            selected = self.devices[list_view.index]
+            self.pending_device = selected
+            self.device_manager.select_device(selected)
+            self.refresh_device_list()
 
-        if list_view.index is not None and self.devices:
-            if 0 <= list_view.index < len(self.devices):
-                selected_device = self.devices[list_view.index]
-                self.pending_device = selected_device
+    def _select_audio_device(self):
+        """Save the highlighted audio output device and optionally restart the engine."""
+        list_view = self.query_one("#audio-list", ListView)
+        if list_view.index is None or not self.audio_devices:
+            return
+        if not (0 <= list_view.index < len(self.audio_devices)):
+            return
 
-                # Apply selection
-                result = self.device_manager.select_device(selected_device)
-                if result:
-                    self.refresh_device_list()
-                else:
-                    pass  # failure visible: device list won't update its selection marker
+        idx, name = self.audio_devices[list_view.index]
+        self.pending_audio_index = idx
+        self.config_manager.set_audio_device(idx, name)
+        self.refresh_audio_list()
+
+        # If the engine is already running, trigger a restart with the new device
+        if self.on_audio_device_change is not None:
+            self.on_audio_device_change(idx)
 
     def _select_curve(self):
-        """Select the highlighted velocity curve."""
+        """Apply the highlighted velocity curve."""
         list_view = self.query_one("#curve-list", ListView)
-
-        if list_view.index is not None:
-            if 0 <= list_view.index < len(self.velocity_curves):
-                selected_curve = self.velocity_curves[list_view.index]
-                self.pending_curve = selected_curve
-
-                # Save to config_manager
-                self.config_manager.set_velocity_curve(selected_curve)
-                self.refresh_curve_list()
+        if list_view.index is not None and 0 <= list_view.index < len(self.velocity_curves):
+            selected = self.velocity_curves[list_view.index]
+            self.pending_curve = selected
+            self.config_manager.set_velocity_curve(selected)
+            self.refresh_curve_list()
