@@ -81,6 +81,7 @@ class SynthMode(Widget):
         padding: 0;
         margin: 0;
         align: center top;
+        background: #111111 10%;
     }
 
     #synth-grid {
@@ -119,7 +120,7 @@ class SynthMode(Widget):
     #controls-help {
         width: 100%;
         height: 1;
-        background: #111111;
+        background: #111111 10%;
         border-top: solid #1a3a1a;
         padding: 0 1;
         margin: 0;
@@ -490,16 +491,16 @@ class SynthMode(Widget):
                     hdr = Label(self._section_top("FILTER EG", False), classes="section-label", id="hdr-filter-eg")
                     self._section_header_ids["filter_eg"] = "hdr-filter-eg"
                     yield hdr
-                    yield Label(self._row_label("Atk", ""), classes="control-label", id="lbl-filter-eg-0")
+                    yield Label(self._row_label("Attack", ""), classes="control-label", id="lbl-filter-eg-0")
                     self.feg_attack_display = Label(self._fmt_time(self.feg_attack), classes="control-value", id="feg-attack-display")
                     yield self.feg_attack_display
-                    yield Label(self._row_label("Dcy", ""), classes="control-label", id="lbl-filter-eg-1")
+                    yield Label(self._row_label("Decay", ""), classes="control-label", id="lbl-filter-eg-1")
                     self.feg_decay_display = Label(self._fmt_time(self.feg_decay), classes="control-value", id="feg-decay-display")
                     yield self.feg_decay_display
-                    yield Label(self._row_label("Sus", ""), classes="control-label", id="lbl-filter-eg-2")
+                    yield Label(self._row_label("Sustain", ""), classes="control-label", id="lbl-filter-eg-2")
                     self.feg_sustain_display = Label(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"), classes="control-value", id="feg-sustain-display")
                     yield self.feg_sustain_display
-                    yield Label(self._row_label("Rel", ""), classes="control-label", id="lbl-filter-eg-3")
+                    yield Label(self._row_label("Release", ""), classes="control-label", id="lbl-filter-eg-3")
                     self.feg_release_display = Label(self._fmt_time(self.feg_release), classes="control-value", id="feg-release-display")
                     yield self.feg_release_display
                     yield Label(self._row_label("Amount", ""), classes="control-label", id="lbl-filter-eg-4")
@@ -526,7 +527,7 @@ class SynthMode(Widget):
                     yield Label(self._row_label("Release", ""), classes="control-label", id="lbl-amp-eg-3")
                     self.release_display = Label(self._fmt_time(self.release), classes="control-value", id="release-display")
                     yield self.release_display
-                    yield Label(self._row_label("KTrack", ""), classes="control-label", id="lbl-amp-eg-4")
+                    yield Label(self._row_label("Keyboard Track", ""), classes="control-label", id="lbl-amp-eg-4")
                     self.key_tracking_display = Label(self._fmt_key_tracking(), classes="control-value", id="key-tracking-display")
                     yield self.key_tracking_display
                     yield Label(self._section_bottom(), classes="section-bottom")
@@ -1699,12 +1700,12 @@ class SynthMode(Widget):
         "key_tracking":   0.5,
         "attack":         0.01,
         "decay":          0.2,
-        "sustain":        0.7,
-        "release":        0.3,
+        "sustain":        1.0,
+        "release":        0.01,
         "feg_attack":     0.01,
         "feg_decay":      0.3,
         "feg_sustain":    0.0,
-        "feg_release":    0.3,
+        "feg_release":    0.01,
         "feg_amount":     0.0,
         "lfo_freq":       1.0,
         "lfo_depth":      0.0,
@@ -2244,12 +2245,12 @@ class SynthMode(Widget):
         gap   = max(0, inner - len(left) - len(right))
         line  = left + " " * gap + right
         if active:
-            return f"[#00ffff]│[bold #00ffff]{line}│[/]"
-        return f"[#00cc00]│[/][#445544]{line}[/][#00cc00]│[/]"
+            return f"[#00ffff]│[bold]{line}[/]│[/#00ffff]"
+        return f"[#00cc00]│[/#00cc00][#445544]{line}[/#445544][#00cc00]│[/#00cc00]"
 
     def _row_sep(self) -> str:
         """Thin separator row inside a section."""
-        return f"[#00cc00]│[dim]{'─' * self._W}[/]│[/]"
+        return f"[#00cc00]│[dim]{'─' * self._W}[/dim]│[/#00cc00]"
 
     # ── Arc-sweep inline knob ─────────────────────────────────────
 

@@ -231,17 +231,24 @@ class StaffWidget(Static):
                 is_sharp = self._is_sharp(note)
                 note_positions.append((y_pos, x_pos, is_sharp))
 
-        # Place all notes on the staff lines
+        # Group notes by staff line to avoid multiple list conversions per line
+        # Build a map of y_pos → list of (x_pos, is_sharp) for that line
+        modifications_by_line = {}
         for y_pos, x_pos, is_sharp in note_positions:
-            line = staff_lines[y_pos]
-            line_chars = list(line)
+            if y_pos not in modifications_by_line:
+                modifications_by_line[y_pos] = []
+            modifications_by_line[y_pos].append((x_pos, is_sharp))
 
-            # Insert sharp symbol before the note if needed
-            if is_sharp and x_pos > 0:
-                line_chars[x_pos - 1] = '♯'
-
-            # Place the note
-            line_chars[x_pos] = '●'
+        # Apply all modifications to each line in a single pass
+        for y_pos, modifications in modifications_by_line.items():
+            line_chars = list(staff_lines[y_pos])
+            for x_pos, is_sharp in modifications:
+                # Insert sharp symbol before the note if needed
+                if is_sharp and x_pos > 0:
+                    line_chars[x_pos - 1] = '♯'
+                # Place the note
+                line_chars[x_pos] = '●'
+            # Convert back to string once per line
             staff_lines[y_pos] = ''.join(line_chars)
 
         # Build final staff with side borders only (no top/bottom)

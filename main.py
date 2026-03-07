@@ -41,7 +41,7 @@ class SynthHelpBar(Static):
     def render(self) -> str:
         """Render the help bar with two lines of keybinds."""
         line1 = "WASD: Navigate | Q/E: Adjust | _: Randomize | R: Reset | I: Init | ENTER: Focus"
-        line2 = ",/.: Presets | [/]: Volume | Ctrl+N: Save | Ctrl+S: Update | SPACE: Panic | -: Random All"
+        line2 = ",/.: Presets | \\[/]: Volume | Ctrl+N: Save | Ctrl+S: Update | SPACE: Panic | -: Random All"
         return f"{line1}\n{line2}"
 
 
@@ -393,7 +393,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.8.5"
+    VERSION = "1.8.6"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """

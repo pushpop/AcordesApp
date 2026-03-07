@@ -5,6 +5,39 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.6] - 2026-03-07
+
+### Fixed
+
+**Chord Detection**:
+- Fixed chord detection with enharmonic equivalents (Eb, Bb, etc.) in `music/chord_library.py`
+- Added `ENHARMONIC_MAP` and `_normalize_note()` to normalize flats to sharps before comparison
+- C Minor now correctly detected when C, Eb, G notes are played (was incorrectly showing C-D#-G)
+
+**Audio Engine**:
+- Increased startup silence buffer from 50ms to 1 second in `music/synth_engine.py`
+- Eliminates audio click/artifact at application startup by allowing filter and oscillator states to settle
+
+**UI Fixes**:
+- Fixed MarkupError in `main.py` SynthHelpBar: escaped literal `[/]` text to prevent Rich markup parsing
+- Applied user's manual synth_mode.py parameter label expansions (Atk→Attack, Dcy→Decay, etc.)
+
+**Performance Optimizations**:
+- `components/piano_widget.py`: Fixed redundant regex execution on every render by caching cleaned lines alongside border width
+- `components/staff_widget.py`: Optimized note placement to avoid multiple list conversions per staff line
+
+**Linux Setup**:
+- `run.sh`: Added automatic installation of `uv`, Python 3.12, and system audio dependencies
+- Detects package manager (dnf/apt/pacman/brew) and installs portaudio-devel, python3-devel, gcc
+- `README.md`: Added setup instructions for making run.sh executable on first clone
+
+**Compendium Mode Audio**:
+- Fixed timer leak causing UI lag and audio artifacts when changing chords (`modes/compendium_mode.py`)
+- Added `_cancel_play_timers()` and `_playing_notes` tracking to prevent stale note-on/off calls
+- Implemented audio crossfade: old chord releases naturally (via `note_off`) while new chord attacks simultaneously
+- Set smooth ADSR envelopes for compendium: attack=0.06 (60ms fade-in), release=0.55 (550ms fade-out)
+- Eliminates clicks and ensures chord transitions are musically smooth
+
 ## [1.8.5] - 2026-03-06
 
 ### Added

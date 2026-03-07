@@ -379,6 +379,11 @@ class SynthEngine:
         self._fx_tail_samples = 0        # samples remaining to drain after all voices silent
         self._FX_TAIL_MAX     = int(self.sample_rate * 10.0)   # 10s ceiling
 
+        # Startup silence counter — outputs zero samples for first ~1s after stream starts.
+        # Eliminates click artifacts from filter/DC blocker transients during warm-up.
+        # 1 second allows all DSP state (filters, DC blockers, LFO, arpeggiator) to fully settle.
+        self._startup_silence_samples = int(self.sample_rate * 1.0)  # 1 second of silence
+
         self.pitch_bend = 0.0
         self.pitch_bend_target = 0.0
         self.pitch_bend_smoothing = 0.85
@@ -1510,6 +1515,12 @@ class SynthEngine:
 
     def _audio_callback(self, in_data, frame_count, time_info, status):
         try:
+            # Output initial silence for ~50ms after startup to avoid filter transients
+            if self._startup_silence_samples > 0:
+                silence = bytes(frame_count * 2 * 3)  # 3 bytes per sample × 2 channels
+                self._startup_silence_samples -= frame_count
+                return (silence, pyaudio.paContinue)
+
             self._process_midi_events()
             self._update_voice_frequencies()
             if abs(self.amp_level_current - self.amp_level_target) > 0.0001:

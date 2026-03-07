@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.8.5
+**Latest Version**: 1.8.6
 
 ---
 
@@ -165,14 +165,18 @@ Once `uv` is installed, just run the launcher script:
 
 **Linux / macOS:**
 ```bash
+chmod +x run.sh   # only needed once after a fresh git clone
 ./run.sh
 ```
 
+> **Fresh clone on Linux?** The script may not be executable after cloning. Run `chmod +x run.sh` once before the first launch.
+
 The launcher automatically:
-1. Pins Python 3.12 (falls back to 3.11 if unavailable)
-2. Optionally installs Python via `uv` if not present
-3. Syncs all dependencies with `uv sync`
-4. Launches the application
+1. Installs `uv` if not found (via the official curl installer)
+2. Installs system audio libraries (PortAudio headers) if missing — uses `dnf`, `apt`, `pacman`, or `brew`
+3. Pins and installs Python 3.12 automatically if not present
+4. Syncs all Python dependencies with `uv sync`
+5. Launches the application
 
 ### Manual Setup (Advanced)
 
@@ -306,11 +310,18 @@ You can have multiple Python versions installed side-by-side. After installing 3
    venv\Scripts\pipwin install pyaudio
    ```
 
-2. **Linux**: Install PortAudio first:
+2. **Linux**: Install PortAudio headers first (the `run.sh` script does this automatically):
    ```bash
-   sudo apt-get install portaudio19-dev python3-dev
-   pip install pyaudio pygame
+   # Fedora / RHEL:
+   sudo dnf install portaudio-devel python3-devel gcc
+
+   # Ubuntu / Debian:
+   sudo apt-get install portaudio19-dev python3-dev gcc
+
+   # Arch Linux:
+   sudo pacman -S portaudio python gcc
    ```
+   Then run `./run.sh` again.
 
 3. **macOS**: Install via Homebrew:
    ```bash

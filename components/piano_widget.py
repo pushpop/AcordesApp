@@ -26,9 +26,10 @@ class PianoWidget(Static):
     def __init__(self, **kwargs):
         super().__init__("", **kwargs)
         self.active_notes = set()
-        # Cache border width so regex only runs when octave range changes
+        # Cache border width and cleaned lines so regex only runs when octave range changes
         self._cached_border_width: int = 0
         self._cached_octave_key: tuple = ()
+        self._cached_cleaned_lines: list = []
 
     def _build_piano_display(self, active_notes: Set[int]) -> str:
         """Build piano keyboard ASCII art with taller keys and coloring."""
@@ -258,27 +259,31 @@ class PianoWidget(Static):
                 lines[9] += "   │"
                 lines[10] += "───┘"
 
-        # Border width only changes when the octave range changes, not per keypress.
-        # Cache it keyed on (START_NOTE, NUM_OCTAVES) to avoid regex on every render.
+        # Border width and cleaned lines only change when octave range changes, not per keypress.
+        # Cache both keyed on (START_NOTE, NUM_OCTAVES) to avoid regex on every render.
         octave_key = (START_NOTE, NUM_OCTAVES)
         if octave_key != self._cached_octave_key:
+            # Run regex once per octave range change, cache the results
+            cleaned_lines = []
             max_width = 0
             for line in lines:
                 clean_line = re.sub(r'\[.*?\]', '', line)
+                cleaned_lines.append(clean_line)
                 max_width = max(max_width, len(clean_line))
             self._cached_border_width = max_width + 2
+            self._cached_cleaned_lines = cleaned_lines
             self._cached_octave_key = octave_key
 
         visual_width = self._cached_border_width
+        cleaned_lines = self._cached_cleaned_lines
 
         # Create bounding box
         top_border = "╔" + "═" * visual_width + "╗"
         bottom_border = "╚" + "═" * visual_width + "╝"
 
-        # Add side borders to each line with proper padding
+        # Add side borders to each line with proper padding (no regex needed - using cached cleaned lines)
         bordered_lines = [top_border]
-        for line in lines:
-            clean_line = re.sub(r'\[.*?\]', '', line)
+        for line, clean_line in zip(lines, cleaned_lines):
             padding_needed = visual_width - len(clean_line)
             bordered_lines.append("║" + line + " " * padding_needed + "║")
         bordered_lines.append(bottom_border)

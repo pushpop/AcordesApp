@@ -9,6 +9,15 @@ class ChordLibrary:
     # All 12 chromatic notes
     KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
+    # Enharmonic equivalents mapping (flats to sharps for normalization)
+    ENHARMONIC_MAP = {
+        'Db': 'C#',
+        'Eb': 'D#',
+        'Gb': 'F#',
+        'Ab': 'G#',
+        'Bb': 'A#',
+    }
+
     # Common chord types with their mingus shorthand
     CHORD_TYPES = [
         ('Major', 'M'),
@@ -31,6 +40,17 @@ class ChordLibrary:
     def __init__(self):
         self.library: Dict[str, Dict[str, List[str]]] = {}
         self._generate_library()
+
+    def _normalize_note(self, note: str) -> str:
+        """Convert note to canonical form (sharps only, no flats).
+
+        Args:
+            note: Note name (e.g., "C", "C#", "Db", "Eb").
+
+        Returns:
+            Canonical note name using sharps (e.g., "C#" instead of "Db").
+        """
+        return self.ENHARMONIC_MAP.get(note, note)
 
     def _generate_library(self):
         """Generate the complete chord library."""
@@ -98,6 +118,8 @@ class ChordLibrary:
         inversions. Returns the chord with root position or slash notation for
         inversions (e.g., "C Major" or "C Major/E").
 
+        Handles enharmonic equivalents (e.g., Eb = D#) by normalizing to sharps.
+
         Args:
             note_names: Set or list of note names without octaves (e.g., {"C", "E", "G"})
             bass_note: Optional explicitly specified bass note for inversion detection.
@@ -123,6 +145,11 @@ class ChordLibrary:
         if len(unique_notes) < 2:
             return None
 
+        # Normalize played notes (convert Eb to D#, etc.)
+        normalized_played = set(self._normalize_note(n) for n in unique_notes)
+        # Normalize bass note for comparison
+        normalized_bass_note = self._normalize_note(bass_note)
+
         # Try each note as a potential root
         for potential_root in self.KEYS:
             if potential_root not in self.library:
@@ -130,14 +157,13 @@ class ChordLibrary:
 
             # Check all chord types for this root
             for chord_type, chord_notes in self.library[potential_root].items():
-                # Normalize chord notes for comparison (remove duplicates, sort)
-                normalized_chord = set(chord_notes)
-                normalized_played = set(unique_notes)
+                # Normalize chord notes from library (convert Eb to D#, etc.)
+                normalized_chord = set(self._normalize_note(n) for n in chord_notes)
 
                 # Check if the played notes match this chord
                 if normalized_chord == normalized_played:
                     # Found a match! Now check if it's in root position or inverted
-                    if bass_note == potential_root:
+                    if normalized_bass_note == potential_root:
                         # Root position
                         return f"{potential_root} {chord_type}"
                     else:

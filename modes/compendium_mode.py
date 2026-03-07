@@ -489,6 +489,10 @@ class CompendiumMode(Widget):
         self.selected_notes: List[int] = []
         # Snapshot of synth params captured on mount; restored when leaving compendium mode
         self._saved_synth_params: dict = {}
+        # Track active timers so stale note_on/off calls can be cancelled before new ones fire
+        self._play_timers: list = []
+        # Notes currently sounding — used for crossfade (note_off triggers release envelope)
+        self._playing_notes: list = []
 
         # Initialize data manager
         self.data_manager = CompendiumDataManager()
@@ -530,8 +534,10 @@ class CompendiumMode(Widget):
     def on_mount(self):
         """Initialize the tree and focus it."""
         # Snapshot current synth state then apply the shared piano sound for chord preview.
+        # Override attack/release for smooth fade-in and fade-out on chord changes.
         self._saved_synth_params = self.synth_engine.get_current_params()
         self.synth_engine.update_parameters(**_PIANO_PARAMS)
+        self.synth_engine.update_parameters(attack=0.06, release=0.55)
 
         self._build_tree()
         tree = self.query_one("#chord-tree", Tree)
@@ -543,6 +549,7 @@ class CompendiumMode(Widget):
 
     def on_unmount(self):
         """Silence notes and restore synth state when leaving compendium mode."""
+        self._cancel_play_timers()
         self.synth_engine.all_notes_off()
         if self._saved_synth_params:
             self.synth_engine.update_parameters(**self._saved_synth_params)
@@ -568,31 +575,30 @@ class CompendiumMode(Widget):
         self.tree_builder.build_full_tree(tree)
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted):
-        """Handle tree node selection."""
+        """Handle tree node highlight — update detail panel and auto-play chords."""
         node = event.node
         item_id = node.data
 
-        if item_id:
-            # Check if this is a category node
-            categories = self.data_manager.get_categories()
-            if item_id in categories:
-                # Render category details
-                category = categories[item_id]
-                detail_panel = self.query_one("#detail-panel", CompendiumDetailPanel)
-                detail_panel.render_category(category)
-            else:
-                # Render item details
-                item = self.data_manager.get_item_by_id(item_id)
-                if item:
-                    detail_panel = self.query_one("#detail-panel", CompendiumDetailPanel)
-                    detail_panel.render_item(item)
+        if not item_id:
+            return
 
-                    # Auto-play chords on selection
-                    if item["category"] == "chords":
-                        self.selected_notes = self._note_names_to_midi(
-                            item.get("metadata", {}).get("notes", [])
-                        )
-                        self.action_play_item()
+        detail_panel = self.query_one("#detail-panel", CompendiumDetailPanel)
+        categories = self.data_manager.get_categories()
+
+        if item_id in categories:
+            detail_panel.render_category(categories[item_id])
+        else:
+            item = self.data_manager.get_item_by_id(item_id)
+            if not item:
+                return
+
+            detail_panel.render_item(item)
+
+            if item["category"] == "chords":
+                self.selected_notes = self._note_names_to_midi(
+                    item.get("metadata", {}).get("notes", [])
+                )
+                self.action_play_item()
 
     def on_tree_node_selected(self, event: Tree.NodeSelected):
         """Handle tree node selection (Enter key)."""
@@ -682,30 +688,54 @@ class CompendiumMode(Widget):
 
         return midi_notes
 
+    def _cancel_play_timers(self):
+        """Cancel all pending note timers to prevent stale note_on/off calls."""
+        for t in self._play_timers:
+            t.cancel()
+        self._play_timers.clear()
+
     def action_play_item(self):
-        """Play the currently selected chord using the synth engine."""
+        """Play the currently selected chord using the synth engine.
+
+        Crossfade: sends note_off to the previous chord (triggering its release envelope)
+        and immediately starts the new chord. Both overlap during the crossfade window —
+        old notes fade out via ADSR release while new notes attack.
+        """
+        import threading
+
         if not self.selected_notes:
             return
 
-        self.synth_engine.all_notes_off()
+        # Cancel pending timers (staggered note_ons/release from previous chord)
+        self._cancel_play_timers()
+
+        # Crossfade: send note_off to previous notes so they fade via release envelope.
+        # Do NOT call all_notes_off() — that hard-cuts audio, bypassing release.
+        for note in self._playing_notes:
+            self.synth_engine.note_off(note)
 
         # Staggered note onset for musical effect
         stagger = 0.02
-        for i, note in enumerate(self.selected_notes):
+        notes_snapshot = list(self.selected_notes)  # snapshot in case selection changes mid-timer
+        self._playing_notes = notes_snapshot
+
+        for i, note in enumerate(notes_snapshot):
             if i == 0:
                 self.synth_engine.note_on(note, 80)
             else:
-                import threading
-                threading.Timer(i * stagger, self.synth_engine.note_on, args=[note, 80]).start()
+                t = threading.Timer(i * stagger, self.synth_engine.note_on, args=[note, 80])
+                self._play_timers.append(t)
+                t.start()
 
         # Auto-release after duration
         duration = 0.8
         def release_all():
-            for note in self.selected_notes:
+            for note in notes_snapshot:
                 self.synth_engine.note_off(note)
 
-        import threading
-        threading.Timer(duration, release_all).start()
+        t = threading.Timer(duration, release_all)
+        self._play_timers.append(t)
+        t.start()
 
     def action_expand_all(self):
         """Expand all tree nodes."""
