@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """MIDI Piano TUI Application - Main Entry Point."""
+import multiprocessing
 import os
 import sys
 
@@ -22,7 +23,7 @@ from midi.device_manager import MIDIDeviceManager
 from midi.input_handler import MIDIInputHandler
 from music.chord_detector import ChordDetector
 from music.chord_library import ChordLibrary
-from music.synth_engine import SynthEngine
+from music.engine_proxy import SynthEngineProxy
 
 from modes.config_mode import ConfigMode
 from modes.piano_mode import PianoMode
@@ -32,6 +33,67 @@ from modes.metronome_mode import MetronomeMode
 from modes.main_menu_mode import MainMenuMode
 from modes.tambor.tambor_mode import TamborMode
 from components.confirmation_dialog import ConfirmationDialog
+
+
+class LoadingScreen(Screen):
+    """ABOUTME: Startup loading screen shown while the audio engine process initialises.
+    ABOUTME: Polls the proxy ready event and transitions to the main screen when ready."""
+
+    CSS = """
+    LoadingScreen {
+        align: center middle;
+        background: $background;
+    }
+    #loading-box {
+        width: 50;
+        height: auto;
+        border: solid $accent;
+        padding: 1 2;
+        align: center middle;
+    }
+    #loading-title {
+        text-align: center;
+        color: $accent;
+        text-style: bold;
+    }
+    #loading-status {
+        text-align: center;
+        color: $text-muted;
+        margin-top: 1;
+    }
+    """
+
+    def __init__(self, proxy: SynthEngineProxy, on_ready_callback):
+        super().__init__()
+        self._proxy = proxy
+        self._on_ready_callback = on_ready_callback
+        self._poll_timer = None
+
+    def compose(self):
+        from textual.containers import Vertical
+        from textual.widgets import Static
+        with Vertical(id="loading-box"):
+            yield Static("A C O R D E S", id="loading-title")
+            yield Static("Initializing audio engine...", id="loading-status")
+
+    def on_mount(self):
+        # Poll every 100ms for the audio process ready signal.
+        self._poll_timer = self.set_interval(0.1, self._check_ready)
+
+    def _check_ready(self):
+        err = self._proxy.get_error()
+        if err:
+            self.query_one("#loading-status").update(f"[red]Audio error: {err}[/]")
+            if self._poll_timer:
+                self._poll_timer.stop()
+            return
+
+        if self._proxy.is_available():
+            if self._poll_timer:
+                self._poll_timer.stop()
+            self.query_one("#loading-status").update("Ready.")
+            # Brief pause so the user sees "Ready." before transition.
+            self.set_timer(0.3, self._on_ready_callback)
 
 
 class SynthHelpBar(Static):
@@ -394,7 +456,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.8.6"
+    VERSION = "1.8.7"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """
@@ -402,27 +464,26 @@ class AcordesApp(App):
     def __init__(self):
         super().__init__()
         self.title = f"Acordes v{self.VERSION}"
-        # Initialize config and components
+        # Initialize config and non-audio components immediately.
         self.config_manager = ConfigManager()
         self.device_manager = MIDIDeviceManager(self.config_manager)
         self.midi_handler = MIDIInputHandler(config_manager=self.config_manager)
         self.chord_library = ChordLibrary()
         self.chord_detector = ChordDetector(chord_library=self.chord_library)
-        self.synth_engine = SynthEngine()
 
-        # Pre-load/Warm-up audio system
-        self.synth_engine.warm_up()
+        # Start the audio engine in a separate process.  The proxy returns
+        # immediately; the child process signals ready_event when PyAudio is up.
+        self.synth_engine = SynthEngineProxy()
 
-        # Auto-open saved MIDI device
+        # Auto-open saved MIDI device (non-blocking; just opens the port).
         selected_device = self.device_manager.get_selected_device()
         if selected_device:
             self.midi_handler.open_device(selected_device)
 
-        # Register disconnect handler — fires once when the MIDI port errors out
-        # (device unplugged mid-session). Switches to config so user can reconnect.
+        # Register disconnect handler.
         self.midi_handler._disconnect_callback = self._on_midi_disconnect
 
-        # Create app context to share with main screen
+        # App context shared with MainScreen and all modes.
         self.app_context = {
             "device_manager": self.device_manager,
             "midi_handler": self.midi_handler,
@@ -441,21 +502,24 @@ class AcordesApp(App):
         }
 
     def on_mount(self):
-        """Called when app mounts."""
-        # Show config if no device, otherwise show main screen
+        """Called when app mounts — show loading screen while audio process starts."""
+        self.update_sub_title()
+        loading = LoadingScreen(self.synth_engine, self._after_engine_ready)
+        self.push_screen(loading)
+
+    def _after_engine_ready(self):
+        """Called by LoadingScreen once the audio process signals ready."""
+        self.pop_screen()  # dismiss loading screen
         if not self.device_manager.get_selected_device():
             def on_config_closed(result):
                 self.update_sub_title()
-                # Show main screen after config
                 main_screen = MainScreen(self.app_context)
                 self.push_screen(main_screen)
-
             config = ConfigMode(self.device_manager, self.config_manager)
             self.push_screen(config, on_config_closed)
         else:
             main_screen = MainScreen(self.app_context)
             self.push_screen(main_screen)
-
         self.update_sub_title()
 
     def update_sub_title(self):
@@ -535,4 +599,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # Required for PyInstaller packaging on Windows (spawn creates a frozen subprocess).
+    # Safe to call on all platforms — no-op on Linux/macOS.
+    multiprocessing.freeze_support()
+    # Explicit spawn on all platforms for consistent cross-platform behavior.
+    # Windows uses spawn by default anyway; this makes Linux/macOS match.
+    multiprocessing.set_start_method('spawn')
     main()

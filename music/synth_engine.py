@@ -207,7 +207,7 @@ class SynthEngine:
 
     def __init__(self):
         self.sample_rate = 48000
-        self.buffer_size = 256
+        self.buffer_size = 512
         self.num_voices = 8
         self.audio = None
         self.stream = None
@@ -285,6 +285,22 @@ class SynthEngine:
         self._chorus_phases = [i * (np.pi / 2.0) for i in range(4)]
         self._chorus_write  = 0
 
+        # ── Pre-allocated audio callback buffers ─────────────────────────
+        # All temporary arrays needed by _audio_callback are allocated here
+        # at startup and reused in-place each callback. Zero malloc/free in
+        # the hot path prevents GC-pause deadline misses that cause clicks.
+        _bs = self.buffer_size
+        self._cb_mixed_l  = np.zeros(_bs, dtype=np.float32)
+        self._cb_mixed_r  = np.zeros(_bs, dtype=np.float32)
+        self._cb_cho_l    = np.zeros(_bs, dtype=np.float32)
+        self._cb_cho_r    = np.zeros(_bs, dtype=np.float32)
+        self._cb_wet_l    = np.zeros(_bs, dtype=np.float32)
+        self._cb_wet_r    = np.zeros(_bs, dtype=np.float32)
+        self._cb_gain_ramp = np.zeros(_bs, dtype=np.float32)
+        self._cb_out      = np.zeros(_bs * 2, dtype=np.int32)
+        # Float index array reused for vectorized ring-buffer index math
+        self._cb_indices  = np.arange(_bs, dtype=np.float32)
+
         # ── Arpeggiator (audio-callback driven clock) ────────────────────
         self.arp_enabled  = False
         self.arp_mode     = "up"    # "up" | "down" | "up_down" | "random"
@@ -336,7 +352,8 @@ class SynthEngine:
         self.filter_drive_target  = 1.0
         self.filter_drive_smoothing = 0.85
         self.voice_type = "poly"  # "mono", "poly", "unison"
-        self.mono_voice_index = 0  # For mono mode, which voice to use
+        self.mono_voice_index = 0  # For mono mode, which voice to use (always self._mono_primary)
+        self._mono_primary = 0    # Alternates between 0 and 1: active MONO voice slot
         self.unison_detune = 8.0   # Cents spread for unison mode (each voice detuned within ±unison_detune)
         self._held_notes_ordered: list = []  # Ordered note stack for MONO/UNISON last-note priority (list of (note, velocity))
         self._held_notes_vel: dict = {}      # note -> velocity (0-1) for last-note priority resume
@@ -1034,10 +1051,6 @@ class SynthEngine:
             voice.filter_state_svf2_lp, voice.filter_state_svf2_bp = hpf_lp_s, hpf_bp_s
 
         # ── LPF stage: 4-pole Moog ladder (always) ───────────────────────────
-        # Gain normalisation using the ladder alpha so volume stays consistent
-        # as cutoff sweeps from 20Hz to 20kHz.
-        alpha_norm = float(np.clip(2.0 * np.pi * fl_lpf / self.sample_rate, 0.0001, 0.95))
-        filter_comp = float(np.clip(1.0 / alpha_norm, 1.0, 8.0))
 
         # Filter drive: pre-filter gain multiplier. Hitting the ladder stages harder
         # drives the per-stage tanh saturation, producing harmonic richness and warmth.
@@ -1055,7 +1068,7 @@ class SynthEngine:
         if rank == 1: voice.filter_state_ladder1 = ladder_s
         else:         voice.filter_state_ladder2 = ladder_s
 
-        return filtered * filter_comp
+        return filtered
 
     def _feg_level_snapshot(self, voice: Voice) -> float:
         """Return the current FEG level without advancing feg_time (no side effects).
@@ -1240,6 +1253,8 @@ class SynthEngine:
                 # Also clear arpeggiator state.
                 self._arp_held_notes.clear(); self._arp_sequence.clear()
                 self._arp_note_playing = None; self._arp_sample_counter = 0
+                # Reset MONO dissolve state so next note starts clean on slot 0.
+                self._mono_primary = 0; self.mono_voice_index = 0
                 # Stop FX tail drain immediately — panic/all_notes_off means silence NOW.
                 self._fx_tail_samples = 0
                 self._pending_all_notes_off = False  # cancel any pending soft silence
@@ -1350,51 +1365,48 @@ class SynthEngine:
         self._fx_tail_samples = self._FX_TAIL_MAX
 
         if self.voice_type == "mono":
-            # Single-voice MONO with true legato soft trigger.
-            # Release all other voices immediately (should be silent in mono mode anyway).
-            for i, v in enumerate(self.voices):
-                if i != self.mono_voice_index:
-                    v.release(self.attack, self.decay, self.sustain, 1.0)
-            mono_v = self.voices[self.mono_voice_index]
+            # MONO with ADSR-overlap note dissolve.
+            # Two voice slots (indices 0 and 1) alternate as primary/outgoing.
+            # When a new note arrives while the current voice has amplitude, the
+            # outgoing voice is put into release and the incoming voice is triggered
+            # fresh.  Both voices play simultaneously during release/attack, producing
+            # a natural cross-dissolve identical in character to the Compendium chord
+            # transition.  When the note arrives from silence, a single hard trigger
+            # fires with no crossfade needed.
+            old_idx = self._mono_primary
+            new_idx = 1 - self._mono_primary
+            old_v = self.voices[old_idx]
+            new_v = self.voices[new_idx]
 
-            has_amplitude = mono_v.last_envelope_level > 0.001
+            # Silence any voices outside the MONO pair (should never be active, but guard).
+            for i, v in enumerate(self.voices):
+                if i != old_idx and i != new_idx:
+                    v.release(self.attack, self.decay, self.sustain, 1.0)
+
+            has_amplitude = old_v.last_envelope_level > 0.001
             if has_amplitude:
-                # True legato soft trigger: update note params without resetting phase,
-                # filter states, DC blocker, onset_ramp, or envelope_time.
-                # The oscillator phase continues uninterrupted — only frequency and
-                # velocity update.  This avoids the C⁰ phase discontinuity (value jump)
-                # that causes clicks.  What remains is only a C¹ discontinuity (slope
-                # change as frequency updates), which is imperceptible.
-                # Envelope CONTINUES from its current position — no attack restart, no
-                # steal crossfade.  The level is already continuous so no crossfade is
-                # needed.  This matches hardware mono synth behaviour (Minimoog, Juno):
-                # pitch changes on legato, envelope does not retrigger.
-                # Previously, resetting envelope_time=0 combined with steal_start_level
-                # created a double-ramp: steal blended from old level toward the new
-                # attack-from-zero, causing an audible dip on every legato note with
-                # attack > 8ms.  Keeping envelope_time continuous eliminates this.
-                mono_v.midi_note = note
-                mono_v.base_frequency = freq
-                mono_v.frequency = freq
-                mono_v.velocity_target = vel
-                mono_v.note_active = True
-                mono_v.is_releasing = False
-                mono_v.age = 0.0
-                mono_v.onset_ms = onset_ms_for_note
-                # Arm engine-level crossfade to bridge any FIR frequency-change transient.
+                # Dissolve: send outgoing voice into ADSR release (it fades naturally),
+                # trigger incoming voice from zero (it attacks naturally).
+                # The overlap duration is the outgoing release time, so the crossfade
+                # length is musically tied to the preset's release setting.
+                old_v.release(self.attack, self.decay, self.sustain, 1.0)
+                old_v.feg_release_level = self._feg_level_snapshot(old_v)
+                old_v.feg_is_releasing = True
+                old_v.feg_release_start = old_v.feg_time
+                new_v.trigger(note, freq, vel)
+                new_v.onset_ms = onset_ms_for_note
+                new_v.phase = 0.0
+                new_v.pre_gate_progress = 0.0
+                self._mono_primary = new_idx
+                self.mono_voice_index = new_idx
+                # Short engine crossfade to hide any FIR transient at the transition boundary.
                 self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
-                # Phase, pre_gate_progress, feg_time, and envelope_time are intentionally
-                # NOT reset here.  True legato: oscillator phase continues (C¹ only —
-                # inaudible), filter states stay consistent with the signal they were
-                # processing, and the Filter EG continues from its current position.
-                # Restarting feg_time causes a sudden filter coefficient jump while the
-                # filter has stored energy — with high resonance this creates a spike.
             else:
-                # Hard trigger from true silence: full reset.
-                mono_v.trigger(note, freq, vel)
-                mono_v.onset_ms = onset_ms_for_note
-                mono_v.phase = 0.0
-                mono_v.pre_gate_progress = 0.0
+                # From silence: hard trigger on the primary slot, no crossfade needed.
+                old_v.trigger(note, freq, vel)
+                old_v.onset_ms = onset_ms_for_note
+                old_v.phase = 0.0
+                old_v.pre_gate_progress = 0.0
 
         elif self.voice_type == "unison":
             # Unison mode: all voices play same note with detuning spread.
@@ -1614,8 +1626,11 @@ class SynthEngine:
             vcf_lfo = 1.0 + lfo_val * (vcf_mod + self.lfo_vcf_mod) * 0.5
             vca_lfo = 1.0 + lfo_val * (vca_mod + self.lfo_vca_mod) * 0.3
 
-            mixed_l = np.zeros(frame_count, dtype=np.float32)
-            mixed_r = np.zeros(frame_count, dtype=np.float32)
+            # Use pre-allocated buffers — fill with zeros in-place (no malloc)
+            mixed_l = self._cb_mixed_l[:frame_count]
+            mixed_r = self._cb_mixed_r[:frame_count]
+            mixed_l.fill(0.0)
+            mixed_r.fill(0.0)
 
             # ── Arpeggiator clock (audio-thread driven, sample-accurate) ────
             # The counter advances by frame_count each buffer; when it reaches
@@ -1676,7 +1691,16 @@ class SynthEngine:
                 self._fx_tail_samples = max(0, self._fx_tail_samples - frame_count)
                 # Fall through: voices produce silence, FX blocks drain their buffers.
 
-            self.master_gain_target = 1.0 / np.sqrt(active_count) if active_count > 1 else 1.0
+            # MONO voice count is always treated as 1 for gain purposes: during a
+            # note dissolve two voices are briefly active (outgoing release + incoming
+            # attack), but their combined amplitude is approximately constant so no
+            # gain compensation is needed.  Applying 1/sqrt(2) here would cause an
+            # audible volume dip in the middle of every MONO note transition.
+            # UNISON mode also uses fixed gain=1.0: all 8 voices are always active
+            # and already normalized by per-voice scaling (mix_scale = 1/num_voices).
+            # Applying gain_ramp here would cause double attenuation (per-voice 1/8 × gain 0.354).
+            gain_count = 1 if self.voice_type in ("mono", "unison") else active_count
+            self.master_gain_target = 1.0 / np.sqrt(gain_count) if gain_count > 1 else 1.0
             # Snapshot gain AFTER the target is known but BEFORE smoothing,
             # so gain_ramp interpolates from the previous buffer's settled value
             # to the new smoothed value — a true per-sample continuous transition.
@@ -1686,7 +1710,11 @@ class SynthEngine:
             self.master_gain_current = self.master_gain_current * 0.80 + self.master_gain_target * 0.20
             # Per-sample gain ramp: eliminates the buffer-boundary step discontinuity
             # that caused clicks when active_count changed between buffers.
-            gain_ramp = np.linspace(gain_prev, self.master_gain_current, frame_count, dtype=np.float32)
+            # Built from pre-allocated buffers — no malloc in the hot path.
+            gain_ramp = self._cb_gain_ramp[:frame_count]
+            _gr_step = (self.master_gain_current - gain_prev) / max(1, frame_count - 1)
+            np.multiply(self._cb_indices[:frame_count], _gr_step, out=gain_ramp)
+            gain_ramp += gain_prev
 
             for v in self.voices:
                 if v.note_active or v.is_releasing:
@@ -1706,8 +1734,11 @@ class SynthEngine:
                     oversample_factor = self.OVERSAMPLE_FACTOR if self.ENABLE_OVERSAMPLING else 1
                     s1, v.phase = self._generate_waveform(self.waveform, f1, frame_count, p1_s, oversample_factor=oversample_factor)
 
-                    # Downsample oscillator output from 192 kHz to 48 kHz if oversampling enabled
-                    if self.ENABLE_OVERSAMPLING:
+                    # Downsample oscillator output from 192 kHz to 48 kHz if oversampling enabled.
+                    # Noise waveforms skip oversampling in _generate_waveform (they return
+                    # frame_count samples, not frame_count * oversample_factor), so only
+                    # downsample when the signal is actually at the oversampled length.
+                    if self.ENABLE_OVERSAMPLING and len(s1) == frame_count * oversample_factor:
                         s1 = self._downsample_polyphase_signal(s1, self.OVERSAMPLE_FACTOR, history=v._oversample_history)
 
                     # Pre-gate: S-curve fade-in over 10ms for sine/pure_sine in MONO/UNISON.
@@ -1734,7 +1765,7 @@ class SynthEngine:
                     # filter (and Filter EG) alongside the primary oscillator.
                     if self.sine_mix > 0:
                         ss, v.sine_phase = self._generate_waveform("pure_sine", f1, frame_count, v.sine_phase, oversample_factor=oversample_factor)
-                        if self.ENABLE_OVERSAMPLING:
+                        if self.ENABLE_OVERSAMPLING and len(ss) == frame_count * oversample_factor:
                             ss = self._downsample_polyphase_signal(ss, self.OVERSAMPLE_FACTOR, history=v._oversample_history_sine)
                         s1 = s1 + ss * self.sine_mix
 
@@ -1756,8 +1787,9 @@ class SynthEngine:
                         f2 = f1 * (2.0 ** (self.rank2_detune / 1200.0))
                         s2, v.phase2 = self._generate_waveform(self.rank2_waveform, f2, frame_count, p2_s, oversample_factor=oversample_factor)
 
-                        # Downsample rank 2 oscillator output if oversampling enabled
-                        if self.ENABLE_OVERSAMPLING:
+                        # Downsample rank 2 oscillator output if oversampling enabled.
+                        # Guard length: noise waveforms return frame_count samples, not oversampled.
+                        if self.ENABLE_OVERSAMPLING and len(s2) == frame_count * oversample_factor:
                             s2 = self._downsample_polyphase_signal(s2, self.OVERSAMPLE_FACTOR, history=v._oversample_history_r2)
 
                         self.cutoff_current = float(np.clip(_base_cutoff + feg_cutoff_offset, 20.0, 20000.0))
@@ -1821,24 +1853,42 @@ class SynthEngine:
                 max_dly_s = self.sample_rate * 0.025   # 25 ms in samples
                 base_dly  = max(1, int(self.sample_rate * 0.0005))   # 0.5 ms base
                 phase_inc = 2.0 * np.pi * self.chorus_rate / self.sample_rate
-                cho_l = np.zeros(frame_count, dtype=np.float32)
-                cho_r = np.zeros(frame_count, dtype=np.float32)
-                for i in range(frame_count):
-                    wp = self._chorus_write % buf_len
-                    self._chorus_buf_l[wp] = mixed_l[i]
-                    self._chorus_buf_r[wp] = mixed_r[i]
-                    wet_l = wet_r = 0.0
-                    for vi in range(n_voices):
-                        self._chorus_phases[vi] = (self._chorus_phases[vi] + phase_inc) % (2.0 * np.pi)
-                        mod_smp = int(np.sin(self._chorus_phases[vi]) * self.chorus_depth * max_dly_s)
-                        rp = (wp - max(1, base_dly + mod_smp)) % buf_len
-                        wet_l += self._chorus_buf_l[rp]
-                        wet_r += self._chorus_buf_r[rp]
-                    self._chorus_write = (wp + 1) % buf_len
-                    scale = 1.0 / n_voices
-                    mx    = float(self.chorus_mix)
-                    cho_l[i] = mixed_l[i] * (1.0 - mx) + wet_l * scale * mx
-                    cho_r[i] = mixed_r[i] * (1.0 - mx) + wet_r * scale * mx
+                # Vectorized chorus: compute all frame_count write/read positions
+                # at once using numpy array ops instead of a Python per-sample loop.
+                # Replaces O(frame_count × n_voices) Python iterations with BLAS-level
+                # numpy calls; at 256 samples × 4 voices this eliminates ~1024
+                # Python-level loop iterations per callback.
+                #
+                # Safety: base_dly is always >= 1 sample (0.5ms @ 48kHz = 24 samples).
+                # Read positions are always behind write positions by at least base_dly
+                # samples, so writes and reads within the same buffer never alias.
+                idx_fc = self._cb_indices[:frame_count]  # pre-allocated float index array
+                write_pos = ((self._chorus_write + idx_fc) % buf_len).astype(np.int32)
+                self._chorus_buf_l[write_pos] = mixed_l
+                self._chorus_buf_r[write_pos] = mixed_r
+
+                wet_l = self._cb_wet_l[:frame_count]
+                wet_r = self._cb_wet_r[:frame_count]
+                wet_l.fill(0.0)
+                wet_r.fill(0.0)
+                sample_f = idx_fc + 1.0  # 1-based sample offsets for phase advance
+                for vi in range(n_voices):
+                    phases = (self._chorus_phases[vi] + phase_inc * sample_f) % (2.0 * np.pi)
+                    mod_smp = (np.sin(phases) * self.chorus_depth * max_dly_s).astype(np.int32)
+                    rp = (write_pos - np.maximum(1, base_dly + mod_smp)) % buf_len
+                    wet_l += self._chorus_buf_l[rp]
+                    wet_r += self._chorus_buf_r[rp]
+                    self._chorus_phases[vi] = float(phases[-1])
+                self._chorus_write = int((write_pos[-1] + 1) % buf_len)
+
+                scale = 1.0 / n_voices
+                mx = float(self.chorus_mix)
+                cho_l = self._cb_cho_l[:frame_count]
+                cho_r = self._cb_cho_r[:frame_count]
+                np.multiply(mixed_l, 1.0 - mx, out=cho_l)
+                cho_l += wet_l * (scale * mx)
+                np.multiply(mixed_r, 1.0 - mx, out=cho_r)
+                cho_r += wet_r * (scale * mx)
                 mixed_l = cho_l
                 mixed_r = cho_r
 
@@ -1851,16 +1901,35 @@ class SynthEngine:
                 dm  = float(self.delay_mix)
                 fb  = float(self.delay_feedback)
                 ds  = int(self._delay_samples)
-                for i in range(frame_count):
-                    wp  = self._delay_write % buf_len
-                    rp  = (wp - ds) % buf_len
-                    wet_l = self._delay_buf_l[rp]
-                    wet_r = self._delay_buf_r[rp]
-                    self._delay_buf_l[wp] = mixed_l[i] + fb * wet_l
-                    self._delay_buf_r[wp] = mixed_r[i] + fb * wet_r
-                    mixed_l[i] = mixed_l[i] * (1.0 - dm) + wet_l * dm
-                    mixed_r[i] = mixed_r[i] * (1.0 - dm) + wet_r * dm
-                    self._delay_write = (wp + 1) % buf_len
+                if ds >= frame_count:
+                    # Vectorized path: read positions are at least frame_count samples
+                    # behind write positions, so no intra-buffer feedback aliasing.
+                    # Replaces O(frame_count) Python iterations with numpy array ops.
+                    # Minimum useful delay time = frame_count/sample_rate = ~5.3ms at
+                    # 256 samples; any musically meaningful delay exceeds this easily.
+                    idx_fc = self._cb_indices[:frame_count]
+                    write_pos = ((self._delay_write + idx_fc) % buf_len).astype(np.int32)
+                    read_pos  = (write_pos - ds) % buf_len
+                    wet_l = self._delay_buf_l[read_pos]
+                    wet_r = self._delay_buf_r[read_pos]
+                    self._delay_buf_l[write_pos] = mixed_l + fb * wet_l
+                    self._delay_buf_r[write_pos] = mixed_r + fb * wet_r
+                    mixed_l[:] = mixed_l * (1.0 - dm) + wet_l * dm
+                    mixed_r[:] = mixed_r * (1.0 - dm) + wet_r * dm
+                    self._delay_write = int((write_pos[-1] + 1) % buf_len)
+                else:
+                    # Short delay (< frame_count samples): per-sample loop required
+                    # to correctly propagate intra-buffer feedback. Rare in practice.
+                    for i in range(frame_count):
+                        wp  = self._delay_write % buf_len
+                        rp  = (wp - ds) % buf_len
+                        wet_l = self._delay_buf_l[rp]
+                        wet_r = self._delay_buf_r[rp]
+                        self._delay_buf_l[wp] = mixed_l[i] + fb * wet_l
+                        self._delay_buf_r[wp] = mixed_r[i] + fb * wet_r
+                        mixed_l[i] = mixed_l[i] * (1.0 - dm) + wet_l * dm
+                        mixed_r[i] = mixed_r[i] * (1.0 - dm) + wet_r * dm
+                        self._delay_write = (wp + 1) % buf_len
 
             # comp normalises waveform RMS to roughly the same perceived loudness.
             # Kept intentionally modest (≤1.0 for sine) so that at default amp_level
@@ -1914,17 +1983,21 @@ class SynthEngine:
                 mixed_r *= ramp
                 self._mute_ramp_fadein = max(0, self._mute_ramp_fadein - frame_count)
 
-            comp = 0.9 if self.waveform in ["sine", "pure_sine"] else (0.6 if self.waveform == "square" else 1.1)
+            # Square waves have high RMS relative to peak so they get slightly less drive.
+            # Sine is quieter by nature and gets a small boost. Saw/tri at unity.
+            comp = 0.9 if self.waveform in ["sine", "pure_sine"] else (0.75 if self.waveform == "square" else 1.0)
             # drive controls soft-clip saturation character — amp_level only.
             # master_volume is applied AFTER saturation as a clean linear gain so both
             # controls have full, independent audible range without cancelling each other.
             drive = self.amp_level_current * comp
-            # Cubic saturation: y = x - x³/3 (smooth polynomial) then limiter tanh
-            # Provides warm, analog saturation character (Minimoog/Buchla style)
+            # tanh soft-clip: warm, analog saturation. Normalized by tanh(drive) so output
+            # reaches full scale at unity drive regardless of waveform compensation.
+            # Normalization factor clamped to avoid division by near-zero at very low drive.
+            norm = np.tanh(max(drive, 0.01))
             sat_l = mixed_l * drive * gain_ramp
-            mixed_l = np.tanh(sat_l - sat_l**3 / 3.0) * self.master_volume
+            mixed_l = np.tanh(sat_l) / norm * self.master_volume
             sat_r = mixed_r * drive * gain_ramp
-            mixed_r = np.tanh(sat_r - sat_r**3 / 3.0) * self.master_volume
+            mixed_r = np.tanh(sat_r) / norm * self.master_volume
 
             # Engine-level inter-buffer crossfade: blend from the last buffer's final
             # post-tanh output toward the new output over _TRANSITION_XF_SAMPLES samples.
@@ -1942,13 +2015,19 @@ class SynthEngine:
             # output value — eliminates tanh/gain rounding mismatch at buffer boundaries.
             self._last_output_L = float(mixed_l[-1])
             self._last_output_R = float(mixed_r[-1])
-            out = np.empty(frame_count * 2, dtype=np.int32)
+            # Use pre-allocated int32 buffer — write L/R interleaved via assignment.
+            # Assignment to an int32 slice does implicit float→int truncation regardless
+            # of numpy version; np.clip(..., out=int32) requires casting='unsafe' in
+            # numpy >= 1.24 and would silently fail (caught by the except block = silence).
+            out = self._cb_out[:frame_count * 2]
             out[0::2] = np.clip(mixed_l * 8388607, -8388607, 8388607)
             out[1::2] = np.clip(mixed_r * 8388607, -8388607, 8388607)
-            # paInt24 expects 3 bytes per sample — strip the MSB from each int32 (little-endian layout)
-            out24 = out.astype('<i4').view(np.uint8).reshape(-1, 4)[:, :3].tobytes()
+            # paInt24: view int32 as uint8, take the 3 LSBs per word (little-endian).
+            # Avoids the astype('<i4') copy — int32 view is already correct on LE systems.
+            out24 = out.view(np.uint8).reshape(-1, 4)[:, :3].tobytes()
             return (out24, pyaudio.paContinue)
         except Exception as e:
+            import traceback; traceback.print_exc()
             # Silence: 3 bytes per sample × 2 channels × frame_count frames
             return (bytes(frame_count * 2 * 3), pyaudio.paContinue)
 
