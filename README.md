@@ -217,11 +217,13 @@ For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
 
 **Audio Device Selection & Validation**:
 - Select audio output device at startup (Windows, macOS, Linux/ALSA)
+- Three built-in options: **System Default** (OS routing, recommended for Linux), **No Audio** (silent mode), plus hardware devices
 - On first launch, app defers engine initialization until audio device is chosen in Config Mode
 - On subsequent launches, the saved audio device is validated; if missing (e.g. USB interface unplugged), automatically re-routes to Config Mode
 - User never encounters errors from missing or invalid audio devices
 - Fixes ALSA sound card selection issues on Fedora and other Linux distributions
 - Windows: PyAudio device deduplication (removes Host API duplicates, prefers WASAPI for best latency)
+- Subtitle shows both MIDI device and audio output (e.g., `🎹 Device | 🔊 System Default`)
 
 **Launcher Improvements**:
 - `run.sh`: Cleaner startup output (dependencies installed silently unless error occurs)

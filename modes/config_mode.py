@@ -209,19 +209,23 @@ class ConfigMode(Screen):
         self._update_device_label()
 
     def refresh_audio_list(self):
-        """Refresh the list of PyAudio output devices."""
+        """Refresh the list of PyAudio output devices.
+
+        Sentinel values prepended to the list:
+          -2 = System Default (OS/PipeWire routes to active speakers — recommended on Linux)
+          -1 = No Audio (engine runs silently; useful for browsing compendium, etc.)
+        """
         from music.synth_engine import list_output_devices
         list_view = self.query_one("#audio-list", ListView)
         list_view.clear()
 
-        self.audio_devices = list_output_devices()
+        hardware = list_output_devices()
+        # Prepend special entries so they are always available regardless of hardware
+        self.audio_devices = [(-2, "System Default"), (-1, "No Audio")] + hardware
 
-        if not self.audio_devices:
-            list_view.append(ListItem(Label("No audio output devices found")))
-        else:
-            for idx, name in self.audio_devices:
-                marker = "☑" if idx == self.pending_audio_index else "☐"
-                list_view.append(ListItem(Label(f"{marker} {name}")))
+        for idx, name in self.audio_devices:
+            marker = "☑" if idx == self.pending_audio_index else "☐"
+            list_view.append(ListItem(Label(f"{marker} {name}")))
 
         self._update_audio_label()
 
@@ -250,10 +254,9 @@ class ConfigMode(Screen):
     def _update_audio_label(self):
         """Update the audio output device status label."""
         label = self.query_one("#selected-audio", Label)
-        saved_name = self.config_manager.get_audio_device_name()
         if self.pending_audio_index is not None:
-            # Find name for pending index
-            name = next((n for i, n in self.audio_devices if i == self.pending_audio_index), saved_name or "Unknown")
+            name = next((n for i, n in self.audio_devices if i == self.pending_audio_index),
+                        self.config_manager.get_audio_device_name() or "Unknown")
             label.update(f"Selected: {name}")
         else:
             label.update("No audio device selected")
@@ -282,7 +285,7 @@ class ConfigMode(Screen):
 
         if current == "#device-list":
             next_id = "#audio-list"
-            # Auto-highlight current audio selection
+            # Auto-highlight current audio selection (includes sentinel entries -2 and -1)
             if self.pending_audio_index is not None:
                 indices = [i for i, _ in self.audio_devices]
                 if self.pending_audio_index in indices:

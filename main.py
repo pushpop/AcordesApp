@@ -419,7 +419,9 @@ class MainScreen(Screen):
             self.app.update_sub_title()
 
             # Silence any notes that may have been left held before config opened
-            self.app_context["synth_engine"].all_notes_off()
+            engine = self.app_context.get("synth_engine")
+            if engine is not None:
+                engine.all_notes_off()
 
             # Reopen MIDI device
             selected = self.app_context["device_manager"].get_selected_device()
@@ -444,9 +446,11 @@ class MainScreen(Screen):
 
         def on_audio_device_change(new_device_index):
             """Restart the audio subprocess with the newly selected output device."""
+            # Translate -2 (System Default sentinel) to None for PyAudio.
+            actual_index = None if new_device_index in (-2, None) else new_device_index
             engine = self.app_context["synth_engine"]
             engine.all_notes_off()
-            engine.restart_with_device(new_device_index)
+            engine.restart_with_device(actual_index)
 
         config = ConfigMode(
             self.app_context["device_manager"],
@@ -510,8 +514,18 @@ class AcordesApp(App):
         }
 
     def _start_audio_engine(self, device_index=None):
-        """Create the audio subprocess with the given device index and show the loading screen."""
-        self.synth_engine = SynthEngineProxy(output_device_index=device_index)
+        """Create the audio subprocess with the given device index and show the loading screen.
+
+        device_index values:
+          -2  = System Default (OS/PipeWire selects the output device)
+          -1  = No Audio (engine runs silently, no PyAudio stream)
+          None = same as -2 (legacy; treated as system default)
+          >=0 = specific PyAudio device index
+        """
+        # Translate -2 sentinel to None so PyAudio uses the system default.
+        actual_index = None if device_index in (-2, None) else device_index
+
+        self.synth_engine = SynthEngineProxy(output_device_index=actual_index)
         self.app_context["synth_engine"] = self.synth_engine
 
         # Auto-open saved MIDI device now that we have an engine to pair with.
@@ -535,8 +549,9 @@ class AcordesApp(App):
         self.update_sub_title()
         saved_audio_index = self.config_manager.get_audio_device_index()
 
-        # Validate saved device is still available.
-        if saved_audio_index is not None:
+        # Sentinel values -1 (No Audio) and -2 (System Default) are always valid;
+        # skip hardware enumeration for them. Only validate real device indices (>=0).
+        if saved_audio_index is not None and saved_audio_index >= 0:
             available = {idx for idx, _ in list_output_devices()}
             if saved_audio_index not in available:
                 # Device no longer present — clear saved choice and re-configure.
@@ -582,12 +597,22 @@ class AcordesApp(App):
         self.update_sub_title()
 
     def update_sub_title(self):
-        """Update sub title with device info."""
-        selected = self.device_manager.get_selected_device()
-        if selected:
-            self.sub_title = f"🎹 Device: {selected}"
+        """Update sub title with MIDI device and audio output info."""
+        midi = self.device_manager.get_selected_device()
+        audio_index = self.config_manager.get_audio_device_index()
+        audio_name = self.config_manager.get_audio_device_name() or ""
+
+        if audio_index == -1:
+            audio_str = "No Audio"
+        elif audio_index == -2 or audio_index is None:
+            audio_str = "System Default"
         else:
-            self.sub_title = "⚠ No MIDI device selected (press C to configure)"
+            audio_str = audio_name or f"Device {audio_index}"
+
+        if midi:
+            self.sub_title = f"🎹 {midi}  |  🔊 {audio_str}"
+        else:
+            self.sub_title = f"⚠ No MIDI device (press C)  |  🔊 {audio_str}"
 
     def _on_midi_disconnect(self):
         """Called when the MIDI port errors out (device unplugged mid-session).

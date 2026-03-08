@@ -256,7 +256,11 @@ class SynthEngine:
         self.num_voices = 8
         self.audio = None
         self.stream = None
-        self._output_device_index = output_device_index  # None = use system default
+        # -1 = No Audio mode (engine runs silently, no PyAudio stream opened)
+        # -2 = System Default (passed as None to PyAudio — OS chooses the output)
+        # None = system default (same as -2, legacy behavior)
+        # >=0 = specific device index
+        self._output_device_index = output_device_index
         self.running = False
 
         self.waveform = "sine"
@@ -469,11 +473,16 @@ class SynthEngine:
         # Initialize polyphase downsampling filter for oversampling
         self._create_polyphase_filter()
 
-        if AUDIO_AVAILABLE and pyaudio is not None:
+        if self._output_device_index == -1:
+            # No Audio mode: engine processes MIDI but produces no sound.
+            # PyAudio is not initialized; _audio_callback is never called.
+            self.running = True
+
+        elif AUDIO_AVAILABLE and pyaudio is not None:
             try:
                 self.audio = pyaudio.PyAudio()
-                # Use caller-specified device or fall back to system default
-                if self._output_device_index is not None:
+                # -2 or None = use system default (OS/PipeWire/PulseAudio routes to speakers)
+                if self._output_device_index is not None and self._output_device_index >= 0:
                     device_index = self._output_device_index
                 else:
                     device_index = self.audio.get_default_output_device_info()['index']

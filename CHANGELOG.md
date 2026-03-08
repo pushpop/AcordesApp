@@ -12,10 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Audio Output Device Selection**:
 - Added audio device selection to Config Mode (new third section: Audio Output)
 - TAB now cycles through three lists: MIDI Input → Audio Output → Velocity Curve
+- Three built-in options always available:
+  - **System Default**: Lets OS/PipeWire route to active speakers (recommended for Linux/KDE/PipeWire)
+  - **No Audio**: Engine runs silently; useful for browsing compendium mode, metronome, etc. without sound
+  - **Hardware Devices**: Enumerate specific PyAudio devices (Windows/macOS/Linux)
 - On first launch (no saved audio device), app shows Config Mode before starting audio engine
 - User must select audio device before engine initializes
-- On subsequent launches, saves audio device index is used automatically
+- On subsequent launches, saved audio device index is used automatically
 - Fixes Linux/ALSA sound card selection issues (Fedora, Ubuntu, etc.)
+- Subtitle displays both MIDI device and current audio output (e.g., `🎹 USB Keyboard | 🔊 System Default`)
 
 **Audio Device Deduplication** (`music/synth_engine.py`):
 - Windows: PyAudio lists same physical device multiple times (once per host API: MME, DirectSound, WASAPI, WDM-KS)
