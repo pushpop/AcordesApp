@@ -471,7 +471,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.8.9"
+    VERSION = "1.8.11"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """

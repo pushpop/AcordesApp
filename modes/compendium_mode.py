@@ -493,6 +493,8 @@ class CompendiumMode(Widget):
         self._play_timers: list = []
         # Notes currently sounding — used for crossfade (note_off triggers release envelope)
         self._playing_notes: list = []
+        # Textual timer handle for debounced auto-play (cancellable, UI-thread-safe)
+        self._auto_play_timer = None
 
         # Initialize data manager
         self.data_manager = CompendiumDataManager()
@@ -543,6 +545,9 @@ class CompendiumMode(Widget):
 
     def on_unmount(self):
         """Cancel timers and restore synth state when leaving compendium mode."""
+        if self._auto_play_timer is not None:
+            self._auto_play_timer.stop()
+            self._auto_play_timer = None
         self._cancel_play_timers()
         # Note: _switch_mode already called soft_all_notes_off() before unmounting.
         if self._saved_synth_params:
@@ -597,7 +602,11 @@ class CompendiumMode(Widget):
                 self.selected_notes = self._note_names_to_midi(
                     item.get("metadata", {}).get("notes", [])
                 )
-                self.action_play_item()
+                # Debounce: cancel previous auto-play timer and schedule a new one.
+                # Prevents ghost notes and voice exhaustion when scrolling quickly.
+                if self._auto_play_timer is not None:
+                    self._auto_play_timer.stop()
+                self._auto_play_timer = self.set_timer(0.15, self.action_play_item)
 
     def on_tree_node_selected(self, event: Tree.NodeSelected):
         """Handle tree node selection (Enter key)."""
@@ -690,41 +699,38 @@ class CompendiumMode(Widget):
     def _cancel_play_timers(self):
         """Cancel all pending note timers to prevent stale note_on/off calls."""
         for t in self._play_timers:
-            t.cancel()
+            t.stop()
         self._play_timers.clear()
 
     def action_play_item(self):
         """Play the currently selected chord using the synth engine.
 
-        Crossfade: sends note_off to the previous chord (triggering its release envelope)
-        and immediately starts the new chord. Both overlap during the crossfade window —
-        old notes fade out via ADSR release while new notes attack.
+        Uses soft_all_notes_off before the new chord to prevent ghost notes from
+        racing threading.Timer callbacks. Staggered note onsets are scheduled via
+        Textual timers (UI-thread-safe, reliably cancellable).
         """
-        import threading
-
         if not self.selected_notes:
             return
 
-        # Cancel pending timers (staggered note_ons/release from previous chord)
+        # Cancel any pending stagger/release timers from the previous chord.
         self._cancel_play_timers()
 
-        # Crossfade: send note_off to previous notes so they fade via release envelope.
-        # Do NOT call all_notes_off() — that hard-cuts audio, bypassing release.
-        for note in self._playing_notes:
-            self.synth_engine.note_off(note)
+        # Soft all-notes-off: triggers release envelope on all active voices cleanly.
+        # Avoids ghost notes that arise when individual note_offs race with stagger timers.
+        self.synth_engine.soft_all_notes_off()
 
-        # Staggered note onset for musical effect
-        stagger = 0.02
-        notes_snapshot = list(self.selected_notes)  # snapshot in case selection changes mid-timer
+        notes_snapshot = list(self.selected_notes)
         self._playing_notes = notes_snapshot
 
+        # Staggered note onset for musical effect using Textual timers.
+        # Textual timers run on the UI event loop and are reliably cancellable.
+        stagger = 0.02
         for i, note in enumerate(notes_snapshot):
             if i == 0:
                 self.synth_engine.note_on(note, 80)
             else:
-                t = threading.Timer(i * stagger, self.synth_engine.note_on, args=[note, 80])
+                t = self.set_timer(i * stagger, lambda n=note: self.synth_engine.note_on(n, 80))
                 self._play_timers.append(t)
-                t.start()
 
         # Auto-release after duration
         duration = 0.8
@@ -732,9 +738,8 @@ class CompendiumMode(Widget):
             for note in notes_snapshot:
                 self.synth_engine.note_off(note)
 
-        t = threading.Timer(duration, release_all)
+        t = self.set_timer(duration, release_all)
         self._play_timers.append(t)
-        t.start()
 
     def action_expand_all(self):
         """Expand all tree nodes."""

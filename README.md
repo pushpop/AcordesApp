@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.8.9
+**Latest Version**: 1.8.11
 
 ---
 
@@ -216,22 +216,27 @@ python main.py
 
 For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
 
-### What's New (v1.8.9)
+### What's New (v1.8.11)
 
-**Audio Device Selection & Validation**:
-- Select audio output device at startup (Windows, macOS, Linux/ALSA)
-- Three built-in options: **System Default** (OS routing, recommended for Linux), **No Audio** (silent mode), plus hardware devices
-- On first launch, app defers engine initialization until audio device is chosen in Config Mode
-- On subsequent launches, the saved audio device is validated; if missing (e.g. USB interface unplugged), automatically re-routes to Config Mode
-- User never encounters errors from missing or invalid audio devices
-- Fixes ALSA sound card selection issues on Fedora and other Linux distributions
-- Windows: PortAudio device deduplication (removes Host API duplicates, prefers WASAPI for best latency)
-- Subtitle shows both MIDI device and audio output (e.g., `🎹 Device | 🔊 System Default`)
+**Compendium Mode Audio Fix**:
+- Fixed critical race condition in chord browser causing noise and artifacts when navigating quickly
+- Replaced `threading.Timer` with Textual timers for reliable, cancellable stagger effects
+- Added 150ms debounce to auto-play: smooth browsing experience without audio glitches
+- Uses `soft_all_notes_off()` to prevent "ghost notes" from racing callbacks
+- Result: Clean, responsive chord browsing even at keyboard repeat rates
 
-**Launcher Improvements**:
-- `run.sh`: Cleaner startup output (dependencies installed silently unless error occurs)
-- Improved PATH handling for uv detection on Linux/macOS
-- Better error messages when dependency installation fails
+**Configuration Auto-Save**:
+- Auto-saves "System Default" audio device if user closes config without selecting (v1.8.10)
+- Added "No MIDI Device" option for optional MIDI input
+- Tracks configuration state with new `midi_device_configured` flag
+- App no longer reopens config mode unnecessarily on subsequent launches
+
+**Previous Release (v1.8.9+)**:
+- PyAudio → sounddevice migration for better ALSA compatibility on Linux
+- Audio device selection at startup with validation on launch
+- System Default, No Audio, and hardware device options
+- Windows device deduplication (WASAPI preferred)
+- Subtitle shows MIDI + audio device status
 
 See **[CHANGELOG.md](CHANGELOG.md)** for full technical details.
 
