@@ -568,6 +568,11 @@ class AcordesApp(App):
             # No valid audio device: first launch or device went missing.
             def on_config_closed(result):
                 chosen_index = self.config_manager.get_audio_device_index()
+                if chosen_index is None:
+                    # User closed config without selecting audio device.
+                    # Default to "System Default" and save it.
+                    self.config_manager.set_audio_device(-2, "System Default")
+                    chosen_index = -2
                 self._start_audio_engine(chosen_index)
             config = ConfigMode(self.device_manager, self.config_manager)
             self.push_screen(config, on_config_closed)
@@ -583,10 +588,14 @@ class AcordesApp(App):
         main_screen = MainScreen(self.app_context)
         self.push_screen(main_screen)
 
-        # Show config only if MIDI device is still not set.
+        # Show config only if MIDI device has not been configured yet.
         # Audio device is already configured at this point.
-        if not self.device_manager.get_selected_device():
+        if not self.config_manager.is_midi_device_configured():
             def on_config_closed(result):
+                # If user closed config without selecting MIDI device, default to "No MIDI Device"
+                if not self.config_manager.is_midi_device_configured():
+                    self.device_manager.select_device(None)
+
                 self.update_sub_title()
                 selected = self.device_manager.get_selected_device()
                 if selected and not self.midi_handler.is_device_open():

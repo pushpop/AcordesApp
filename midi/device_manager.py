@@ -51,15 +51,22 @@ class MIDIDeviceManager:
                 self.last_error = f"Error: {e}"
             return []
 
-    def select_device(self, device_name: str) -> bool:
+    def select_device(self, device_name: Optional[str]) -> bool:
         """Select a MIDI input device.
 
         Args:
-            device_name: Name of the device to select.
+            device_name: Name of the device to select, or None to deselect.
 
         Returns:
-            True if device is valid and selected, False otherwise.
+            True if device is valid (or None) and selected, False otherwise.
         """
+        if device_name is None:
+            # Allow deselecting MIDI device
+            self.selected_device = None
+            if self.config_manager:
+                self.config_manager.set_selected_device(None)
+            return True
+
         available_devices = self.get_input_devices()
         if device_name in available_devices:
             self.selected_device = device_name

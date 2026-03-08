@@ -26,11 +26,12 @@ class ConfigManager:
         """Return default configuration."""
         return {
             "selected_midi_device": None,
+            "midi_device_configured": False,  # True after user makes first choice
             "velocity_curve": "Linear",  # Default velocity curve type
             "last_synth_preset": None,
             "synth_state": None,
             "metronome_bpm": 120,
-            "audio_device_index": None,  # PyAudio output device index (None = not yet chosen)
+            "audio_device_index": None,  # sounddevice output device index (None = not yet chosen)
             "audio_device_name": None,   # Human-readable name for display
         }
 
@@ -51,7 +52,12 @@ class ConfigManager:
     def set_selected_device(self, device_name: Optional[str]):
         """Save the selected MIDI device."""
         self.config["selected_midi_device"] = device_name
+        self.config["midi_device_configured"] = True
         self.save_config()
+
+    def is_midi_device_configured(self) -> bool:
+        """Check if user has made a MIDI device choice (including 'No MIDI Device')."""
+        return self.config.get("midi_device_configured", False)
 
     # ── Velocity curve ───────────────────────────────────────────
 

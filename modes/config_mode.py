@@ -190,17 +190,24 @@ class ConfigMode(Screen):
         device_list.focus()
 
     def refresh_device_list(self):
-        """Refresh the list of MIDI input devices."""
+        """Refresh the list of MIDI input devices.
+
+        Prepends sentinel option to allow proceeding without MIDI device selection.
+        """
         list_view = self.query_one("#device-list", ListView)
         list_view.clear()
 
         self.devices = self.device_manager.get_input_devices()
 
+        # Always prepend "No MIDI Device" option (None sentinel)
+        marker = "☑" if self.pending_device is None else "☐"
+        list_view.append(ListItem(Label(f"{marker} No MIDI Device")))
+
         if not self.devices:
             if self.device_manager.last_error:
                 list_view.append(ListItem(Label("❌ " + self.device_manager.last_error)))
             else:
-                list_view.append(ListItem(Label("No MIDI devices found")))
+                list_view.append(ListItem(Label("(No devices found)")))
         else:
             for device in self.devices:
                 marker = "☑" if device == self.pending_device else "☐"
@@ -298,8 +305,11 @@ class ConfigMode(Screen):
         else:
             next_id = "#device-list"
             # Auto-highlight current MIDI selection
-            if self.pending_device in self.devices:
-                self.query_one("#device-list", ListView).index = self.devices.index(self.pending_device)
+            # Index 0 is "No MIDI Device" (None), indices 1+ are hardware devices
+            if self.pending_device is None:
+                self.query_one("#device-list", ListView).index = 0
+            elif self.pending_device in self.devices:
+                self.query_one("#device-list", ListView).index = self.devices.index(self.pending_device) + 1
 
         self.query_one(next_id, ListView).focus()
 
@@ -314,13 +324,26 @@ class ConfigMode(Screen):
             self._select_device()
 
     def _select_device(self):
-        """Apply the highlighted MIDI device."""
+        """Apply the highlighted MIDI device.
+
+        Index 0 is the "No MIDI Device" sentinel (None).
+        Indices 1+ are actual hardware devices.
+        """
         list_view = self.query_one("#device-list", ListView)
-        if list_view.index is not None and self.devices and 0 <= list_view.index < len(self.devices):
-            selected = self.devices[list_view.index]
+        if list_view.index is None:
+            return
+
+        if list_view.index == 0:
+            # "No MIDI Device" selected
+            self.pending_device = None
+            self.device_manager.select_device(None)
+        elif 1 <= list_view.index <= len(self.devices):
+            # Hardware device selected (offset by 1 due to sentinel)
+            selected = self.devices[list_view.index - 1]
             self.pending_device = selected
             self.device_manager.select_device(selected)
-            self.refresh_device_list()
+
+        self.refresh_device_list()
 
     def _select_audio_device(self):
         """Save the highlighted audio output device and optionally restart the engine."""

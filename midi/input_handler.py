@@ -27,11 +27,15 @@ class MIDIInputHandler:
         """Open a MIDI input device.
 
         Args:
-            device_name: Name of the MIDI device to open.
+            device_name: Name of the MIDI device to open (must not be None).
 
         Returns:
             True if device opened successfully, False otherwise.
         """
+        if not device_name:
+            self.close_device()
+            return True  # Silently skip if no device name provided
+
         try:
             self.close_device()
             self.port = mido.open_input(device_name)
