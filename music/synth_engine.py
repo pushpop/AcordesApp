@@ -252,7 +252,7 @@ class SynthEngine:
 
     def __init__(self, output_device_index=None):
         self.sample_rate = 48000
-        self.buffer_size = 512
+        self.buffer_size = 528
         self.num_voices = 8
         self.audio = None
         self.stream = None
