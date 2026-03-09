@@ -406,7 +406,7 @@ You can have multiple Python versions installed side-by-side. After installing 3
 
 ### ASIO Support on Windows
 
-By default, sounddevice on Windows uses WASAPI or DirectSound. ASIO support (for lower latency and better hardware compatibility with drivers like Steinberg or ASIO4ALL) is enabled **automatically** on first launch:
+By default, sounddevice on Windows uses WASAPI or DirectSound. ASIO support (for lower latency and better hardware compatibility) is enabled **automatically** on first launch:
 
 1. Run `.\run.ps1` as normal
 2. The launcher downloads the ASIO-enabled PortAudio DLL from [spatialaudio/portaudio-binaries](https://github.com/spatialaudio/portaudio-binaries) and installs it automatically (one-time download, cached locally)
@@ -415,6 +415,24 @@ By default, sounddevice on Windows uses WASAPI or DirectSound. ASIO support (for
 No manual steps required. If there is no internet connection on first launch, the launcher skips the download silently and the app runs with WASAPI as the default backend. ASIO will be set up automatically on the next launch when internet is available.
 
 The original sounddevice DLL is backed up as `libportaudio64bit.dll.bak` so you can restore the default if needed.
+
+#### Important: ASIO is Exclusive (by Design)
+
+ASIO drivers take **exclusive control** of the audio hardware. When Acordes holds an ASIO stream open, other applications (Firefox, Spotify, Discord, etc.) cannot play audio simultaneously. This exclusivity is why ASIO has low latency — it bypasses the Windows audio mixer entirely.
+
+**Solutions**:
+
+1. **Switch backends dynamically**: Use WASAPI when you need to multitask (press **C** in config, select WASAPI). Use ASIO only when doing focused music work.
+
+2. **Use FlexASIO** (Recommended for shared audio): [FlexASIO](https://github.com/dechamps/FlexASIO) is a free virtual ASIO driver that wraps WASAPI shared mode underneath. It provides ASIO-style low latency while allowing other apps to use audio simultaneously.
+   - Download and install from: [github.com/dechamps/FlexASIO](https://github.com/dechamps/FlexASIO)
+   - After installation, "FlexASIO" will appear in Acordes' ASIO driver list
+   - No Acordes code changes needed — just install and select in config
+
+3. **ASIO Driver Options**: Acordes supports all ASIO drivers installed on your system:
+   - **Steinberg ASIO** (native hardware ASIO from Steinberg; requires hardware support): Lowest latency, exclusive access
+   - **ASIO4ALL** (free wrapper for WDM drivers): Wraps Windows audio drivers as ASIO, still exclusive like standard ASIO
+   - **FlexASIO** (free virtual ASIO over WASAPI shared): Allows simultaneous audio from other apps
 
 ### No MIDI Devices Found
 
