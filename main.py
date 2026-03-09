@@ -579,7 +579,12 @@ class AcordesApp(App):
                     # Default to "System Default" and save it.
                     self.config_manager.set_audio_device(-2, "System Default")
                     chosen_index = -2
-                self._start_audio_engine(chosen_index)
+                # Defer engine start to the next event loop tick so the config
+                # screen is fully dismissed before the audio subprocess spawns.
+                # On macOS (Python 3.12+) spawning a process while Textual's
+                # asyncio sockets are still open causes ValueError: bad value(s)
+                # in fds_to_keep.
+                self.call_later(self._start_audio_engine, chosen_index)
             config = ConfigMode(self.device_manager, self.config_manager)
             self.push_screen(config, on_config_closed)
         else:
