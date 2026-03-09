@@ -271,7 +271,11 @@ class ConfigMode(Screen):
         self._update_backend_label()
 
     def _select_audio_backend(self):
-        """Save the highlighted backend and refresh the device list to match."""
+        """Save the highlighted backend and refresh the device list to match.
+
+        If FlexASIO is selected, auto-generate an optimal TOML configuration file
+        matching Acordes engine settings (48 kHz, 1024 samples, Float32, minimal latency).
+        """
         list_view = self.query_one("#backend-list", ListView)
         if list_view.index is None or not self._all_backends:
             return
@@ -285,6 +289,39 @@ class ConfigMode(Screen):
         # Refresh device list filtered to the newly chosen backend
         self.refresh_backend_list()
         self.refresh_audio_list()
+
+    def _setup_flexasio_config(self):
+        """Create or update FlexASIO.toml with Acordes-optimized settings (Windows only).
+
+        Generates at C:\\Users\\<username>\\AppData\\Local\\FlexASIO.toml with settings
+        matched to the current Acordes engine configuration (sample rate, buffer size).
+        Triggered automatically when the user selects a FlexASIO device in the audio list.
+        """
+        try:
+            from music.flexasio_config import create_or_update_flexasio_config
+            import platform
+
+            # FlexASIO only works on Windows
+            if platform.system() != "Windows":
+                return
+
+            # Get engine settings from the synth engine (if available in app context)
+            sample_rate = 48000  # default
+            buffer_size = 1024   # default
+            synth_engine = self.app.synth_engine if hasattr(self.app, 'synth_engine') else None
+            if synth_engine:
+                # Read actual engine settings if synth engine is running
+                if hasattr(synth_engine, 'sample_rate'):
+                    sample_rate = synth_engine.sample_rate
+                if hasattr(synth_engine, 'buffer_size'):
+                    buffer_size = synth_engine.buffer_size
+
+            # Silently create the config file — FlexASIO reads it on next restart
+            create_or_update_flexasio_config(sample_rate=sample_rate, buffer_samples=buffer_size)
+
+        except Exception:
+            # Silently fail if FlexASIO config setup has issues (e.g., permission denied)
+            pass
 
     def _update_backend_label(self):
         """Update the audio backend status label."""
@@ -334,6 +371,11 @@ class ConfigMode(Screen):
         self.pending_audio_index = idx
         self.config_manager.set_audio_device(idx, name)
         self.refresh_audio_list()
+
+        # Auto-generate FlexASIO.toml when user selects a FlexASIO device.
+        # FlexASIO appears as a device under the ASIO backend, not as a backend itself.
+        if "FlexASIO" in name:
+            self._setup_flexasio_config()
 
         # If the engine is already running, trigger a restart with the new device
         if self.on_audio_device_change is not None:
