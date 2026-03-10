@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.9.1 - Unshackle
+**Latest Version**: 1.9.2 - MIDI CC Control System
 
 ---
 
@@ -86,6 +86,13 @@ A full 8-voice polyphonic synthesizer with real-time MIDI playback:
 - **User Presets**: Unlimited custom presets saved as individual JSON files
 - **Randomizer**: Generate musically useful random patches with the `-` key
 - **Parameter Persistence**: All tweaks auto-saved to disk; last preset restored on restart
+
+**MIDI CC Mapping**:
+- **16 Assignable Knobs** (4 banks × 4 knobs) configurable via `midi/cc_mappings.json`
+- **Bank 1 (Fixed)**: CC 74 (LPF Cutoff), CC 71 (LPF Resonance), CC 75 (Wave Blend), CC 7 (Master Volume)
+- **Banks 2-4**: Modulation depth, envelope parameters, filter controls, LFO, effects, arpeggiator
+- **CC 75 Smart Mode**: In focus mode, CC 75 controls the currently highlighted parameter (continuous, discrete list, or discrete range)
+- **Logarithmic Scaling**: Frequency parameters (cutoff, HPF, LFO rate) use log scaling for intuitive control
 
 ### Compendium Mode
 A comprehensive music theory reference hub:
@@ -267,7 +274,26 @@ In the app, look at the window title which displays the current version (e.g. `A
 
 For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
 
-### What's New (v1.9.0)
+### What's New (v1.9.2)
+
+**MIDI CC Mapping System**:
+- Configure 16 assignable MIDI CC knobs (4 banks of 4 knobs) via `midi/cc_mappings.json`
+- Bank 1 pre-configured: CC 74 (cutoff), CC 71 (resonance), CC 75 (wave blend), CC 7 (volume)
+- Smart CC 75 in focus mode: Controls the focused parameter whether continuous or discrete
+- Section-aware parameter lookup resolves naming conflicts (e.g., LFO Depth vs Chorus Depth)
+- Logarithmic scaling for frequency parameters ensures intuitive sweeps
+
+**Noise Engine Improvement**:
+- Switched from white to pink noise (1/f spectrum, warmer and more musical)
+- Noise now blended pre-filter so VCF shapes it alongside the tone (analog synth behavior)
+- Square-root curve on noise blend level keeps values subtle and musical across the full range
+
+**Filter Responsiveness Fix**:
+- Engine-level resonance smoothing optimized: instant response with per-voice artifact protection
+- HPF resonance now fast 3-buffer ramp (~32ms) for responsive control
+- HPF Q range increased to match LP filter (0.5-10.0 scale) fixing weak HP peak in MS-20 routing
+
+**Previous Version (v1.9.0)**:
 
 **Audio Backend Selection**:
 - Config mode now displays and selects audio backends / host APIs (WASAPI, DirectSound on Windows; ASIO via optional DLL; Core Audio on macOS; ALSA/PulseAudio on Linux)
@@ -497,7 +523,8 @@ acordes/
 │
 ├── midi/                            # MIDI I/O
 │   ├── device_manager.py            # Device enumeration & selection
-│   └── input_handler.py             # MIDI input processing + velocity curve remapping
+│   ├── input_handler.py             # MIDI input processing + velocity curve remapping
+│   └── cc_mappings.json             # MIDI CC to parameter mapping (16 assignable knobs)
 │
 ├── music/                           # Audio synthesis & music theory
 │   ├── synth_engine.py              # 8-voice polyphonic synthesizer (core audio)

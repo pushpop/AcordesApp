@@ -5,6 +5,58 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.2] - 2026-03-10
+
+### Added
+
+**MIDI CC Mapping System**:
+- 16 assignable MIDI CC knobs organized as 4 banks of 4 knobs each
+- Configuration file `midi/cc_mappings.json` stores CC-to-parameter mappings with min/max ranges
+- Bank 1 pre-configured: CC 74 (cutoff), CC 71 (resonance), CC 75 (wave blend), CC 7 (master volume)
+- Banks 2-4 for effects, envelope, LFO, arpeggiator parameters (easily customizable)
+
+**CC 75 Smart Focus Control**:
+- CC 75 in focus mode controls the currently highlighted parameter dynamically
+- Supports continuous parameters (with log scaling for frequencies)
+- Supports discrete lists (waveforms, filter routing, LFO shapes, arpeggiator modes, voice type)
+- Supports discrete ranges (octave, chorus voices, arpeggiator range)
+- Section-aware parameter lookup resolves naming conflicts (LFO Depth vs Chorus Depth, etc.)
+
+**Noise Engine Improvements**:
+- Switched from white noise to pink noise (1/f spectrum, warmer and more musical character)
+- Noise blended pre-filter so the VCF shapes it alongside the tone (analog synth behavior)
+- Square-root curve on noise blend level (0.25 gain multiplier) keeps low values subtle
+- Full gain sweep across 0-100% feels musical instead of harsh threshold at ~10%
+
+**Filter Responsiveness**:
+- Engine-level resonance smoothing: 0.94 → 0.0 (instant; per-voice smooth handles artifacts)
+- HPF resonance smoothing: 0.90 → 0.50 (fast 3-buffer ramp, ~32ms)
+- HPF Q range: 0.5-4.0 → 0.5-10.0 (matches LP filter range)
+- Fixes weak HP peak in MS-20 HP+LP routing when both resonances are high
+
+### Changed
+
+- `modes/synth_mode.py`: Added CC mapping system with section-aware parameter lookup
+- `music/synth_engine.py`: Pink noise pre-filter blending, optimized filter smoothing
+- `midi/cc_mappings.json`: New configuration file for MIDI CC assignments (user-customizable)
+- README.md: Added MIDI CC mapping documentation and v1.9.2 release notes
+
+### Fixed
+
+- Resolved parameter name ambiguity in focus mode (same label in different sections)
+- Corrected chorus_voices range (1-4, not 2-8) and arpeggiator on/off toggle state
+- Filter resonance now feels responsive (no stacked smoothing stages slowing changes)
+- Noise no longer harsh above 10% (pre-filter + pink spectrum + sqrt curve fix)
+
+## [1.9.1] - 2026-03-09
+
+### Changed
+
+- Synth engine parameter accuracy: FIR cutoff, ladder alpha, SVF Q stability improvements
+- Gain staging refinements: octave compensation for perceived loudness, POLY gain fix
+- Filter resonance layer optimization: removed double-smoothing deadzone
+- HPF Q range increased, Peak scale changed from percentage to 0-10 display
+
 ## [1.8.9] - 2026-03-07
 
 ### Added
