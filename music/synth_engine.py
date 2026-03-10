@@ -119,6 +119,7 @@ class Voice:
         # amplify into audible spikes.  -1.0 = uninitialised (set on first use).
         self.smooth_fl_lpf: float = -1.0
         self.smooth_fl_hpf: float = -1.0
+        self.smooth_resonance: float = -1.0  # per-voice resonance smoothing, -1.0 = uninitialised
 
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
@@ -1201,9 +1202,11 @@ class SynthEngine:
         if voice.smooth_fl_lpf < 0.0:   # first use: initialise to current value
             voice.smooth_fl_lpf = fl_lpf
             voice.smooth_fl_hpf = fl_hpf
+            voice.smooth_resonance = self.resonance_current
         else:
             voice.smooth_fl_lpf = voice.smooth_fl_lpf * _SMOOTH_K + fl_lpf * (1.0 - _SMOOTH_K)
             voice.smooth_fl_hpf = voice.smooth_fl_hpf * _SMOOTH_K + fl_hpf * (1.0 - _SMOOTH_K)
+            voice.smooth_resonance = voice.smooth_resonance * _SMOOTH_K + self.resonance_current * (1.0 - _SMOOTH_K)
         fl_lpf = voice.smooth_fl_lpf
         fl_hpf = voice.smooth_fl_hpf
 
@@ -1228,7 +1231,7 @@ class SynthEngine:
 
         ladder_s = voice.filter_state_ladder1 if rank == 1 else voice.filter_state_ladder2
         filtered, ladder_s = self._filter_ladder_process(
-            samples, fl_lpf, ladder_s, self.resonance_current)
+            samples, fl_lpf, ladder_s, voice.smooth_resonance)
         if rank == 1: voice.filter_state_ladder1 = ladder_s
         else:         voice.filter_state_ladder2 = ladder_s
 
@@ -1615,8 +1618,13 @@ class SynthEngine:
                 else:
                     # Hard trigger from true silence: full reset
                     v.trigger(note, detuned_freq, vel)
-                    # Reset phase and open S-curve pre-gate for all waveforms.
-                    v.phase = 0.0
+                    # Distribute phases evenly across one cycle instead of all-zero.
+                    # All-zero phases create a brief phase-coherent comb filter on attack
+                    # (voices start aligned, then drift apart) — audible as a metallic
+                    # hollow artifact in the first 10-20ms of every hard note onset.
+                    # Evenly distributing phases 0/N, 1/N, ... (N-1)/N means voices
+                    # enter with full decorrelation: the comb filter never forms.
+                    v.phase = i / n
                     v.pre_gate_progress = 0.0
                     v.onset_ms = onset_ms_for_note
 
@@ -1885,7 +1893,7 @@ class SynthEngine:
             np.multiply(self._cb_indices[:frame_count], _gr_step, out=gain_ramp)
             gain_ramp += gain_prev
 
-            for v in self.voices:
+            for vi, v in enumerate(self.voices):
                 if v.note_active or v.is_releasing:
                     # Smooth velocity to prevent attack peaks when notes change
                     if abs(v.velocity_current - v.velocity_target) > 0.001:
@@ -2002,12 +2010,23 @@ class SynthEngine:
                         v_samples = v_samples * ramp
                         v.onset_samples += frame_count
                     v_samples = self._apply_dc_blocker(v, v_samples)
-                    ang = v.pan * np.pi / 2
-                    # In UNISON mode all 8 voices sum simultaneously; scale each by 1/N
-                    # so the total stays within tanh's linear region.  Without scaling,
-                    # 8 voices saturate tanh and beat-pattern phase-resets on note
-                    # transitions create large amplitude jumps at buffer boundaries.
-                    mix_scale = (1.0 / self.num_voices) if self.voice_type == "unison" else 1.0
+                    if self.voice_type == "unison":
+                        # Map each voice's detune position to the stereo field.
+                        # Voice index 0 = most negative detune → full left (pan=0.0).
+                        # Voice index N-1 = most positive detune → full right (pan=1.0).
+                        # This links pitch position to spatial position, giving the
+                        # characteristic "wide sweep" of professional unison sounds.
+                        n_v = len(self.voices)
+                        unison_pan = vi / max(n_v - 1, 1)
+                        ang = unison_pan * np.pi / 2
+                        # 1/sqrt(N) normalization: detuned voices are partially decorrelated
+                        # (different phases + beating), so RMS sum grows as sqrt(N), not N.
+                        # 1/N was too quiet; 1/sqrt(N) gives perceptually consistent loudness
+                        # whether 2 or 8 voices are stacked.
+                        mix_scale = 1.0 / math.sqrt(self.num_voices)
+                    else:
+                        ang = v.pan * np.pi / 2
+                        mix_scale = 1.0
                     mixed_l += v_samples * np.cos(ang) * mix_scale
                     mixed_r += v_samples * np.sin(ang) * mix_scale
             # ── BBD-style Chorus (bypass when chorus_mix == 0) ───────────────
@@ -2159,10 +2178,11 @@ class SynthEngine:
             # at ±ceiling. filter_drive (applied post-ladder per voice) pushes the
             # mixed signal above the ceiling, causing progressive saturation.
             # At drive=1.0 the signal sits well below ceiling — gentle saturation.
-            # At drive=8.0 the signal is 8× larger — heavy clipping and rich harmonics.
-            # amp_level sets the output ceiling; comp adjusts for waveform RMS differences.
-            # Clamp ceiling to ≥0.01 to prevent divide-by-zero when amp_level=0%.
-            ceiling = max(self.amp_level_current * comp, 0.01)
+            # Saturation ceiling is fixed at comp (waveform RMS compensation only).
+            # amp_level is applied as a post-tanh linear gain so that changing the amp
+            # knob only scales loudness — it never reshapes the tanh saturation curve,
+            # which would cause audible waveform-character artifacts mid-note.
+            ceiling = max(comp, 0.01)
             mixed_l *= gain_ramp
             mixed_r *= gain_ramp
             # Drive applied here — after _sanitize_signal has already guarded per-voice
@@ -2172,8 +2192,8 @@ class SynthEngine:
             # producing heavy clipping and rich odd/even harmonics.
             mixed_l *= self.filter_drive_current
             mixed_r *= self.filter_drive_current
-            mixed_l = np.tanh(mixed_l / ceiling) * ceiling * self.master_volume
-            mixed_r = np.tanh(mixed_r / ceiling) * ceiling * self.master_volume
+            mixed_l = np.tanh(mixed_l / ceiling) * ceiling * self.amp_level_current * self.master_volume
+            mixed_r = np.tanh(mixed_r / ceiling) * ceiling * self.amp_level_current * self.master_volume
 
             # Engine-level inter-buffer crossfade: blend from the last buffer's final
             # post-tanh output toward the new output over _TRANSITION_XF_SAMPLES samples.
