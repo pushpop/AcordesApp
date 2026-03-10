@@ -2161,7 +2161,8 @@ class SynthEngine:
             # At drive=1.0 the signal sits well below ceiling — gentle saturation.
             # At drive=8.0 the signal is 8× larger — heavy clipping and rich harmonics.
             # amp_level sets the output ceiling; comp adjusts for waveform RMS differences.
-            ceiling = self.amp_level_current * comp
+            # Clamp ceiling to ≥0.01 to prevent divide-by-zero when amp_level=0%.
+            ceiling = max(self.amp_level_current * comp, 0.01)
             mixed_l *= gain_ramp
             mixed_r *= gain_ramp
             # Drive applied here — after _sanitize_signal has already guarded per-voice
