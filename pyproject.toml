@@ -20,6 +20,10 @@ dependencies = [
 ]
 
 [tool.uv]
+# Check all indexes and prefer binary wheels over source distributions.
+# Required for piwheels: default "first-index" strategy stops at PyPI
+# sdists and never checks piwheels for pre-built ARM wheels.
+index-strategy = "unsafe-best-match"
 # python-rtmidi uses meson-python which needs system ninja. Disabling
 # build isolation lets the build process find /usr/bin/ninja on ARM.
 # cffi needs libffi-dev headers visible during its C extension build.
