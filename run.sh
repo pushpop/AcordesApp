@@ -102,24 +102,34 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
 fi
 
 # ── 4. Pin Python version — install automatically if missing ──────────────────
+# On ARM (armv7l/aarch64) we prefer Python 3.11 because piwheels provides
+# pre-built scipy/numpy wheels for cp311 but not cp312 on ARM.
+if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
+    _PY_PRIMARY="3.11"
+    _PY_FALLBACK="3.12"
+else
+    _PY_PRIMARY="3.12"
+    _PY_FALLBACK="3.11"
+fi
+
 if [ ! -f "$PIN_FILE" ]; then
     echo " First run — setting up Acordes..."
     echo ""
-    echo " Pinning Python 3.12..."
+    echo " Pinning Python $_PY_PRIMARY..."
 
-    if uv python pin 3.12 2>/dev/null; then
-        echo " Pinned Python 3.12"
-    elif uv python pin 3.11 2>/dev/null; then
+    if uv python pin "$_PY_PRIMARY" 2>/dev/null; then
+        echo " Pinned Python $_PY_PRIMARY"
+    elif uv python pin "$_PY_FALLBACK" 2>/dev/null; then
         echo " Pinned Python 3.11"
     else
-        echo " Python 3.12 not found — installing via uv..."
-        if uv python install 3.12; then
-            uv python pin 3.12
-            echo " Python 3.12 installed and pinned."
+        echo " Python $_PY_PRIMARY not found — installing via uv..."
+        if uv python install "$_PY_PRIMARY"; then
+            uv python pin "$_PY_PRIMARY"
+            echo " Python $_PY_PRIMARY installed and pinned."
         else
             echo ""
-            echo " ERROR: Could not install Python 3.12 automatically."
-            echo " Try manually:  uv python install 3.12"
+            echo " ERROR: Could not install Python $_PY_PRIMARY automatically."
+            echo " Try manually:  uv python install $_PY_PRIMARY"
             echo ""
             exit 1
         fi
