@@ -4,6 +4,18 @@ import multiprocessing
 import os
 import sys
 
+# Workaround for a Python 3.11 ARM bug: the multiprocessing resource tracker
+# (spawned lazily by numpy/OpenBLAS semaphore creation) can receive fd -1 in
+# its passfds set, causing "ValueError: bad value(s) in fds_to_keep".
+# Filter out any negative fds before the C-level fork_exec call.
+import multiprocessing.util as _mp_util
+_orig_spawnv_passfds = _mp_util.spawnv_passfds
+def _safe_spawnv_passfds(path, args, passfds):
+    passfds = tuple(fd for fd in passfds if fd >= 0)
+    return _orig_spawnv_passfds(path, args, passfds)
+_mp_util.spawnv_passfds = _safe_spawnv_passfds
+del _mp_util, _orig_spawnv_passfds, _safe_spawnv_passfds
+
 # Suppress the Pygame "hello" message
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 
