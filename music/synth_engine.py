@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import ctypes
+import platform
 import numpy as np
 import threading
 import queue
@@ -345,10 +346,17 @@ def recommended_audio_backend() -> str:
 class SynthEngine:
     """8-voice polyphonic synthesizer engine with stabilized gain and master volume."""
 
+    # ARM devices (armv7l/aarch64) use reduced settings to fit within the CPU budget
+    # of a Raspberry Pi or similar single-board computer.
+    _IS_ARM = platform.machine() in ("armv7l", "aarch64")
+
     def __init__(self, output_device_index=None, buffer_size=480, audio_backend=None):
         self.sample_rate = 48000
-        self.buffer_size = buffer_size
-        self.num_voices = 8
+        # ARM: use a larger buffer (960 samples = 20ms) to give the Pi CPU more time
+        # between callbacks and prevent xruns. Desktop default stays at 480 (10ms).
+        self.buffer_size = 960 if self._IS_ARM else buffer_size
+        # ARM: 4 voices fit comfortably within Pi 4 single-core budget; 8 saturate it.
+        self.num_voices = 4 if self._IS_ARM else 8
         self.stream = None
         # -1 = No Audio mode (engine runs silently, no audio stream opened)
         # -2 = System Default (None passed to sounddevice — OS chooses the output)
@@ -569,10 +577,11 @@ class SynthEngine:
         self.mod_wheel = 0.0
 
         # ── Oversampling configuration (Phase 3) ──────────────────────────────
-        # 2× internal oscillator oversampling for alias-free sawtooth/square/triangle
-        self.OVERSAMPLE_FACTOR = 2              # Generate at 96 kHz, downsample to 48 kHz
-        self.ENABLE_OVERSAMPLING = True         # Toggle for performance testing
-        self.OVERSAMPLE_SAMPLE_RATE = 48000 * self.OVERSAMPLE_FACTOR  # 96 kHz
+        # 2× internal oscillator oversampling for alias-free sawtooth/square/triangle.
+        # Disabled on ARM: Pi 4 single-core cannot sustain 4 voices at 2× without xruns.
+        self.OVERSAMPLE_FACTOR = 1 if self._IS_ARM else 2
+        self.ENABLE_OVERSAMPLING = not self._IS_ARM
+        self.OVERSAMPLE_SAMPLE_RATE = 48000 * self.OVERSAMPLE_FACTOR
         self._downsample_filter_taps = None     # Pre-computed FIR filter (initialized below)
 
         self.voices: List[Voice] = [Voice(self.sample_rate, i) for i in range(self.num_voices)]
@@ -958,8 +967,9 @@ class SynthEngine:
             # Sawtooth (default)
             samples = 2.0 * t_norm - 1.0
 
-        # Apply PolyBLEP anti-aliasing to band-limited waveforms
-        if waveform in ["sawtooth", "square", "triangle"]:
+        # Apply PolyBLEP anti-aliasing to band-limited waveforms.
+        # Skipped on ARM: single-core Pi 4 cannot afford it without xruns.
+        if not self._IS_ARM and waveform in ["sawtooth", "square", "triangle"]:
             samples = self._apply_polyblep(waveform, samples, phases, frequency, effective_num_samples, effective_sample_rate)
 
         final_phase = (start_phase + effective_num_samples * phase_inc) % (2 * np.pi)
