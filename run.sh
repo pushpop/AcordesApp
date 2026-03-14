@@ -112,6 +112,33 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
     if [[ -f "$_FONT" && "$(tty)" == /dev/tty* ]]; then
         setfont "$_FONT" 2>/dev/null || true
     fi
+
+    # ── Real-time audio system tweaks (Patchbox-style) ────────────────────────
+    # These mirror what Patchbox OS configures for low-latency audio on Pi.
+    # Each tweak is attempted silently and skipped if it fails (no sudo rights, etc.)
+
+    # 1. CPU governor: switch to 'performance' to prevent frequency scaling
+    #    stalls that cause xruns. Pi 4 defaults to 'ondemand' which can drop
+    #    frequency mid-callback.
+    if [[ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]]; then
+        echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor \
+            >/dev/null 2>&1 || true
+    fi
+
+    # 2. RT scheduling limits: allow the audio group to use real-time priority
+    #    without CAP_SYS_NICE. Patchbox writes these to limits.conf; we add them
+    #    only if not already present.
+    _LIMITS="/etc/security/limits.conf"
+    if [[ -f "$_LIMITS" ]] && ! grep -q "rtprio.*95" "$_LIMITS" 2>/dev/null; then
+        printf "@audio - rtprio 95\n@audio - memlock unlimited\n" \
+            | sudo tee -a "$_LIMITS" >/dev/null 2>&1 || true
+        # Add current user to audio group if not already a member.
+        sudo usermod -aG audio "$(whoami)" 2>/dev/null || true
+    fi
+
+    # 3. Reduce VM swappiness so the kernel prefers keeping audio buffers in RAM.
+    #    Default is 60; Patchbox uses 10.
+    sudo sysctl -q vm.swappiness=10 2>/dev/null || true
 fi
 
 # ── 4. Pin Python version — install automatically if missing ──────────────────

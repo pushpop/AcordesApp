@@ -584,6 +584,13 @@ class SynthEngine:
         self.OVERSAMPLE_SAMPLE_RATE = 48000 * self.OVERSAMPLE_FACTOR
         self._downsample_filter_taps = None     # Pre-computed FIR filter (initialized below)
 
+        # ── ARM effect bypass flags ────────────────────────────────────────────
+        # Chorus and delay are expensive BBD-style ring-buffer DSP blocks. On ARM
+        # they are force-bypassed regardless of the UI knob value to keep the Pi 4
+        # callback well under its CPU budget. Desktop builds leave them enabled.
+        self.ENABLE_CHORUS = not self._IS_ARM
+        self.ENABLE_DELAY  = not self._IS_ARM
+
         self.voices: List[Voice] = [Voice(self.sample_rate, i) for i in range(self.num_voices)]
         self.held_notes: set = set()
         self.midi_event_queue = queue.Queue()
@@ -2161,7 +2168,7 @@ class SynthEngine:
             # 2π * chorus_rate / sample_rate so the modulation is continuous
             # across buffer boundaries. Base delay 0.5ms + depth-modulated swing
             # up to ±25ms. wet/dry mix controls the blend.
-            if self.chorus_mix > 0.0:
+            if self.ENABLE_CHORUS and self.chorus_mix > 0.0:
                 n_voices  = int(np.clip(self.chorus_voices, 1, 4))
                 buf_len   = len(self._chorus_buf_l)
                 max_dly_s = self.sample_rate * 0.025   # 25 ms in samples
@@ -2210,7 +2217,7 @@ class SynthEngine:
             # Per-sample feedback loop writes input + feedback into the ring
             # buffer and reads back the delayed copy ds samples ago. Feedback
             # coefficient controls echo density; mix blends wet on top of dry.
-            if self.delay_mix > 0.0:
+            if self.ENABLE_DELAY and self.delay_mix > 0.0:
                 buf_len = len(self._delay_buf_l)
                 dm  = float(self.delay_mix)
                 fb  = float(self.delay_feedback)

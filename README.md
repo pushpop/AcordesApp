@@ -1,4 +1,4 @@
-# Acordes v1.9.3 - Amora: Polyphonic MIDI Synthesizer & Piano TUI
+# Acordes v1.9.4 - Amora: Polyphonic MIDI Synthesizer & Piano TUI
 
 ## Application Overview
 
@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.9.2 - MIDI CC Control System
+**Latest Version**: 1.9.4 - Amora (ARM support)
 
 ---
 
@@ -273,6 +273,19 @@ In the app, look at the window title which displays the current version (e.g. `A
 6. **Browse Presets**: Press **N** → scroll through 128 factory presets
 
 For complete keyboard controls, see **[KEYBINDS.md](KEYBINDS.md)**.
+
+### What's New (v1.9.4 - Amora)
+
+**Raspberry Pi / ARM Support**:
+- Runs on Raspberry Pi 4B (1GB RAM, armv7l) and compatible ARM SBCs
+- Auto-detected ARM profile: 4 voices, 960-sample buffer (20ms), no oversampling, no PolyBLEP
+- Chorus and delay DSP blocks force-bypassed on ARM to stay within CPU budget
+- Patchbox-style system tweaks applied at launch: CPU governor set to `performance`, audio RT limits, VM swappiness reduced
+- TFT framebuffer console font auto-set to Terminus Bold 14 for readability on small screens
+- Responsive UI layout: main menu buttons and config panel scale to terminal width
+- Python 3.11 selected automatically on ARM for piwheels compatibility
+- Multiprocessing fd patch for Python 3.11 ARM bug (ValueError in resource tracker)
+- run.sh auto-installs ARM build dependencies (gfortran, ninja, libffi-dev)
 
 ### What's New (v1.9.2)
 
