@@ -19,3 +19,8 @@ dependencies = [
     "scipy>=1.10.0",
 ]
 
+[[tool.uv.index]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple"
+explicit = false
+
