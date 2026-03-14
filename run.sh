@@ -140,6 +140,19 @@ fi
 if [ ! -d "$VENV_DIR" ]; then
     echo " Installing dependencies (this may take a minute)..."
 
+    # On ARM, uv's resolver ignores piwheels wheels and always picks PyPI sdists,
+    # which require gfortran and hours of compilation for scipy/numpy.
+    # Work around this by creating the venv first and pre-installing the heavy
+    # packages via pip directly from piwheels, then letting uv sync finish the rest.
+    if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
+        uv venv --quiet
+        echo " ARM: fetching scipy/numpy from piwheels (pre-built ARM wheels)..."
+        "$VENV_DIR/bin/pip" install --quiet --prefer-binary \
+            --extra-index-url https://www.piwheels.org/simple \
+            "scipy>=1.10.0" "numpy>=1.24.0" || true
+        echo ""
+    fi
+
     # Capture output; only show it on failure so the terminal stays clean.
     SYNC_LOG="$(uv sync 2>&1)" || {
         echo ""
