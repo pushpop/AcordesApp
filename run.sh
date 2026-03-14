@@ -87,7 +87,7 @@ if ! ldconfig -p 2>/dev/null | grep -q libportaudio && \
     echo ""
 fi
 
-# ── 3. ARM: install build deps ────────────────────────────────────────────────
+# ── 3. ARM: install build deps + set console font ─────────────────────────────
 # python-rtmidi has no pre-built wheel for ARM (armv7l/aarch64) and must compile
 # from source. libasound2-dev and libjack-jackd2-dev provide the ALSA/JACK headers.
 # scipy/numpy may also build from source if piwheels wheels are unavailable;
@@ -103,6 +103,14 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
                 2>&1 | grep -v "^Reading\|^Building\|^Hit" || true
             echo ""
         fi
+    fi
+
+    # Set a compact console font so the TFT framebuffer (790x600) gives at least
+    # 131 columns. The default 8x16 font only yields 98 cols, which clips the UI.
+    # Only applies when running on a real framebuffer console (not over SSH/tmux).
+    _FONT="/usr/share/consolefonts/Lat15-Terminus12x6.psf.gz"
+    if [[ -f "$_FONT" && "$(tty)" == /dev/tty* ]]; then
+        setfont "$_FONT" 2>/dev/null || true
     fi
 fi
 
