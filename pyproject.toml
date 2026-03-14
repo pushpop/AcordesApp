@@ -32,5 +32,10 @@ no-build-isolation-package = ["python-rtmidi", "cffi"]
 [[tool.uv.index]]
 name = "piwheels"
 url = "https://www.piwheels.org/simple"
-explicit = false
+priority = "primary"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+priority = "supplemental"
 
