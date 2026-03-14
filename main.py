@@ -9,12 +9,12 @@ import sys
 # its passfds set, causing "ValueError: bad value(s) in fds_to_keep".
 # Filter out any negative fds before the C-level fork_exec call.
 import multiprocessing.util as _mp_util
-_orig_spawnv_passfds = _mp_util.spawnv_passfds
-def _safe_spawnv_passfds(path, args, passfds):
+def _safe_spawnv_passfds(path, args, passfds, _orig=_mp_util.spawnv_passfds):
+    # Original captured as default arg so it survives module-level cleanup.
     passfds = tuple(fd for fd in passfds if fd >= 0)
-    return _orig_spawnv_passfds(path, args, passfds)
+    return _orig(path, args, passfds)
 _mp_util.spawnv_passfds = _safe_spawnv_passfds
-del _mp_util, _orig_spawnv_passfds, _safe_spawnv_passfds
+del _mp_util, _safe_spawnv_passfds
 
 # Suppress the Pygame "hello" message
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
