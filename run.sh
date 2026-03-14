@@ -95,7 +95,7 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
     if command -v apt-get &>/dev/null; then
         if ! dpkg -l libasound2-dev &>/dev/null 2>&1 | grep -q "^ii"; then
             echo " ARM device detected — installing build deps for python-rtmidi..."
-            sudo apt-get install -y libasound2-dev libjack-jackd2-dev ninja-build 2>&1 | grep -v "^Reading\|^Building\|^Hit" || true
+            sudo apt-get install -y libasound2-dev libjack-jackd2-dev ninja-build libffi-dev 2>&1 | grep -v "^Reading\|^Building\|^Hit" || true
             echo ""
         fi
     fi
