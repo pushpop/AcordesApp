@@ -14,9 +14,13 @@ dependencies = [
     "python-rtmidi>=1.4.0",
     "pygame>=2.0.0; sys_platform != 'linux' or (platform_machine != 'armv7l' and platform_machine != 'aarch64')",
     "mingus>=0.6.1",
-    "numpy>=1.24.0",
+    # On Raspbian 11 (Bullseye, glibc 2.31) piwheels only has 1.x wheels.
+    # numpy 2.x and scipy 1.14+ require glibc 2.34 (Debian 12 Bookworm).
+    "numpy>=1.24.0,<2.0; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
+    "numpy>=1.24.0; platform_machine != 'armv7l' and platform_machine != 'aarch64'",
     "sounddevice>=0.4.6",
-    "scipy>=1.10.0",
+    "scipy>=1.10.0,<1.14.0; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
+    "scipy>=1.10.0; platform_machine != 'armv7l' and platform_machine != 'aarch64'",
 ]
 
 [tool.setuptools]
