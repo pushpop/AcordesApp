@@ -1902,6 +1902,13 @@ class SynthEngine:
             if status and self._IS_ARM:
                 print(f"[audio] xrun: {status}", flush=True)
 
+            # ARM timing probe: measure actual callback duration every 50 calls.
+            # Prints a warning when the callback takes more than half the deadline
+            # so we can identify which section is the bottleneck.
+            if self._IS_ARM:
+                import time as _t
+                _cb_t0 = _t.perf_counter()
+
             # Output initial silence for ~50ms after startup to avoid filter transients
             if self._startup_silence_samples > 0:
                 outdata.fill(0)
@@ -2466,6 +2473,13 @@ class SynthEngine:
             self._last_output_R = float(clipped_r[-1])
             outdata[:, 0] = clipped_l
             outdata[:, 1] = clipped_r
+
+            if self._IS_ARM:
+                _cb_ms = (_t.perf_counter() - _cb_t0) * 1000.0
+                _deadline_ms = frame_count / self.sample_rate * 1000.0
+                # Print every slow callback so we know what is eating the budget.
+                if _cb_ms > _deadline_ms * 0.5:
+                    print(f"[audio] slow callback: {_cb_ms:.1f}ms / {_deadline_ms:.1f}ms deadline", flush=True)
         except Exception:
             import traceback; traceback.print_exc()
             outdata.fill(0)
