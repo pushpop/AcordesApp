@@ -783,6 +783,48 @@ class TamborMode(Vertical):
         # Silence all drums
         self.drum_voice_manager.all_notes_off()
 
+    def on_mode_pause(self):
+        """Called by MainScreen when hiding this mode (widget caching).
+
+        Stops sequencer playback, pauses the UI update timers, and auto-saves
+        so the mode state is preserved without active background timers firing.
+        """
+        if self.sequencer.is_playing:
+            self.action_toggle_playback()
+
+        if self._update_timer_handle is not None:
+            self._update_timer_handle.stop()
+            self._update_timer_handle = None
+
+        if self._auto_save_timer_handle is not None:
+            self._auto_save_timer_handle.stop()
+            self._auto_save_timer_handle = None
+
+        self._auto_save_periodic()
+        self.drum_voice_manager.all_notes_off()
+
+    def on_mode_resume(self):
+        """Called by MainScreen when showing this cached mode again.
+
+        Re-applies the drum engine parameters that other modes may have
+        overwritten, refreshes BPM from config, and restarts the update timers.
+        """
+        if self.synth_engine:
+            self.synth_engine.update_parameters(
+                voice_type="poly",
+                arp_enabled=False,
+            )
+
+        # Sync BPM in case metronome changed it while we were away.
+        if self.config_manager:
+            bpm = self.config_manager.get_bpm()
+            self.bpm = bpm
+            self.sequencer.set_bpm(bpm)
+
+        # Restart the UI update and auto-save timers.
+        self._update_timer_handle = self.set_interval(0.05, self._update_sequencer)
+        self._auto_save_timer_handle = self.set_interval(5.0, self._auto_save_periodic)
+
     def _preload_drums(self):
         """Pre-render all drum sounds (runs in background thread)."""
         # Only preload if synth engine supports it (local DrumSynth only, not Acordes SynthEngine)

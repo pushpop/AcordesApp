@@ -187,11 +187,8 @@ class PianoMode(Widget):
 
     def on_mount(self):
         """Called when screen is mounted."""
-        # Set up MIDI callbacks
-        self.midi_handler.set_callbacks(
-            note_on=self._on_note_on,
-            note_off=self._on_note_off
-        )
+        self._poll_timer = None
+        self._register_midi_callbacks()
 
         # Snapshot the current synth state so we can restore it on exit,
         # then apply the dedicated piano sound exclusively for this mode.
@@ -211,13 +208,46 @@ class PianoMode(Widget):
         # thread (and grabbing the GIL) 100 times/sec, which causes audio xruns.
         import platform as _plat
         _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
-        self.set_interval(_poll_interval, self._poll_midi)
+        self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
 
     def on_unmount(self):
         """Restore previous synth state when leaving Piano mode."""
         # Note: _switch_mode already called soft_all_notes_off() before unmounting.
         if self._saved_synth_params:
             self.synth_engine.update_parameters(**self._saved_synth_params)
+
+    def _register_midi_callbacks(self):
+        """Register MIDI callbacks with the MIDI handler."""
+        self.midi_handler.set_callbacks(
+            note_on=self._on_note_on,
+            note_off=self._on_note_off,
+        )
+
+    def on_mode_pause(self):
+        """Called by MainScreen when hiding this mode (widget caching).
+
+        Restores the synth to its pre-piano state, stops the poll timer,
+        and clears MIDI callbacks so no events fire while the mode is hidden.
+        """
+        if self._saved_synth_params:
+            self.synth_engine.update_parameters(**self._saved_synth_params)
+        self.midi_handler.set_callbacks(note_on=None, note_off=None)
+        if self._poll_timer is not None:
+            self._poll_timer.stop()
+            self._poll_timer = None
+
+    def on_mode_resume(self):
+        """Called by MainScreen when showing this cached mode again.
+
+        Re-snapshots synth state, re-applies piano sound, re-registers
+        MIDI callbacks, and restarts the poll timer.
+        """
+        self._saved_synth_params = self.synth_engine.get_current_params()
+        self.synth_engine.update_parameters(**_PIANO_PARAMS)
+        self._register_midi_callbacks()
+        import platform as _plat
+        _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
+        self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
 
     def _poll_midi(self):
         """Poll for MIDI messages."""

@@ -553,6 +553,31 @@ class CompendiumMode(Widget):
         if self._saved_synth_params:
             self.synth_engine.update_parameters(**self._saved_synth_params)
 
+    def on_mode_pause(self):
+        """Called by MainScreen when hiding this mode (widget caching).
+
+        Cancels in-flight play timers, silences the synth, and restores
+        the pre-compendium synth state so other modes get a clean engine.
+        """
+        if self._auto_play_timer is not None:
+            self._auto_play_timer.stop()
+            self._auto_play_timer = None
+        self._cancel_play_timers()
+        if self._saved_synth_params:
+            self.synth_engine.update_parameters(**self._saved_synth_params)
+
+    def on_mode_resume(self):
+        """Called by MainScreen when showing this cached mode again.
+
+        Re-snapshots synth state and re-applies the piano+compendium sound
+        so chord previews play correctly after returning to this mode.
+        """
+        self._saved_synth_params = self.synth_engine.get_current_params()
+        self.synth_engine.update_parameters(**_PIANO_PARAMS)
+        self.synth_engine.update_parameters(attack=0.06, release=0.55)
+        tree = self.query_one("#chord-tree", Tree)
+        tree.focus()
+
     def on_key(self, event) -> None:
         """Intercept key presses to handle navigation and playback."""
         tree = self.query_one("#chord-tree", Tree)

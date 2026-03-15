@@ -223,3 +223,23 @@ class MetronomeMode(Vertical):
     def on_unmount(self):
         if self.timer:
             self.timer.stop()
+
+    def on_mode_pause(self):
+        """Called by MainScreen when hiding this mode (widget caching).
+
+        Stops the metronome timer if it is running.  The running state is
+        preserved in _is_running so on_mode_resume can restart it.
+        """
+        if self.timer:
+            self.timer.stop()
+            self.timer = None
+
+    def on_mode_resume(self):
+        """Called by MainScreen when showing this cached mode again.
+
+        Restarts the metronome timer if it was running before the mode was hidden.
+        """
+        self.focus()
+        if self._is_running:
+            interval = 60.0 / self.tempo
+            self.timer = self.set_interval(interval, self._update_metronome)

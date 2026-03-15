@@ -745,24 +745,57 @@ class SynthMode(Widget):
     # ── Lifecycle ────────────────────────────────────────────────
 
     def on_mount(self):
+        self._poll_timer = None
         self.focus()
-        self.midi_handler.set_callbacks(
-            note_on=self._on_note_on,
-            note_off=self._on_note_off,
-            pitch_bend=self._on_pitch_bend,
-            control_change=self._on_control_change,
-        )
+        self._register_midi_callbacks()
         # ARM: 30ms poll interval reduces GIL contention between the UI thread
         # and the PortAudio callback thread, preventing audio xruns.
         import platform as _plat
         _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
-        self.set_interval(_poll_interval, self._poll_midi)
+        self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
         self._push_params_to_engine()
         self._update_preset_ui()
 
     def on_unmount(self):
         """Save state when switching away — do NOT close the shared engine."""
         self._autosave_state()
+
+    def _register_midi_callbacks(self):
+        """Register MIDI callbacks with the MIDI handler."""
+        self.midi_handler.set_callbacks(
+            note_on=self._on_note_on,
+            note_off=self._on_note_off,
+            pitch_bend=self._on_pitch_bend,
+            control_change=self._on_control_change,
+        )
+
+    def on_mode_pause(self):
+        """Called by MainScreen when hiding this mode (widget caching).
+
+        Stops the MIDI poll timer and clears callbacks so no events are
+        processed while the mode is not visible.  State is auto-saved.
+        """
+        self._autosave_state()
+        self.midi_handler.set_callbacks(
+            note_on=None, note_off=None, pitch_bend=None, control_change=None,
+        )
+        if self._poll_timer is not None:
+            self._poll_timer.stop()
+            self._poll_timer = None
+
+    def on_mode_resume(self):
+        """Called by MainScreen when showing this cached mode again.
+
+        Re-registers MIDI callbacks, restarts the poll timer, and refreshes
+        the engine and UI state so everything is in sync after returning.
+        """
+        self.focus()
+        self._register_midi_callbacks()
+        import platform as _plat
+        _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
+        self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
+        self._push_params_to_engine()
+        self._update_preset_ui()
 
     # ── Notifications (debounced to prevent stacking) ──────────────
 
