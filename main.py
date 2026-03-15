@@ -19,6 +19,17 @@ del _mp_util, _safe_spawnv_passfds
 # Suppress the Pygame "hello" message
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 
+# ARM real-time audio: tighten the GIL switch interval from the default 5ms
+# to 1ms.  The PortAudio callback runs in a C thread; when the Textual UI
+# thread holds the GIL for a full 5ms slice during widget rendering, the
+# callback thread waits and misses its deadline, producing output_underflow
+# xruns even at low CPU utilisation.  At 1ms the audio thread gets the GIL
+# much more frequently, keeping callbacks on time without a busy-wait loop.
+import platform as _platform
+if _platform.machine() in ("armv7l", "aarch64"):
+    sys.setswitchinterval(0.001)
+del _platform
+
 # Note: On Windows, mido will auto-detect available MIDI backends
 # We don't force a specific backend to avoid DLL issues
 

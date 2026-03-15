@@ -752,7 +752,11 @@ class SynthMode(Widget):
             pitch_bend=self._on_pitch_bend,
             control_change=self._on_control_change,
         )
-        self.set_interval(0.01, self._poll_midi)
+        # ARM: 30ms poll interval reduces GIL contention between the UI thread
+        # and the PortAudio callback thread, preventing audio xruns.
+        import platform as _plat
+        _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
+        self.set_interval(_poll_interval, self._poll_midi)
         self._push_params_to_engine()
         self._update_preset_ui()
 
