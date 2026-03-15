@@ -41,7 +41,7 @@ class ConfigManager:
             "audio_device_index": None,   # sounddevice output device index (None = not yet chosen)
             "audio_device_name": None,    # Human-readable name for display
             "audio_backend": None,        # Host API name filter (None = not yet chosen)
-            "buffer_size": 4096 if platform.machine() in ("armv7l", "aarch64") else 1024,  # Audio buffer size in samples
+            "buffer_size": 2048 if platform.machine() in ("armv7l", "aarch64") else 1024,  # Audio buffer size in samples
         }
 
     def save_config(self):
@@ -134,14 +134,14 @@ class ConfigManager:
     # ── Buffer size ───────────────────────────────────────────────
 
     def get_buffer_size(self) -> int:
-        """Get the saved audio buffer size in samples (default: 1024 desktop, 4096 ARM).
+        """Get the saved audio buffer size in samples (default: 1024 desktop, 2048 ARM).
 
-        On ARM, values below 4096 are migrated up to 4096 on first read to
+        On ARM, values below 2048 are migrated up to 2048 on first read to
         match the engine floor and avoid showing a stale config screen selection.
         """
         size = int(self.config.get("buffer_size", 1024))
-        if platform.machine() in ("armv7l", "aarch64") and size < 4096:
-            size = 4096
+        if platform.machine() in ("armv7l", "aarch64") and size < 2048:
+            size = 2048
             self.config["buffer_size"] = size
             self.save_config()
         return size

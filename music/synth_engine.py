@@ -373,19 +373,20 @@ class SynthEngine:
         # All DSP (filters, envelopes, LFO, arpeggiator) uses self.sample_rate
         # throughout, so 44100 is applied consistently with no hardcoded paths.
         self.sample_rate = 44100 if self._IS_ARM else 48000
-        # ARM: floor at 4096 (~85ms at 48kHz). The Pi 4's single usable Python
-        # core (GIL) must handle both Textual UI and the audio callback. 2048
+        # ARM: floor at 2048 (~46ms at 44100Hz). The Pi 4's single usable Python
+        # core (GIL) must handle both Textual UI and the audio callback. 1024
         # (~43ms) leaves too little headroom and causes periodic underruns that
         # sound like a tremolo/LFO wobble on every note. 4096 gives the kernel
         # scheduler enough slack to let the callback always finish in time.
         # The user-configured value is respected if it is larger (e.g. 8192).
         # Desktop uses the config value directly (default 480 = 10ms).
-        self.buffer_size = max(4096, buffer_size) if self._IS_ARM else buffer_size
-        # ARM: 2 voices on armv7l (1GB Pi 4), 4 on aarch64 (64-bit Pi).
-        # Halving the voice count on the most constrained target cuts synthesis
-        # CPU roughly in half and makes the callback finish well within deadline.
+        self.buffer_size = max(2048, buffer_size) if self._IS_ARM else buffer_size
+        # ARM: 6 voices on armv7l (1GB Pi 4), 6 on aarch64 (64-bit Pi).
+        # scipy C-level filters replaced the Python per-sample loops that were
+        # the bottleneck (160ms callbacks). With the fast path the Pi 4 has
+        # enough headroom to run 6 voices comfortably at 2048-sample buffers.
         import platform as _plat
-        self.num_voices = 2 if _plat.machine() == "armv7l" else (4 if self._IS_ARM else 8)
+        self.num_voices = 6 if _plat.machine() == "armv7l" else (6 if self._IS_ARM else 8)
         # Always use float32 for the sounddevice stream. PortAudio's ALSA backend
         # negotiates format with the driver internally and handles float32->S16_LE
         # conversion via ALSA's plug layer. Forcing int16 at the PortAudio level

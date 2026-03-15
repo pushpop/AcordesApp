@@ -195,12 +195,12 @@ class ConfigMode(Screen):
     }
     """
 
-    # Buffer sizes offered in the UI. ARM (bcm2835 headphone jack) needs at
-    # least 4096 (~85ms) to avoid xruns under the combined Textual UI + audio
-    # callback load on the Pi's single Python core. 8192 (~171ms) is available
-    # for very loaded systems. Desktop supports smaller buffers for lower latency.
+    # Buffer sizes offered in the UI. ARM (bcm2835 headphone jack): 2048 (~46ms)
+    # is the new floor now that scipy C-level filters replaced the Python loops.
+    # 4096 (~93ms) and 8192 (~186ms) remain available for very loaded systems.
+    # Desktop supports smaller buffers for lower latency.
     _IS_ARM = platform.machine() in ("armv7l", "aarch64")
-    BUFFER_SIZES = [4096, 8192] if _IS_ARM else [128, 256, 480, 512, 1024, 2048]
+    BUFFER_SIZES = [2048, 4096, 8192] if _IS_ARM else [128, 256, 480, 512, 1024, 2048]
 
     def __init__(
         self,
@@ -482,8 +482,8 @@ class ConfigMode(Screen):
         sample_rate = 48000
         latency_ms = (size / sample_rate) * 1000
         if self._IS_ARM:
-            # Show the effective size the engine will actually use (min 4096 on ARM).
-            effective = max(4096, size)
+            # Show the effective size the engine will actually use (min 2048 on ARM).
+            effective = max(2048, size)
             effective_ms = (effective / sample_rate) * 1000
             if effective != size:
                 label.update(f"Selected: {size}  ->  effective: {effective} samples ({effective_ms:.1f} ms)  [ARM minimum]")
