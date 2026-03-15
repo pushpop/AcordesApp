@@ -26,11 +26,15 @@ def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, star
 
         # Write startup diagnostics to the shared array so the LoadingScreen
         # can display them without raw print() calls bleeding into the UI.
+        # Use get_obj().raw for bulk assignment: multiprocessing.Array('c', N)
+        # wraps a ctypes c_char array whose elements are bytes objects of length
+        # 1, not integers — bytes(arr) and element-by-element int assignment both
+        # raise TypeError.  get_obj().raw gives direct access to the raw buffer.
         try:
             info = getattr(engine, '_startup_info', '')
             info_bytes = info.encode('utf-8')[:1023]
-            for i, b in enumerate(info_bytes):
-                startup_info_arr[i] = b
+            padded = info_bytes + b'\x00' * (1024 - len(info_bytes))
+            startup_info_arr.get_obj().raw = padded
         except Exception:
             pass
 
@@ -75,8 +79,8 @@ def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, star
 
     except Exception as exc:
         err_bytes = str(exc).encode('utf-8')[:255]
-        for i, b in enumerate(err_bytes):
-            error_msg_arr[i] = b
+        padded = err_bytes + b'\x00' * (256 - len(err_bytes))
+        error_msg_arr.get_obj().raw = padded
         error_event.set()
     finally:
         try:
@@ -145,7 +149,7 @@ class SynthEngineProxy:
     def get_error(self) -> str:
         """Return error message from child process, or empty string if none."""
         if self._error_event.is_set():
-            raw = bytes(self._error_msg_arr).split(b'\x00')[0]
+            raw = self._error_msg_arr.get_obj().raw.split(b'\x00')[0]
             return raw.decode('utf-8', errors='replace')
         return ""
 
@@ -155,7 +159,7 @@ class SynthEngineProxy:
         Populated after is_available() returns True. Empty string on desktop
         builds (diagnostics are only collected on ARM).
         """
-        raw = bytes(self._startup_info_arr).split(b'\x00')[0]
+        raw = self._startup_info_arr.get_obj().raw.split(b'\x00')[0]
         return raw.decode('utf-8', errors='replace')
 
     def is_available(self) -> bool:
