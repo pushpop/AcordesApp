@@ -200,6 +200,8 @@ if [ ! -d "$VENV_DIR" ]; then
                 exit 1
             }
         echo " ARM: installing remaining dependencies..."
+        # Pass the same numpy/scipy upper bounds so uv accepts the piwheels
+        # wheels already in the venv and does not re-resolve to a newer sdist.
         uv pip install \
             --python "$VENV_DIR/bin/python" \
             --no-build-isolation-package python-rtmidi \
@@ -209,6 +211,8 @@ if [ ! -d "$VENV_DIR" ]; then
             "mingus>=0.6.1" \
             "sounddevice>=0.4.6" \
             "meson-python" \
+            "numpy>=1.24.0,<2.0" \
+            "scipy>=1.10.0,<1.14.0" \
             || {
                 echo " ERROR: Dependency installation failed."
                 exit 1
@@ -262,13 +266,15 @@ else
                 echo " ERROR: scipy/numpy install from piwheels failed."
                 exit 1
             }
-        # Install remaining deps via uv pip. scipy/numpy are already satisfied
-        # above so uv will not attempt to re-resolve them from PyPI.
+        # Install remaining deps via uv pip. Pass the same numpy/scipy upper
+        # bounds so uv accepts the piwheels wheels already in the venv and
+        # does not re-resolve to a newer sdist from PyPI.
         uv pip install \
             --python "$VENV_DIR/bin/python" \
             --no-build-isolation-package python-rtmidi \
             "textual>=0.75.0" "mido>=1.3.0" "python-rtmidi>=1.4.0" \
             "mingus>=0.6.1" "sounddevice>=0.4.6" "meson-python" \
+            "numpy>=1.24.0,<2.0" "scipy>=1.10.0,<1.14.0" \
             --quiet || {
                 echo " ERROR: Dependency update failed."
                 exit 1
