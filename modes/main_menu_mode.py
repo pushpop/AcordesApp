@@ -61,6 +61,14 @@ class MainMenuMode(Vertical):
         """Focus the first button when the menu is mounted."""
         self.query_one("#piano_button").focus()
 
+    def on_mode_resume(self) -> None:
+        """Called by MainScreen when showing this cached mode again.
+
+        Re-focuses the first button so keyboard navigation works immediately
+        after returning from another mode.
+        """
+        self.query_one("#piano_button").focus()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events."""
         if event.button.id == "piano_button":

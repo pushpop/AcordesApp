@@ -816,10 +816,10 @@ class TamborMode(Vertical):
             )
 
         # Sync BPM in case metronome changed it while we were away.
-        if self.config_manager:
-            bpm = self.config_manager.get_bpm()
-            self.bpm = bpm
-            self.sequencer.set_bpm(bpm)
+        # SequencerEngine reads BPM via bpm_callback on each step, so refreshing
+        # the control panel display is all that is needed here.
+        if self.control_panel:
+            self.control_panel.refresh_bpm_from_config()
 
         # Restart the UI update and auto-save timers.
         self._update_timer_handle = self.set_interval(0.05, self._update_sequencer)
