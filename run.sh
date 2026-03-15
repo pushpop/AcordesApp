@@ -388,6 +388,10 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
     elif [[ "$(tty 2>/dev/null)" == /dev/tty* ]]; then
         export TEXTUAL_COLOR_SYSTEM=256
     fi
+    # Disable all Textual internal animations (scrolling, focus transitions, etc.)
+    # on ARM. Each animation frame drives a timer wakeup that competes with the
+    # audio callback for the GIL, adding latency and xrun risk on the Pi 4.
+    export TEXTUAL_ANIMATIONS=none
 fi
 
 # ── 8. Launch ──────────────────────────────────────────────────────────────────
