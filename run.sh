@@ -248,20 +248,25 @@ if [ ! -d "$VENV_DIR" ]; then
 else
     # .venv exists — pick up any new dependencies added since last run.
     if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
-        # ARM: use pip for scipy/numpy (piwheels wheels), uv pip for the rest.
+        # ARM: ensure pip is available (venv may have been created without --seed),
+        # then use it for scipy/numpy so piwheels wheels are used, not PyPI sdists.
+        uv pip install pip --python "$VENV_DIR/bin/python" --quiet || true
         "$VENV_DIR/bin/pip" install --quiet \
             --index-url https://www.piwheels.org/simple \
             --extra-index-url https://pypi.org/simple \
-            "numpy>=1.24.0" "scipy>=1.10.0" || true
+            "numpy>=1.24.0" "scipy>=1.10.0" || {
+                echo " ERROR: scipy/numpy install from piwheels failed."
+                exit 1
+            }
+        # Install remaining deps via uv pip. scipy/numpy are already satisfied
+        # above so uv will not attempt to re-resolve them from PyPI.
         uv pip install \
             --python "$VENV_DIR/bin/python" \
             --no-build-isolation-package python-rtmidi \
             "textual>=0.75.0" "mido>=1.3.0" "python-rtmidi>=1.4.0" \
             "mingus>=0.6.1" "sounddevice>=0.4.6" "meson-python" \
             --quiet || {
-                echo ""
                 echo " ERROR: Dependency update failed."
-                echo ""
                 exit 1
             }
         uv pip install --python "$VENV_DIR/bin/python" --no-deps -e . --quiet || true
