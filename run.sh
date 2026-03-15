@@ -143,11 +143,14 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
 fi
 
 # ── 4. Pin Python version — install automatically if missing ──────────────────
-# On ARM (armv7l/aarch64) we prefer Python 3.11 because piwheels provides
-# pre-built scipy/numpy wheels for cp311 but not cp312 on ARM.
-if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
-    _PY_PRIMARY="3.11"
-    _PY_FALLBACK="3.12"
+# On ARM (armv7l/aarch64) with Raspbian 11 (Bullseye, glibc 2.31) we use
+# Python 3.9 because piwheels cp39 wheels were built on Bullseye and work
+# with glibc 2.31. piwheels cp311 wheels were built on Bookworm (glibc 2.34)
+# and fail at import on Bullseye regardless of numpy version.
+# On desktop (x86/aarch64 Bookworm) we prefer 3.12, falling back to 3.11.
+if [[ "$_ARCH" == "armv7l" ]]; then
+    _PY_PRIMARY="3.9"
+    _PY_FALLBACK="3.11"
 else
     _PY_PRIMARY="3.12"
     _PY_FALLBACK="3.11"

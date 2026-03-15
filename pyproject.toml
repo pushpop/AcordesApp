@@ -3,7 +3,7 @@ name = "acordes"
 version = "1.8.0"
 description = "A professional polyphonic MIDI synthesizer and piano TUI application"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 license = "MIT"
 authors = [{ name = "Jorge" }]
 keywords = ["midi", "synthesizer", "piano", "tui", "music"]
