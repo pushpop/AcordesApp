@@ -122,6 +122,15 @@ class Voice:
         self.smooth_fl_hpf: float = -1.0
         self.smooth_resonance: float = -1.0  # per-voice resonance smoothing, -1.0 = uninitialised
 
+        # ARM Lite fast filter: scipy sosfilt and lfilter state per voice per rank.
+        # None = uninitialised (allocated on first use or after voice.reset()).
+        # Separate LPF and HPF zi arrays per rank so rank1 and rank2 have independent state.
+        self._arm_lpf_zi_r1: Optional[np.ndarray] = None
+        self._arm_lpf_zi_r2: Optional[np.ndarray] = None
+        self._arm_hpf_zi_r1: Optional[np.ndarray] = None
+        self._arm_hpf_zi_r2: Optional[np.ndarray] = None
+        self._arm_dcblock_zi: Optional[np.ndarray] = None
+
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
 
@@ -202,6 +211,12 @@ class Voice:
         self._oversample_history[:] = 0.0
         self._oversample_history_r2[:] = 0.0
         self._oversample_history_sine[:] = 0.0
+        # Reset ARM Lite scipy filter states so the next note starts clean.
+        self._arm_lpf_zi_r1 = None
+        self._arm_lpf_zi_r2 = None
+        self._arm_hpf_zi_r1 = None
+        self._arm_hpf_zi_r2 = None
+        self._arm_dcblock_zi = None
 
 
 def list_output_devices() -> list:
@@ -376,6 +391,18 @@ class SynthEngine:
         # conversion via ALSA's plug layer. Forcing int16 at the PortAudio level
         # on bcm2835 causes unreliable period negotiation and xruns on ARM.
         self._output_dtype = 'float32'
+        # ARM Lite: import scipy signal functions once at init time so the audio
+        # callback never pays the import cost. Falls back gracefully if scipy is
+        # missing (the Python loop filters are used instead).
+        self._scipy_sosfilt = None
+        self._scipy_lfilter = None
+        if self._IS_ARM:
+            try:
+                from scipy.signal import sosfilt as _sosfilt, lfilter as _lfilter
+                self._scipy_sosfilt = _sosfilt
+                self._scipy_lfilter = _lfilter
+            except ImportError:
+                pass
         self.stream = None
         # -1 = No Audio mode (engine runs silently, no audio stream opened)
         # -2 = System Default (None passed to sounddevice — OS chooses the output)
@@ -697,6 +724,50 @@ class SynthEngine:
             except Exception as e:
                 print(f"Audio initialization failed: {e}")
                 self.running = False
+
+    def _design_biquad_lpf_sos(self, cutoff: float, resonance: float) -> np.ndarray:
+        """Design a resonant 2nd-order lowpass biquad (RBJ Audio EQ Cookbook).
+
+        Returns a (1, 6) SOS array for use with scipy.signal.sosfilt.
+        Replaces the 4-pole Python ladder filter loop on ARM for real-time use.
+        resonance 0.0 -> Q=0.707 (Butterworth), 1.0 -> Q=10.0 (near self-oscillation).
+        """
+        sr = self.sample_rate
+        f0 = float(np.clip(cutoff, 20.0, sr * 0.45))
+        Q = max(0.5, 0.707 + resonance * 9.293)
+        w0 = 2.0 * math.pi * f0 / sr
+        cos_w0 = math.cos(w0)
+        sin_w0 = math.sin(w0)
+        alpha = sin_w0 / (2.0 * Q)
+        b0 = (1.0 - cos_w0) * 0.5
+        b1 = 1.0 - cos_w0
+        b2 = (1.0 - cos_w0) * 0.5
+        a0 = 1.0 + alpha
+        a1 = -2.0 * cos_w0
+        a2 = 1.0 - alpha
+        return np.array([[b0/a0, b1/a0, b2/a0, 1.0, a1/a0, a2/a0]])
+
+    def _design_biquad_hpf_sos(self, cutoff: float, resonance: float) -> np.ndarray:
+        """Design a resonant 2nd-order highpass biquad (RBJ Audio EQ Cookbook).
+
+        Returns a (1, 6) SOS array for use with scipy.signal.sosfilt.
+        Replaces the Chamberlin SVF HPF Python loop on ARM for real-time use.
+        resonance 0.0 -> Q=0.707 (Butterworth), 1.0 -> Q=10.0 (near self-oscillation).
+        """
+        sr = self.sample_rate
+        f0 = float(np.clip(cutoff, 20.0, sr * 0.45))
+        Q = max(0.5, 0.707 + resonance * 9.293)
+        w0 = 2.0 * math.pi * f0 / sr
+        cos_w0 = math.cos(w0)
+        sin_w0 = math.sin(w0)
+        alpha = sin_w0 / (2.0 * Q)
+        b0 = (1.0 + cos_w0) * 0.5
+        b1 = -(1.0 + cos_w0)
+        b2 = (1.0 + cos_w0) * 0.5
+        a0 = 1.0 + alpha
+        a1 = -2.0 * cos_w0
+        a2 = 1.0 - alpha
+        return np.array([[b0/a0, b1/a0, b2/a0, 1.0, a1/a0, a2/a0]])
 
     def _find_arm_headphone_device(self) -> Optional[int]:
         """Scan the sounddevice device list for the bcm2835 headphone output.
@@ -1388,6 +1459,36 @@ class SynthEngine:
         fl_lpf = voice.smooth_fl_lpf
         fl_hpf = voice.smooth_fl_hpf
 
+        # ── ARM Lite fast path: scipy biquad (C code, GIL-free, ~100x faster) ─
+        # Replaces the per-sample Python loops for both HPF and LPF stages.
+        # Uses RBJ cookbook 2nd-order IIR with sosfilt state continuity across buffers.
+        if self._IS_ARM and self._scipy_sosfilt is not None:
+            _sosfilt = self._scipy_sosfilt
+            # HPF stage (only if cutoff is meaningfully above DC — > 30 Hz)
+            if fl_hpf > 30.0:
+                hpf_sos = self._design_biquad_hpf_sos(fl_hpf, self.hpf_resonance_current)
+                if rank == 1:
+                    if voice._arm_hpf_zi_r1 is None:
+                        voice._arm_hpf_zi_r1 = np.zeros((1, 2))
+                    samples, voice._arm_hpf_zi_r1 = _sosfilt(hpf_sos, samples, zi=voice._arm_hpf_zi_r1)
+                    samples = samples.astype(np.float32)
+                else:
+                    if voice._arm_hpf_zi_r2 is None:
+                        voice._arm_hpf_zi_r2 = np.zeros((1, 2))
+                    samples, voice._arm_hpf_zi_r2 = _sosfilt(hpf_sos, samples, zi=voice._arm_hpf_zi_r2)
+                    samples = samples.astype(np.float32)
+            # LPF stage
+            lpf_sos = self._design_biquad_lpf_sos(fl_lpf, voice.smooth_resonance)
+            if rank == 1:
+                if voice._arm_lpf_zi_r1 is None:
+                    voice._arm_lpf_zi_r1 = np.zeros((1, 2))
+                filtered, voice._arm_lpf_zi_r1 = _sosfilt(lpf_sos, samples, zi=voice._arm_lpf_zi_r1)
+            else:
+                if voice._arm_lpf_zi_r2 is None:
+                    voice._arm_lpf_zi_r2 = np.zeros((1, 2))
+                filtered, voice._arm_lpf_zi_r2 = _sosfilt(lpf_sos, samples, zi=voice._arm_lpf_zi_r2)
+            return filtered.astype(np.float32)
+
         # ── HPF stage: resonant Chamberlin SVF (HP output) ───────────────────
         # Reuses the per-voice svf state slots (previously for LPF-SVF mode).
         hpf_lp_s = voice.filter_state_svf1_lp if rank == 1 else voice.filter_state_svf2_lp
@@ -1501,6 +1602,21 @@ class SynthEngine:
             coeff = 0.9997 - t * 0.0007
         else:
             coeff = 0.9997
+
+        # ARM Lite fast path: scipy lfilter (C code, GIL-free).
+        # DC blocker H(z) = (1 - z^-1)/(1 - coeff*z^-1); b=[1,-1], a=[1,-coeff].
+        # Transposed DF-II initial state: zi[0] = -x_prev + coeff * y_prev.
+        if self._IS_ARM and self._scipy_lfilter is not None:
+            b_dc = np.array([1.0, -1.0])
+            a_dc = np.array([1.0, -coeff])
+            if voice._arm_dcblock_zi is None:
+                voice._arm_dcblock_zi = np.array([[-voice.dc_blocker_x + coeff * voice.dc_blocker_y]])
+            filtered, zf = self._scipy_lfilter(b_dc, a_dc, samples.astype(np.float64),
+                                               zi=voice._arm_dcblock_zi)
+            voice._arm_dcblock_zi = zf
+            voice.dc_blocker_x = float(samples[-1])
+            voice.dc_blocker_y = float(filtered[-1])
+            return filtered.astype(np.float32)
 
         xp, yp = voice.dc_blocker_x, voice.dc_blocker_y
         filtered = np.zeros_like(samples)
