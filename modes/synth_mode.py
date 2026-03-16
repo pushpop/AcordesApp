@@ -420,6 +420,12 @@ class SynthMode(Widget):
         self._cc_refresh_timer = None     # pending deferred-refresh timer handle
         self._cc_pending_section = None   # section that needs label redraw
 
+        # Dirty tracking for _refresh_all_displays: stores the last string value
+        # sent to each display widget. _update_display skips the .update() call
+        # when the formatted value has not changed, avoiding unnecessary Textual
+        # redraws and ANSI escape writes on every refresh cycle.
+        self._display_cache: dict = {}
+
         # Widget references for live updates
         self.waveform_display       = None
         self.waveform_shape_display = None
@@ -1772,6 +1778,7 @@ class SynthMode(Widget):
         # Voice Type
         self.voice_type  = params.get("voice_type",  self.voice_type)
         self._push_params_to_engine()
+        self._display_cache.clear()  # All params changed — force full redraw
         self._refresh_all_displays()
 
     def _push_params_to_engine(self):
@@ -2419,52 +2426,65 @@ class SynthMode(Widget):
 
     # ── Display refresh ──────────────────────────────────────────
 
+    def _update_display(self, key: str, widget, value: str) -> None:
+        """Update a display widget only when the formatted value has changed.
+
+        Skips the Textual .update() call (which marks the widget dirty and
+        schedules a render) when the string is identical to the last render.
+        On ARM this eliminates the majority of ANSI writes per refresh cycle
+        since most parameters are stable between CC gestures.
+        """
+        if widget and self._display_cache.get(key) != value:
+            self._display_cache[key] = value
+            widget.update(value)
+
     def _refresh_all_displays(self):
-        if self.waveform_display: self.waveform_display.update(self._fmt_waveform())
-        if self.waveform_shape_display: self.waveform_shape_display.update(self._fmt_waveform_shape())
-        if self.noise_display: self.noise_display.update(self._fmt_knob(self.noise_level, 0.0, 1.0, f"{int(self.noise_level * 100)}%"))
-        if self.octave_display: self.octave_display.update(self._fmt_octave())
-        if self.hpf_cutoff_display: self.hpf_cutoff_display.update(self._fmt_hpf_cutoff())
-        if self.hpf_resonance_display: self.hpf_resonance_display.update(self._fmt_hpf_resonance())
-        if self.cutoff_display: self.cutoff_display.update(self._fmt_cutoff())
-        if self.resonance_display: self.resonance_display.update(self._fmt_resonance())
-        if self.key_tracking_display: self.key_tracking_display.update(self._fmt_key_tracking())
-        if self.filter_drive_display: self.filter_drive_display.update(self._fmt_filter_drive())
-        if self.filter_routing_display: self.filter_routing_display.update(self._fmt_filter_routing())
-        if self.attack_display: self.attack_display.update(self._fmt_time(self.attack))
-        if self.decay_display: self.decay_display.update(self._fmt_time(self.decay))
-        if self.sustain_display: self.sustain_display.update(self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
-        if self.release_display: self.release_display.update(self._fmt_time(self.release))
+        u = self._update_display
+        u("waveform",       self.waveform_display,        self._fmt_waveform())
+        u("waveform_shape", self.waveform_shape_display,   self._fmt_waveform_shape())
+        u("noise",          self.noise_display,            self._fmt_knob(self.noise_level, 0.0, 1.0, f"{int(self.noise_level * 100)}%"))
+        u("octave",         self.octave_display,           self._fmt_octave())
+        u("hpf_cutoff",     self.hpf_cutoff_display,       self._fmt_hpf_cutoff())
+        u("hpf_resonance",  self.hpf_resonance_display,    self._fmt_hpf_resonance())
+        u("cutoff",         self.cutoff_display,           self._fmt_cutoff())
+        u("resonance",      self.resonance_display,        self._fmt_resonance())
+        u("key_tracking",   self.key_tracking_display,     self._fmt_key_tracking())
+        u("filter_drive",   self.filter_drive_display,     self._fmt_filter_drive())
+        u("filter_routing", self.filter_routing_display,   self._fmt_filter_routing())
+        u("attack",         self.attack_display,           self._fmt_time(self.attack))
+        u("decay",          self.decay_display,            self._fmt_time(self.decay))
+        u("sustain",        self.sustain_display,          self._fmt_knob(self.sustain, 0.0, 1.0, f"{int(self.sustain * 100)}%"))
+        u("release",        self.release_display,          self._fmt_time(self.release))
         # Filter EG
-        if self.feg_attack_display:  self.feg_attack_display.update(self._fmt_time(self.feg_attack))
-        if self.feg_decay_display:   self.feg_decay_display.update(self._fmt_time(self.feg_decay))
-        if self.feg_sustain_display: self.feg_sustain_display.update(self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
-        if self.feg_release_display: self.feg_release_display.update(self._fmt_time(self.feg_release))
-        if self.feg_amount_display:  self.feg_amount_display.update(self._fmt_feg_amount())
+        u("feg_attack",     self.feg_attack_display,       self._fmt_time(self.feg_attack))
+        u("feg_decay",      self.feg_decay_display,        self._fmt_time(self.feg_decay))
+        u("feg_sustain",    self.feg_sustain_display,      self._fmt_knob(self.feg_sustain, 0.0, 1.0, f"{int(self.feg_sustain * 100)}%"))
+        u("feg_release",    self.feg_release_display,      self._fmt_time(self.feg_release))
+        u("feg_amount",     self.feg_amount_display,       self._fmt_feg_amount())
         # Mixer
-        if self.voice_type_display: self.voice_type_display.update(self._fmt_voice_type())
-        if self.amp_display: self.amp_display.update(self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
-        if self.master_volume_display: self.master_volume_display.update(self._fmt_knob(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"))
+        u("voice_type",     self.voice_type_display,       self._fmt_voice_type())
+        u("amp",            self.amp_display,              self._fmt_knob(self.amp_level, 0.0, 1.0, f"{int(self.amp_level * 100)}%"))
+        u("master_volume",  self.master_volume_display,    self._fmt_knob(self.master_volume, 0.0, 1.0, f"{int(self.master_volume * 100)}%"))
         # LFO
-        if self.lfo_rate_display: self.lfo_rate_display.update(self._fmt_lfo_rate())
-        if self.lfo_depth_display: self.lfo_depth_display.update(self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
-        if self.lfo_shape_display: self.lfo_shape_display.update(self._fmt_lfo_shape())
-        if self.lfo_target_display: self.lfo_target_display.update(self._fmt_lfo_target())
+        u("lfo_rate",       self.lfo_rate_display,         self._fmt_lfo_rate())
+        u("lfo_depth",      self.lfo_depth_display,        self._fmt_knob(self.lfo_depth, 0.0, 1.0, f"{int(self.lfo_depth * 100)}%"))
+        u("lfo_shape",      self.lfo_shape_display,        self._fmt_lfo_shape())
+        u("lfo_target",     self.lfo_target_display,       self._fmt_lfo_target())
         # Chorus
-        if self.chorus_rate_display: self.chorus_rate_display.update(self._fmt_chorus_rate())
-        if self.chorus_depth_display: self.chorus_depth_display.update(self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
-        if self.chorus_mix_display: self.chorus_mix_display.update(self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
-        if self.chorus_voices_display: self.chorus_voices_display.update(self._fmt_chorus_voices())
+        u("chorus_rate",    self.chorus_rate_display,      self._fmt_chorus_rate())
+        u("chorus_depth",   self.chorus_depth_display,     self._fmt_knob(self.chorus_depth, 0.0, 1.0, f"{int(self.chorus_depth * 100)}%"))
+        u("chorus_mix",     self.chorus_mix_display,       self._fmt_knob(self.chorus_mix, 0.0, 1.0, f"{int(self.chorus_mix * 100)}%"))
+        u("chorus_voices",  self.chorus_voices_display,    self._fmt_chorus_voices())
         # FX Delay
-        if self.delay_time_display: self.delay_time_display.update(self._fmt_delay_time())
-        if self.delay_feedback_display: self.delay_feedback_display.update(self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
-        if self.delay_mix_display: self.delay_mix_display.update(self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
+        u("delay_time",     self.delay_time_display,       self._fmt_delay_time())
+        u("delay_feedback", self.delay_feedback_display,   self._fmt_knob(self.delay_feedback, 0.0, 0.9, f"{int(self.delay_feedback * 100)}%"))
+        u("delay_mix",      self.delay_mix_display,        self._fmt_knob(self.delay_mix, 0.0, 1.0, f"{int(self.delay_mix * 100)}%"))
         # Arpeggio
-        if self.arp_mode_display: self.arp_mode_display.update(self._fmt_arp_mode())
-        if self.arp_bpm_display: self.arp_bpm_display.update(self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"))
-        if self.arp_gate_display: self.arp_gate_display.update(self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
-        if self.arp_range_display: self.arp_range_display.update(self._fmt_arp_range())
-        if self.arp_enabled_display: self.arp_enabled_display.update(self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
+        u("arp_mode",       self.arp_mode_display,         self._fmt_arp_mode())
+        u("arp_bpm",        self.arp_bpm_display,          self._fmt_knob(self.arp_bpm, 50.0, 300.0, f"{int(self.arp_bpm)} BPM"))
+        u("arp_gate",       self.arp_gate_display,         self._fmt_knob(self.arp_gate, 0.05, 1.0, f"{int(self.arp_gate * 100)}%"))
+        u("arp_range",      self.arp_range_display,        self._fmt_arp_range())
+        u("arp_enabled",    self.arp_enabled_display,      self._fmt_bool_toggle(self.arp_enabled, "ARP ON", "ARP OFF"))
 
     # ── Rendering helpers ────────────────────────────────────────
 

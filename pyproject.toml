@@ -21,6 +21,9 @@ dependencies = [
     "sounddevice>=0.4.6",
     "scipy>=1.10.0,<1.14.0; platform_machine == 'armv7l' or platform_machine == 'aarch64'",
     "scipy>=1.10.0; platform_machine != 'armv7l' and platform_machine != 'aarch64'",
+    # uvloop: faster asyncio event loop (libuv-based). ARM Linux only - not available
+    # on Windows, and not needed on desktop where the default loop is fast enough.
+    "uvloop>=0.17.0; sys_platform == 'linux' and (platform_machine == 'armv7l' or platform_machine == 'aarch64')",
 ]
 
 [tool.setuptools]

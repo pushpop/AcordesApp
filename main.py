@@ -28,6 +28,15 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import platform as _platform
 if _platform.machine() in ("armv7l", "aarch64"):
     sys.setswitchinterval(0.001)
+    # uvloop replaces the default asyncio event loop with a libuv-based
+    # implementation that is 2-4x faster at event dispatch on Linux/ARM.
+    # This reduces the latency between a keypress and the resulting render,
+    # improving navigation responsiveness across all modes.
+    try:
+        import uvloop
+        uvloop.install()
+    except ImportError:
+        pass
 del _platform
 
 # Note: On Windows, mido will auto-detect available MIDI backends
