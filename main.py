@@ -858,6 +858,8 @@ class AcordesApp(App):
     def on_unmount(self):
         """Clean up on exit."""
         self.midi_handler.close_device()
+        # Flush any pending deferred config write so settings are not lost on exit.
+        self.config_manager.flush()
         # Clear the terminal screen
         os.system('cls' if os.name == 'nt' else 'clear')
 

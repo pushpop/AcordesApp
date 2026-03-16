@@ -1,8 +1,10 @@
 """Configuration file management."""
+import copy
 import json
 import os
 import platform
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -15,9 +17,14 @@ _WINDOWS_ONLY_BACKENDS = {"ASIO", "WASAPI", "DirectSound"}
 class ConfigManager:
     """Manages application configuration."""
 
+    # Seconds to wait after the last high-frequency change before writing to disk.
+    _DEBOUNCE_SECONDS = 2.0
+
     def __init__(self):
         self.config_file = Path(__file__).parent / "config.json"
         self.config = self._load_config()
+        self._save_timer: Optional[threading.Timer] = None
+        self._timer_lock = threading.Lock()
 
     def _load_config(self) -> dict:
         """Load configuration from file."""
@@ -44,13 +51,41 @@ class ConfigManager:
             "buffer_size": 2048 if platform.machine() in ("armv7l", "aarch64") else 1024,  # Audio buffer size in samples
         }
 
-    def save_config(self):
-        """Save configuration to file."""
+    def _flush_to_disk(self):
+        """Write a snapshot of config to disk. Safe to call from any thread."""
+        with self._timer_lock:
+            self._save_timer = None
         try:
+            snapshot = copy.deepcopy(self.config)
             with open(self.config_file, 'w') as f:
-                json.dump(self.config, f, indent=2)
+                json.dump(snapshot, f, indent=2)
         except Exception as e:
             print(f"Error saving config: {e}")
+
+    def _schedule_save(self):
+        """Defer a write to disk. Resets the timer on each call (debounce).
+
+        Use for high-frequency setters (synth_state, bpm) to avoid SD card
+        storms. The write happens _DEBOUNCE_SECONDS after the last call.
+        """
+        with self._timer_lock:
+            if self._save_timer is not None:
+                self._save_timer.cancel()
+            self._save_timer = threading.Timer(self._DEBOUNCE_SECONDS, self._flush_to_disk)
+            self._save_timer.daemon = True
+            self._save_timer.start()
+
+    def save_config(self):
+        """Immediately flush config to disk. Use for critical one-off writes."""
+        with self._timer_lock:
+            if self._save_timer is not None:
+                self._save_timer.cancel()
+                self._save_timer = None
+        self._flush_to_disk()
+
+    def flush(self):
+        """Force any pending deferred save to disk. Call on clean app exit."""
+        self.save_config()
 
     # ── MIDI device ──────────────────────────────────────────────
 
@@ -95,9 +130,13 @@ class ConfigManager:
         return self.config.get("synth_state")
 
     def set_synth_state(self, params: dict):
-        """Persist current synth parameters (autosave on every change)."""
+        """Persist current synth parameters (autosave on every change).
+
+        Uses a debounced write so rapid CC knob sweeps produce a single SD
+        write rather than one per callback tick.
+        """
         self.config["synth_state"] = params
-        self.save_config()
+        self._schedule_save()
 
     # ── Audio output device ───────────────────────────────────────
 
@@ -158,6 +197,6 @@ class ConfigManager:
         return int(self.config.get("metronome_bpm", 120))
 
     def set_bpm(self, bpm: int):
-        """Persist the BPM and save. Clamped to [50, 300]."""
+        """Persist the BPM. Clamped to [50, 300]. Uses debounced write."""
         self.config["metronome_bpm"] = int(max(50, min(300, bpm)))
-        self.save_config()
+        self._schedule_save()
