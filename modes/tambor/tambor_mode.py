@@ -742,8 +742,8 @@ class TamborMode(Vertical):
         # Pre-render all drum sounds in a background thread to avoid blocking UI
         threading.Thread(target=self._preload_drums, daemon=True).start()
 
-        # Update timer starts only when playback is active (stopped at mount time).
-        # _start_update_timer() is called by action_toggle_playback when play begins.
+        # Start the sequencer update timer (always running while mode is mounted)
+        self._start_update_timer()
 
         # Start the auto-save timer (5-second interval)
         self._auto_save_timer_handle = self.set_interval(
@@ -817,11 +817,9 @@ class TamborMode(Vertical):
         if self.control_panel:
             self.control_panel.refresh_bpm_from_config()
 
-        # Restart auto-save timer. Update timer only restarts if playback is active
-        # to avoid idle event-loop wakeups when the sequencer is stopped.
+        # Restart both timers on resume.
         self._auto_save_timer_handle = self.set_interval(5.0, self._auto_save_periodic)
-        if self.playback_state == "PLAYING":
-            self._start_update_timer()
+        self._start_update_timer()
 
     def _preload_drums(self):
         """Pre-render all drum sounds (runs in background thread)."""

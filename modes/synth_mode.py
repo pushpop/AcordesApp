@@ -974,6 +974,12 @@ class SynthMode(Widget):
         if old_sec is not None and section is None:
             self._last_focus_section = old_sec
             self._last_focus_param = self._focus_param
+            # Cancel any pending WASD timer so stale moves do not fire after exit
+            if self._wasd_timer is not None:
+                self._wasd_timer.stop()
+                self._wasd_timer = None
+            self._wasd_hdelta = 0
+            self._wasd_vdelta = 0
         self._focus_section = section
         # Clamp param index to valid range for the new section
         if section is not None:
