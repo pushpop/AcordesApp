@@ -58,6 +58,10 @@ class GamepadHandler:
         # Held-button tracking for combo detection
         self._held: set[str] = set()
 
+        # Optional activity callback called on every button-down or axis event.
+        # Set by MainScreen to reset the idle/screensaver timer on any input.
+        self._activity_callback: Optional[Callable] = None
+
         # D-pad auto-repeat state
         self._repeat_action: Optional[str] = None
         self._repeat_next:   float = 0.0
@@ -219,6 +223,8 @@ class GamepadHandler:
 
     def _on_button_down(self, action: str):
         """Handle a button-down event from the backend."""
+        if self._activity_callback:
+            self._safe_call(self._activity_callback)
         self._held.add(action)
 
         # Check global combos first — sort by size descending so more specific
@@ -263,6 +269,8 @@ class GamepadHandler:
 
     def _on_axis(self, action: str, value: float):
         """Handle an axis value change from the backend."""
+        if self._activity_callback:
+            self._safe_call(self._activity_callback)
         cb = self._axis_cbs.get(action) or self._global_axis_cbs.get(action)
         if cb:
             self._safe_call(cb, value)

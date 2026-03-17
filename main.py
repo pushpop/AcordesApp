@@ -220,6 +220,15 @@ class IdleManager:
         self._last_activity = time.monotonic()
         self._is_idle = False
         self._is_arm = platform.machine() in ("armv7l", "aarch64")
+        # Optional callback invoked on the event-loop thread when waking from
+        # idle.  Set by MainScreen to force a Textual repaint after the display
+        # was blanked by writing directly to /dev/fb0.
+        self._on_wake = None
+
+    @property
+    def is_idle(self) -> bool:
+        """Return True if the screen is currently in idle/blanked state."""
+        return self._is_idle
 
     def reset(self):
         """Record user activity and wake up from idle if currently idle."""
@@ -245,10 +254,17 @@ class IdleManager:
         """Restore display and raise CPU governor."""
         self._is_idle = False
         self._set_governor("performance")
-        # Textual will re-render into the framebuffer on the next input event.
+        # Force a full Textual repaint so the UI overwrites the blanked /dev/fb0.
+        if self._on_wake is not None:
+            self._on_wake()
 
     def _blank_display(self):
-        """Write zeros to /dev/fb0 to black out the TFT display (ARM only)."""
+        """Write a dark grey frame to /dev/fb0 for the screensaver (ARM only).
+
+        Uses dark grey (RGB 40, 40, 40) instead of pure black so the display
+        shows a visible screensaver rather than appearing completely dead.
+        Supports 32bpp (BGRA/XRGB) and 16bpp (RGB565) framebuffer formats.
+        """
         if not self._is_arm:
             return
         try:
@@ -260,8 +276,24 @@ class IdleManager:
             with open("/sys/class/graphics/fb0/stride") as f:
                 stride = int(f.read().strip())
             total_bytes = stride * h
+            bytes_per_pixel = max(1, bpp // 8)
+            # Dark grey pixel value for each supported pixel format.
+            # RGB(40, 40, 40) = 0x28 per channel.
+            if bpp == 32:
+                # BGRA or XRGB: four bytes per pixel, alpha = opaque.
+                pixel = bytes([0x28, 0x28, 0x28, 0xff])
+            elif bpp == 16:
+                # RGB565: R=5, G=10, B=5 → 0x2945, little-endian.
+                pixel = bytes([0x45, 0x29])
+            else:
+                pixel = b"\x00" * bytes_per_pixel
+            pixel_count = total_bytes // bytes_per_pixel
+            frame = pixel * pixel_count
+            # Pad to exact byte count in case stride creates a fractional pixel.
+            if len(frame) < total_bytes:
+                frame += b"\x00" * (total_bytes - len(frame))
             with open(fb_path, "wb") as fb:
-                fb.write(b"\x00" * total_bytes)
+                fb.write(frame[:total_bytes])
         except Exception:
             # /dev/fb0 not available or permission denied - silently skip.
             pass
@@ -406,9 +438,15 @@ class MainScreen(Screen):
         midi_handler = self.app_context.get("midi_handler")
         if midi_handler is not None:
             midi_handler._activity_callback = self._idle_manager.reset
+        # Wake callback: force a full Textual repaint after the screensaver
+        # blanked /dev/fb0 directly.  Without this Textual's dirty-tracking
+        # believes the screen is still up-to-date and emits no ANSI codes.
+        self._idle_manager._on_wake = lambda: self.refresh(repaint=True)
         # Start gamepad polling and wire global bindings.
         gp = self.app_context.get("gamepad_handler")
         if gp is not None:
+            # Any gamepad button or axis event resets the idle/screensaver timer.
+            gp._activity_callback = self._idle_manager.reset
             self._setup_gamepad_globals(gp)
             self.set_interval(0.016, gp.poll)
 
@@ -551,14 +589,20 @@ class MainScreen(Screen):
         self.app_context["current_mode"] = mode_name
 
         if mode_name in self._mode_cache:
-            # Fast path: cached widget — just show it and resume.
+            # Fast path: cached widget — make it visible immediately so Textual
+            # renders it on the next frame, then defer the resume/focus to the
+            # following tick.  This lets the mode appear on screen before the
+            # (potentially heavier) on_mode_resume work runs, giving a snappier
+            # perceived response especially on ARM with complex widget trees.
             cached = self._mode_cache[mode_name]
             cached.display = True
             self._apply_help_bars(mode_name)
-            if hasattr(cached, "on_mode_resume"):
-                cached.on_mode_resume()
-            if hasattr(cached, "can_focus") and cached.can_focus:
-                cached.focus()
+            def _resume_cached(widget=cached):
+                if hasattr(widget, "on_mode_resume"):
+                    widget.on_mode_resume()
+                if hasattr(widget, "can_focus") and widget.can_focus:
+                    widget.focus()
+            self.call_later(_resume_cached)
         else:
             # First visit: create, mount, and cache the widget.
             # Deferred so widget construction does not block the audio thread.

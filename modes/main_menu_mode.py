@@ -81,10 +81,10 @@ class MainMenuMode(Vertical):
     def on_mode_resume(self) -> None:
         """Called by MainScreen when showing this cached mode again.
 
-        Defers focus to after Textual re-renders the widget; calling focus()
-        synchronously while display is toggling can be silently dropped.
+        MainScreen defers this call via call_later so the display toggle has
+        already been processed; focus() fires on the same tick as resume.
         """
-        self.set_timer(0.05, lambda: self.query_one("#piano_button").focus())
+        self.query_one("#piano_button").focus()
         self._register_gamepad_callbacks()
 
     def on_mode_pause(self) -> None:
