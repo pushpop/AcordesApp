@@ -1,8 +1,10 @@
 # ABOUTME: evdev-based gamepad backend for Linux ARM (Raspberry Pi / OStra).
 # ABOUTME: Reads EV_KEY and EV_ABS events from /dev/input and maps to GP actions.
 
-import select
+import fcntl
+import os
 import sys
+import time
 from typing import Optional
 
 from gamepad.actions import GP
@@ -56,6 +58,9 @@ class EvdevGamepadBackend:
     """
 
     DEAD_ZONE = 0.15
+    # Interval in seconds between keepalive writes to prevent the Xbox
+    # controller firmware from timing out when xpad doesn't send GIP packets.
+    _KEEPALIVE_INTERVAL = 30.0
 
     def __init__(self):
         self._device: Optional["evdev.InputDevice"] = None
@@ -71,6 +76,8 @@ class EvdevGamepadBackend:
         self._hat0y: int = 0
         # Previous axis values for noise suppression
         self._last_axis: dict[int, float] = {}
+        # Keepalive: timestamp of last write to prevent controller power-off
+        self._last_keepalive: float = 0.0
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -84,12 +91,24 @@ class EvdevGamepadBackend:
         if not _EVDEV_AVAILABLE:
             return False
 
+        # Close any existing device before opening a new one to avoid leaking fds
+        if self._device is not None:
+            try:
+                self._device.close()
+            except Exception:
+                pass
+            self._device = None
+
         dev = _find_gamepad()
         if dev is None:
             return False
 
         self._device = dev
         self._connected = True
+
+        # Set fd to non-blocking so read_one() returns None instead of blocking
+        flags = fcntl.fcntl(dev.fd, fcntl.F_GETFL)
+        fcntl.fcntl(dev.fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
         # Cache absolute axis info for normalisation
         caps = dev.capabilities(absinfo=True)
@@ -119,24 +138,38 @@ class EvdevGamepadBackend:
     def poll(self):
         """Read all pending events from the evdev device (non-blocking).
 
-        Uses select() with zero timeout to check if data is available before
-        reading, so it never blocks the asyncio event loop.
+        Uses read_one() to drain available events without blocking the asyncio
+        event loop. The fd is set to O_NONBLOCK on connect so read_one()
+        returns None immediately when no events are pending.
         """
         if not self._connected or self._device is None:
             return
 
         try:
-            r, _, _ = select.select([self._device.fd], [], [], 0)
-            if not r:
-                return
-            for event in self._device.read():
+            while True:
+                event = self._device.read_one()
+                if event is None:
+                    break
                 self._handle_event(event)
+        except BlockingIOError:
+            # No events available - normal when fd is O_NONBLOCK
+            pass
         except OSError:
-            # Device disconnected
+            # Device physically disconnected
             self._connected = False
         except Exception as exc:
             print(f"[gamepad] evdev poll error: {exc}", file=sys.stderr)
-            self._connected = False
+
+        # Periodic keepalive: write a SYN_REPORT to the device so the xpad
+        # driver keeps sending GIP heartbeats to the Xbox controller firmware.
+        # Without this, the Elite 2 times out and disconnects after ~5 minutes.
+        now = time.monotonic()
+        if now - self._last_keepalive >= self._KEEPALIVE_INTERVAL:
+            self._last_keepalive = now
+            try:
+                self._device.write(ecodes.EV_SYN, ecodes.SYN_REPORT, 0)
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------
     # Event handling

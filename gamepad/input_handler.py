@@ -13,6 +13,10 @@ from gamepad.actions import GP
 _REPEAT_DELAY    = 0.40   # seconds before first repeat fires
 _REPEAT_INTERVAL = 0.10   # seconds between subsequent repeats
 
+# How often poll() retries connecting when no controller is detected.
+# Handles boot-time xpad initialization delays and physical reconnects.
+_RECONNECT_INTERVAL = 3.0
+
 _DPAD_ACTIONS = {GP.DPAD_UP, GP.DPAD_DOWN, GP.DPAD_LEFT, GP.DPAD_RIGHT}
 
 
@@ -58,6 +62,9 @@ class GamepadHandler:
         self._repeat_action: Optional[str] = None
         self._repeat_next:   float = 0.0
         self._repeat_phase:  str = "idle"   # "idle" | "delay" | "repeat"
+
+        # Auto-reconnect: next time poll() may attempt a reconnect
+        self._next_reconnect: float = 0.0
 
         # Select platform backend
         self._backend = self._create_backend()
@@ -109,6 +116,21 @@ class GamepadHandler:
         self._connected = result
         if result:
             print("[gamepad] controller connected", file=sys.stderr)
+        return result
+
+    def reconnect(self) -> bool:
+        """Disconnect and reconnect to get a fresh device fd.
+
+        Called after a short delay on ARM boot to work around xpad driver
+        initialization timing: the kernel registers the event device before
+        the driver finishes its USB handshake, so the first connect() gets
+        a stale fd that receives no events.  Reopening after a few seconds
+        picks up the fully-initialized stream.
+        """
+        self.disconnect()
+        result = self.connect()
+        if not result:
+            print("[gamepad] reconnect failed — no controller found", file=sys.stderr)
         return result
 
     def disconnect(self):
@@ -171,8 +193,17 @@ class GamepadHandler:
         via set_interval(0.016, gamepad_handler.poll) in MainScreen.on_mount().
         Exceptions from the backend or callbacks are caught here so a single
         bad event can never crash the Textual event loop.
+
+        When not connected, retries connect() every _RECONNECT_INTERVAL seconds.
+        This handles both boot-time xpad initialization delays (the kernel
+        registers the event device before the driver finishes its USB handshake)
+        and physical controller reconnects during a session.
         """
         if not self.is_connected():
+            now = time.monotonic()
+            if now >= self._next_reconnect:
+                self._next_reconnect = now + _RECONNECT_INTERVAL
+                self.connect()
             return
 
         try:

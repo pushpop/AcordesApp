@@ -292,6 +292,7 @@ if [ ! -d "$VENV_DIR" ]; then
             "mingus>=0.6.1" \
             "sounddevice>=0.4.6" \
             "meson-python" \
+            "evdev>=1.6.0" \
             "numpy>=1.24.0,<2.0" \
             "scipy>=1.10.0,<1.14.0" \
             --quiet &
@@ -354,7 +355,7 @@ else
             --python "$VENV_DIR/bin/python" \
             --no-build-isolation-package python-rtmidi \
             "textual>=0.75.0" "mido>=1.3.0" "python-rtmidi>=1.4.0" \
-            "mingus>=0.6.1" "sounddevice>=0.4.6" "meson-python" \
+            "mingus>=0.6.1" "sounddevice>=0.4.6" "meson-python" "evdev>=1.6.0" \
             "numpy>=1.24.0,<2.0" "scipy>=1.10.0,<1.14.0" \
             --quiet &
         _UV_PID=$!

@@ -361,6 +361,18 @@ CONFIG MODE
 
 ---
 
+## Platform-Specific Notes
+
+### Raspberry Pi / OStra with Xbox Controllers
+
+**Boot-Time Initialization**: On Raspberry Pi, the Xbox controller is fully initialized by `run-ostra.sh` before Acordes launches. The launcher performs a USB power cycle on boot (deauthorize/reauthorize the device via `/sys/bus/usb/devices/X/authorized`) which ensures the xpad driver completes its GIP handshake. This prevents the controller from entering pairing/search mode (blinking light) and guarantees the controller is ready when the app starts.
+
+**Auto-Reconnect**: If the controller is disconnected during a session, `poll()` automatically attempts to reconnect every 3 seconds. Simply unplug and replug the USB cable — the app will detect and reconnect within seconds without restarting.
+
+**Keepalive**: On ARM, a periodic SYN_REPORT is written to the device (every 30 seconds) to signal active usage and prevent controller timeout.
+
+---
+
 ## Supported Controllers
 
 **Fully Tested & Supported**:
