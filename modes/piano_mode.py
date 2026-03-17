@@ -195,20 +195,22 @@ class PianoMode(Widget):
         self._saved_synth_params = self.synth_engine.get_current_params()
         self.synth_engine.update_parameters(**_PIANO_PARAMS)
 
-        # Initialize chord display
+        # Initialize all display widgets so they show their empty state immediately.
+        # PianoWidget now uses Static.update() instead of render(), so it must be
+        # explicitly seeded; it will not auto-paint until update_notes() is called.
+        if self.piano_widget:
+            self.piano_widget.update_notes(set())
+
         if self.chord_display_widget:
             self.chord_display_widget.update_display(None, [])
 
-        # Initialize staff display
         if self.staff_widget:
             self.staff_widget.update_notes(set())
 
         # Start polling for MIDI messages.
         # 10ms poll on all platforms. uvloop makes the asyncio wake cheap enough
         # that the original ARM slowdown (GIL contention, xruns) no longer applies.
-        import platform as _plat
-        _poll_interval = 0.01
-        self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
+        self._poll_timer = self.set_interval(0.01, self._poll_midi)
 
     def on_unmount(self):
         """Restore previous synth state when leaving Piano mode."""

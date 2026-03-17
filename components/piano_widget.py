@@ -1,7 +1,6 @@
 # ABOUTME: Visual ASCII piano keyboard widget — renders pressed MIDI keys with colour highlights.
 # ABOUTME: Caches keyboard border width so regex runs only when the octave range changes, not per keypress.
 from textual.widgets import Static
-from textual.reactive import reactive
 from typing import Set
 import re
 
@@ -11,8 +10,6 @@ class PianoWidget(Static):
 
     # Note names for each semitone
     NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-
-    active_notes: reactive[Set[int]] = reactive(set, init=False)
 
     DEFAULT_CSS = """
     PianoWidget {
@@ -25,7 +22,7 @@ class PianoWidget(Static):
 
     def __init__(self, **kwargs):
         super().__init__("", **kwargs)
-        self.active_notes = set()
+        self.active_notes: Set[int] = set()
         # Cache border width and cleaned lines so regex only runs when octave range changes
         self._cached_border_width: int = 0
         self._cached_octave_key: tuple = ()
@@ -290,16 +287,16 @@ class PianoWidget(Static):
 
         return "\n".join(bordered_lines)
 
-    def render(self) -> str:
-        """Render the piano widget."""
-        return self._build_piano_display(self.active_notes)
-
     def update_notes(self, notes: Set[int]):
-        """Update the set of active notes.
+        """Update the set of active notes and repaint.
 
         Args:
             notes: Set of MIDI note numbers to display as pressed.
         """
-        # Setting the reactive triggers refresh automatically — no explicit call needed.
+        # Build the display string here and push it via Static.update() so Textual
+        # does not need to call render() on every unrelated refresh cycle (resize,
+        # focus change, layout pass, etc.).  _build_piano_display only runs when
+        # update_notes is explicitly called, never on background refresh.
         self.active_notes = notes
+        self.update(self._build_piano_display(notes))
 

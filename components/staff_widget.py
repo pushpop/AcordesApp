@@ -22,9 +22,9 @@ class StaffWidget(Static):
     _BASS_ALL   = {**_BASS_LINE_NOTES,   **_BASS_SPACE_NOTES}
 
     def __init__(self, **kwargs):
-        # Initialize with empty staff display
-        initial_content = self._build_empty_staff()
-        super().__init__(initial_content, **kwargs)
+        # Build empty staff once and cache it — it never changes.
+        self._empty_staff_cache: str = self._build_empty_staff()
+        super().__init__(self._empty_staff_cache, **kwargs)
         self.active_notes: Set[int] = set()
 
     def _build_empty_staff(self) -> str:
@@ -130,7 +130,7 @@ class StaffWidget(Static):
             String representation of the staff with notes.
         """
         if not notes:
-            return self._build_empty_staff()
+            return self._empty_staff_cache
 
         # Separate notes into treble (>= B3/MIDI 59) and bass (< B3)
         treble_notes = {n for n in notes if n >= 59}
