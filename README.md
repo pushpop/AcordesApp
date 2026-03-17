@@ -562,7 +562,7 @@ acordes/
 ├── run.ps1                          # Windows (PowerShell) launcher
 ├── run.sh                           # Linux/macOS launcher
 ├── requirements.txt                 # Python dependencies
-└── LICENSE                          # MIT License
+└── LICENSE                          # GPL-3.0-or-later
 ```
 
 ---
@@ -591,7 +591,7 @@ All core synthesis happens in `music/synth_engine.py`. The parameter system is f
 
 ## License
 
-MIT License; see [LICENSE](LICENSE) for details.
+GNU General Public License v3 or later (GPL-3.0-or-later); see [LICENSE](LICENSE) for details.
 
 ---
 

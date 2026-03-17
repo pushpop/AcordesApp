@@ -4,7 +4,7 @@ version = "1.8.0"
 description = "A professional polyphonic MIDI synthesizer and piano TUI application"
 readme = "README.md"
 requires-python = ">=3.9"
-license = "MIT"
+license = "GPL-3.0-or-later"
 authors = [{ name = "Jorge" }]
 keywords = ["midi", "synthesizer", "piano", "tui", "music"]
 
