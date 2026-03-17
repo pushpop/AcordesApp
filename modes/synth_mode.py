@@ -1142,6 +1142,12 @@ class SynthMode(Widget):
         v = self._wasd_vdelta
         self._wasd_hdelta = 0
         self._wasd_vdelta = 0
+        # Guard: if focus mode was exited in the 40ms window before this timer
+        # fired, discard the accumulated input. Without this guard, action_nav_*
+        # when unfocused would call action_preset_next/prev or action_adjust_volume,
+        # causing unexpected preset loads or volume changes mid-play.
+        if not self._focused():
+            return
         for _ in range(abs(h)):
             if h > 0:
                 self.action_nav_right()
