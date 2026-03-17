@@ -771,10 +771,10 @@ class SynthMode(Widget):
         self._poll_timer = None
         self.focus()
         self._register_midi_callbacks()
-        # ARM: 30ms poll interval reduces GIL contention between the UI thread
-        # and the PortAudio callback thread, preventing audio xruns.
+        # 10ms poll on all platforms. uvloop makes the asyncio wake cheap enough
+        # that the original ARM GIL-contention concern no longer applies.
         import platform as _plat
-        _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
+        _poll_interval = 0.01
         self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
         self._push_params_to_engine()
         self._update_preset_ui()

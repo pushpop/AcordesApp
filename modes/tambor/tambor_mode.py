@@ -909,7 +909,7 @@ class TamborMode(Vertical):
     def _start_update_timer(self) -> None:
         """Start the sequencer update timer if not already running."""
         if self._update_timer_handle is None:
-            self._update_timer_handle = self.set_interval(0.05, self._update_sequencer)
+            self._update_timer_handle = self.set_interval(0.025, self._update_sequencer)
 
     def _stop_update_timer(self) -> None:
         """Stop the sequencer update timer to avoid idle event-loop wakeups."""

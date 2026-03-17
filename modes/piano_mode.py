@@ -204,10 +204,10 @@ class PianoMode(Widget):
             self.staff_widget.update_notes(set())
 
         # Start polling for MIDI messages.
-        # ARM: 30ms poll is enough for responsive MIDI and avoids waking the UI
-        # thread (and grabbing the GIL) 100 times/sec, which causes audio xruns.
+        # 10ms poll on all platforms. uvloop makes the asyncio wake cheap enough
+        # that the original ARM slowdown (GIL contention, xruns) no longer applies.
         import platform as _plat
-        _poll_interval = 0.03 if _plat.machine() in ("armv7l", "aarch64") else 0.01
+        _poll_interval = 0.01
         self._poll_timer = self.set_interval(_poll_interval, self._poll_midi)
 
     def on_unmount(self):
