@@ -116,14 +116,25 @@ if [[ "$_ARCH" == "armv7l" || "$_ARCH" == "aarch64" ]]; then
     echo ""
 
     if command -v apt-get &>/dev/null; then
-        if ! dpkg -l libasound2-dev &>/dev/null 2>&1 | grep -q "^ii"; then
+        if ! dpkg -l libasound2-dev 2>/dev/null | grep -q "^ii"; then
             echo "  Installing system build dependencies..."
             sudo apt-get install -y \
                 libasound2-dev libjack-jackd2-dev ninja-build libffi-dev \
                 gfortran python3-dev \
                 libopenblas0 \
                 >/dev/null 2>&1 || true
-            printf "  \u2714  System dependencies ready\n"
+            printf "  \u2714  Audio build dependencies ready\n"
+            echo ""
+        fi
+        # SDL2 dev libraries are required to build pygame from source on ARM.
+        # piwheels does not always carry a pre-built wheel for the current
+        # pygame release, so the build toolchain must be present.
+        if ! dpkg -l libsdl2-dev 2>/dev/null | grep -q "^ii"; then
+            echo "  Installing SDL2 build dependencies (required for pygame)..."
+            sudo apt-get install -y \
+                libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+                >/dev/null 2>&1 || true
+            printf "  \u2714  SDL2 build dependencies ready\n"
             echo ""
         fi
     fi
