@@ -70,6 +70,14 @@ class ArmApp:
         pygame.quit()
 
     def _init_pygame(self) -> None:
+        # Set SDL framebuffer env vars before pygame.init() so they take effect
+        # even when the app is launched via run.sh rather than run-ostra.sh.
+        # SDL_VIDEODRIVER=fbcon: render directly to /dev/fb0 (no X11 needed).
+        # SDL_FBDEV=/dev/fb0: target the bcm2708_fb framebuffer explicitly.
+        # SDL_FBACCEL=0: disable hw acceleration (not available on bcm2708_fb).
+        os.environ.setdefault("SDL_VIDEODRIVER", "fbcon")
+        os.environ.setdefault("SDL_FBDEV",       "/dev/fb0")
+        os.environ.setdefault("SDL_FBACCEL",     "0")
         pygame.init()
         flags = pygame.NOFRAME
         self._surface = pygame.display.set_mode(
