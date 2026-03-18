@@ -9,6 +9,7 @@ import pygame
 
 from arm_ui import theme
 from arm_ui.fb0_writer import Fb0Writer
+from arm_ui.keyboard_handler import KeyboardHandler
 from gamepad.actions import GP
 
 
@@ -44,6 +45,7 @@ class ArmApp:
         self._surface: pygame.Surface | None = None
         self._clock: pygame.time.Clock | None = None
         self._fb0_writer: Fb0Writer | None = None
+        self._keyboard: KeyboardHandler | None = None
         self._running = False
 
         # Screen cache: lazy-instantiated, state persists across visits
@@ -69,6 +71,8 @@ class ArmApp:
             self.goto("main_menu")
             self._main_loop()
 
+        if self._keyboard is not None:
+            self._keyboard.stop()
         if self._fb0_writer is not None:
             self._fb0_writer.close()
         pygame.quit()
@@ -100,6 +104,9 @@ class ArmApp:
         print("[arm_ui] pygame init OK (surface: dummy + fb0_writer)", file=sys.stderr)
 
         self._fb0_writer = Fb0Writer(theme.SCREEN_W, theme.SCREEN_H)
+
+        self._keyboard = KeyboardHandler()
+        self._keyboard.start()
 
         self._clock = pygame.time.Clock()
         pygame.mouse.set_visible(False)
