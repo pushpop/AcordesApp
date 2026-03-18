@@ -106,7 +106,7 @@ class ArmApp:
         self._fb0_writer = Fb0Writer(theme.SCREEN_W, theme.SCREEN_H)
 
         self._keyboard = KeyboardHandler()
-        self._keyboard.start()
+        self._keyboard.start()   # opens device + sets O_NONBLOCK; no thread
 
         self._clock = pygame.time.Clock()
         pygame.mouse.set_visible(False)
@@ -161,6 +161,7 @@ class ArmApp:
         while self._running and not loading._transitioned:
             dt = self._clock.tick(self.FPS) / 1000.0
             self.gamepad_handler.poll()
+            self._keyboard.poll()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -181,6 +182,7 @@ class ArmApp:
             dt = self._clock.tick(self.FPS) / 1000.0
 
             self.gamepad_handler.poll()
+            self._keyboard.poll()
             self.midi_handler.poll_messages()
 
             for event in pygame.event.get():
