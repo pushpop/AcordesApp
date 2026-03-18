@@ -87,9 +87,9 @@ class Fb0Writer:
 
         # Convert to BGRA bytes matching fb0 pixel format.
         # pygame.image.tobytes gives row_bytes = fb_w * 4 (no padding).
-        # fb0 stride may be wider (e.g. 3200 bytes for 790px = 40 bytes padding
-        # per row). Writing without padding shifts every row right, producing
-        # diagonal/slanted output. We must pack each row to the fb0 stride.
+        # fb0 stride may be wider (e.g. 3200 bytes for 790px wide = 40 bytes
+        # padding per row). Build one padded bytearray and write in a single
+        # call to minimise syscall overhead (avoids 600 write() calls/frame).
         raw = pygame.image.tobytes(scaled, "BGRA")
         row_bytes = self._fb_w * 4
         stride = self._stride if self._stride else row_bytes
@@ -97,15 +97,14 @@ class Fb0Writer:
         try:
             self._fb_file.seek(0)
             if stride == row_bytes:
-                # No padding needed - write in one shot.
                 self._fb_file.write(raw)
             else:
-                # Write each row separately, padded to stride width.
-                padding = bytes(stride - row_bytes)
+                buf = bytearray(stride * self._fb_h)
                 for y in range(self._fb_h):
-                    offset = y * row_bytes
-                    self._fb_file.write(raw[offset : offset + row_bytes])
-                    self._fb_file.write(padding)
+                    src = y * row_bytes
+                    dst = y * stride
+                    buf[dst : dst + row_bytes] = raw[src : src + row_bytes]
+                self._fb_file.write(buf)
             self._fb_file.flush()
         except OSError as exc:
             print(f"[fb0_writer] write error: {exc}", file=sys.stderr)

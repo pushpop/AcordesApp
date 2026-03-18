@@ -17,7 +17,6 @@ _MODES = [
     ("config",     "Config",     "⚙"),
 ]
 
-_LERP_SPEED    = 10.0   # How fast the carousel scroll animates (higher = snappier)
 _QUIT_CONFIRM  = False  # Module-level default; instance state is per-object
 
 
@@ -64,8 +63,20 @@ class MainMenuScreen(BaseScreen):
             self._quit_armed = True
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.KEYDOWN:
+            self._handle_key(event.key)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             self._handle_touch(event.pos)
+
+    def _handle_key(self, key: int) -> None:
+        if key in (pygame.K_LEFT,  pygame.K_a):
+            self._go_left()
+        elif key in (pygame.K_RIGHT, pygame.K_d):
+            self._go_right()
+        elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            self._select()
+        elif key in (pygame.K_ESCAPE, pygame.K_BACKSPACE):
+            self._back_pressed()
 
     def _handle_touch(self, pos: tuple) -> None:
         """Select the carousel item under the touch point."""
@@ -90,9 +101,8 @@ class MainMenuScreen(BaseScreen):
                 return
 
     def update(self, dt: float) -> None:
-        # Lerp scroll position toward selected index
-        diff = self._selected - self._scroll_pos
-        self._scroll_pos += diff * min(1.0, _LERP_SPEED * dt)
+        # Snap scroll position to selected index immediately (no animation)
+        self._scroll_pos = float(self._selected)
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(theme.BG_COLOR)

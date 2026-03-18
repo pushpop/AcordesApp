@@ -85,12 +85,29 @@ class SynthScreen(BaseScreen):
         self._load_preset(self._preset_index)
         self._build_bars()
         self._register_gamepad()
+        # Register MIDI callbacks so physical keyboard plays through the engine
+        self.app.midi_handler.set_callbacks(
+            note_on=self._on_note_on,
+            note_off=self._on_note_off,
+        )
 
     def on_exit(self) -> None:
         # Stop any playing test note when leaving
         if self._note_active:
             self.app.synth_engine.note_off(_TEST_NOTE, 0)
             self._note_active = False
+        # Clear MIDI callbacks so notes don't fire on other screens
+        self.app.midi_handler.set_callbacks(note_on=None, note_off=None)
+
+    # ── MIDI callbacks ───────────────────────────────────────────────────────
+
+    def _on_note_on(self, note: int, velocity: int) -> None:
+        if self.app.synth_engine:
+            self.app.synth_engine.note_on(note, velocity)
+
+    def _on_note_off(self, note: int) -> None:
+        if self.app.synth_engine:
+            self.app.synth_engine.note_off(note, 0)
 
     # ── Gamepad ──────────────────────────────────────────────────────────────
 
@@ -264,8 +281,28 @@ class SynthScreen(BaseScreen):
     # ── Draw ──────────────────────────────────────────────────────────────────
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.KEYDOWN:
+            self._handle_key(event.key)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             self._handle_touch(event.pos)
+
+    def _handle_key(self, key: int) -> None:
+        if key in (pygame.K_LEFT,  pygame.K_a):
+            self._prev_preset()
+        elif key in (pygame.K_RIGHT, pygame.K_d):
+            self._next_preset()
+        elif key == pygame.K_COMMA:
+            self._jump_back_10()
+        elif key == pygame.K_PERIOD:
+            self._jump_fwd_10()
+        elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            self._play_test_note()
+        elif key == pygame.K_r:
+            self._randomize()
+        elif key == pygame.K_s:
+            self._save_preset()
+        elif key in (pygame.K_ESCAPE, pygame.K_BACKSPACE):
+            self.app.goto("main_menu")
 
     def _handle_touch(self, pos: tuple) -> None:
         if self._btn_random.collidepoint(pos):
