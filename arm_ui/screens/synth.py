@@ -400,15 +400,9 @@ class SynthScreen(BaseScreen):
             (self._btn_play,   "PLAY",   "A", self._note_active),
             (self._btn_save,   "SAVE",   "X", False),
         ]:
-            pygame.draw.rect(surface, theme.BG_PANEL, rect)
-
-            if is_active:
-                pygame.draw.rect(surface, theme.ACCENT, rect, 1)
-                theme.draw_corner_marks(surface, theme.ACCENT, rect, size=3)
-                lbl_col = theme.ACCENT
-            else:
-                theme.draw_dotted_rect(surface, theme.ACCENT_DIM, rect, step=3)
-                lbl_col = theme.TEXT_PRIMARY
+            # Consistent box style: white border when active (playing), dim when idle
+            theme.draw_box(surface, rect, active=is_active)
+            lbl_col = theme.ACCENT if is_active else theme.TEXT_PRIMARY
 
             lbl = theme.txt(theme.FONT_TINY, label, lbl_col)
             surface.blit(lbl, lbl.get_rect(centerx=rect.centerx, y=rect.y + 3))

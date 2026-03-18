@@ -100,8 +100,7 @@ class LoadingScreen(BaseScreen):
         pygame.draw.rect(surface, theme.BAR_BG, (bar_x, bar_y, bar_w, bar_h))
         if fill_w > 0:
             pygame.draw.rect(surface, theme.BAR_FG, (bar_x, bar_y, fill_w, bar_h))
-        theme.draw_dotted_rect(surface, theme.ACCENT_DIM,
-                               (bar_x, bar_y, bar_w, bar_h), step=4)
+        pygame.draw.rect(surface, theme.BORDER_INACTIVE, (bar_x, bar_y, bar_w, bar_h), 1)
 
         # Percentage
         pct_txt = theme.txt(theme.FONT_TINY, f"{int(pct * 100):3d}%", theme.TEXT_SECONDARY)

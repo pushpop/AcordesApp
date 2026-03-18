@@ -44,9 +44,10 @@ class BarDisplay:
         bar_total = rw - self._LABEL_WIDTH - self._PCT_WIDTH - 4
         bar_y     = ry + (rh - self._BAR_HEIGHT) // 2
 
-        # Background track - pixel sharp
+        # Background track
         pygame.draw.rect(surface, theme.BAR_BG, (bar_x, bar_y, bar_total, self._BAR_HEIGHT))
-        pygame.draw.rect(surface, theme.ACCENT_DIM, (bar_x, bar_y, bar_total, self._BAR_HEIGHT), 1)
+        pygame.draw.rect(surface, theme.BORDER_INACTIVE,
+                         (bar_x, bar_y, bar_total, self._BAR_HEIGHT), 1)
 
         # Fill
         fill_w = max(0, int(bar_total * self.value))

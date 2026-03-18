@@ -29,28 +29,22 @@ class StubScreen(BaseScreen):
         cx = theme.SCREEN_W // 2
         cy = theme.SCREEN_H // 2
 
-        # Panel box
+        # Consistent panel: white border box (active style)
         box_w, box_h = 130, 50
         box_x = cx - box_w // 2
         box_y = cy - box_h // 2
-        box_rect = (box_x, box_y, box_w, box_h)
 
-        pygame.draw.rect(surface, theme.BG_PANEL, box_rect)
-        theme.draw_dotted_rect(surface, theme.ACCENT_DIM, box_rect, step=3)
-        theme.draw_corner_marks(surface, theme.ACCENT, box_rect, size=4)
+        theme.draw_box(surface, (box_x, box_y, box_w, box_h), active=True)
 
         # Screen label in green at top of panel
         lbl = theme.txt(theme.FONT_TINY, self._title.upper(), theme.ACCENT)
         surface.blit(lbl, lbl.get_rect(centerx=cx, y=box_y + 5))
 
-        # Separator inside panel
         pygame.draw.line(surface, theme.SEPARATOR,
                          (box_x + 4, box_y + 14), (box_x + box_w - 4, box_y + 14))
 
-        # "Coming soon" in white
         soon = theme.txt(theme.FONT_SMALL, "COMING SOON", theme.TEXT_PRIMARY)
         surface.blit(soon, soon.get_rect(centerx=cx, y=box_y + 18))
 
-        # Hint below panel
         back = theme.txt(theme.FONT_TINY, "Esc: back", theme.TEXT_DIM)
         surface.blit(back, back.get_rect(centerx=cx, y=theme.SCREEN_H - 9))
