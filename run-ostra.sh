@@ -36,7 +36,7 @@ sudo sysctl -w vm.min_free_kbytes=32768 > /dev/null 2>&1 || true
 # NOTE: Scheduler tuning for uvloop (kernel.sched_rt_runtime_us, timer_migration,
 # sched_min_granularity_ns, sched_wakeup_granularity_ns) is applied via
 # /etc/sysctl.d/99-acordes-rt.conf at boot by systemd-sysctl.service.
-# Do NOT add them here — sudo sysctl at autologin time can block on a
+# Do NOT add them here - sudo sysctl at autologin time can block on a
 # password prompt and prevent auto-launch.
 
 # Kill PulseAudio if running (conflicts with ALSA direct access)
@@ -87,7 +87,7 @@ _xbox_power_cycle
 /usr/local/bin/ostra-splash 2>/dev/null || true
 
 # Prevent multiple instances.
-# Use absolute path for main.py — when auto-launched from .bash_profile the
+# Use absolute path for main.py - when auto-launched from .bash_profile the
 # working directory is /home/push, not /home/push/Acordes.
 #
 # NOTE: Do NOT use taskset -c 3 here.
@@ -99,12 +99,13 @@ _xbox_power_cycle
 # CPUs 0-2 handle everything; isolcpus=3 in cmdline.txt is available for
 # future per-thread affinity pinning if needed.
 
-# Pygame framebuffer display settings for the ARM Pygame UI.
-# SDL_VIDEODRIVER=fbcon: render directly to /dev/fb0 (no X11 required).
-# SDL_FBDEV=/dev/fb0: explicit framebuffer device (TFT-LCD via fbcp).
-# SDL_FBACCEL=0: disable hardware acceleration (not available on bcm2708_fb).
+# Pygame display settings for the ARM Pygame UI.
+# SDL_VIDEODRIVER=offscreen: pygame renders to an offscreen surface; frames
+#   are written directly to /dev/fb0 by Fb0Writer (scales 480x320 -> 790x600).
+#   This works on tty, over SSH, and without X11 or a KMS/DRM driver.
+# SDL_FBDEV/SDL_FBACCEL: retained for compatibility; unused by offscreen driver.
 # PYGAME_HIDE_SUPPORT_PROMPT: suppress pygame startup banner in console output.
-export SDL_VIDEODRIVER=fbcon
+export SDL_VIDEODRIVER=offscreen
 export SDL_FBDEV=/dev/fb0
 export SDL_FBACCEL=0
 export PYGAME_HIDE_SUPPORT_PROMPT=1

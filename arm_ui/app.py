@@ -8,6 +8,7 @@ import threading
 import pygame
 
 from arm_ui import theme
+from arm_ui.fb0_writer import Fb0Writer
 from gamepad.actions import GP
 
 
@@ -42,6 +43,7 @@ class ArmApp:
 
         self._surface: pygame.Surface | None = None
         self._clock: pygame.time.Clock | None = None
+        self._fb0_writer: Fb0Writer | None = None
         self._running = False
 
         # Screen cache: lazy-instantiated, state persists across visits
@@ -67,55 +69,38 @@ class ArmApp:
             self.goto("main_menu")
             self._main_loop()
 
+        if self._fb0_writer is not None:
+            self._fb0_writer.close()
         pygame.quit()
 
     def _init_pygame(self) -> None:
-        """Initialize Pygame display with a driver fallback chain.
+        """Initialize Pygame in offscreen mode and open /dev/fb0 for output.
 
-        Driver priority:
-          1. Respect SDL_VIDEODRIVER if already set in the environment.
-          2. fbcon  - direct framebuffer, works on tty1 (run-ostra.sh boot).
-          3. kmsdrm - KMS/DRM, fallback for systems with vc4 DRM driver.
-          4. offscreen - headless, used over SSH or for testing; no display output.
+        SDL_VIDEODRIVER is forced to 'offscreen' so pygame.init() always
+        succeeds regardless of the display environment (tty, SSH, HDMI).
+        Each rendered frame is written directly to /dev/fb0 via Fb0Writer,
+        which scales 480x320 to the fb0 native size (790x600 on OStra) and
+        writes raw BGRA bytes.  fbcp then mirrors fb0 to both the SPI TFT and
+        HDMI output.  The double-scaling cancels perfectly so the image is
+        pixel-accurate on both outputs.
 
-        fbcon requires:
-          - Running on an actual VT (tty1), NOT over SSH.
-          - The user in the 'video' group for /dev/fb0 r/w access.
+        If /dev/fb0 is not writable (SSH, dev machine) Fb0Writer silently
+        degrades to a no-op, allowing headless testing without changes.
         """
+        # Force offscreen: works on tty, over SSH, and in CI without X11.
+        os.environ["SDL_VIDEODRIVER"] = "offscreen"
         os.environ.setdefault("SDL_FBDEV",   "/dev/fb0")
         os.environ.setdefault("SDL_FBACCEL", "0")
 
-        # If caller already set SDL_VIDEODRIVER, respect it.
-        forced_driver = os.environ.get("SDL_VIDEODRIVER")
-        drivers_to_try = (
-            [forced_driver] if forced_driver
-            else ["fbcon", "kmsdrm", "offscreen"]
+        pygame.init()
+        # Offscreen surface - rendered frames go to fb0 via Fb0Writer, not SDL.
+        self._surface = pygame.display.set_mode(
+            (theme.SCREEN_W, theme.SCREEN_H), pygame.NOFRAME
         )
+        print("[arm_ui] pygame init OK (driver: offscreen + fb0_writer)", file=sys.stderr)
 
-        flags = pygame.NOFRAME
-        last_error = None
-        for driver in drivers_to_try:
-            os.environ["SDL_VIDEODRIVER"] = driver
-            try:
-                pygame.init()
-                self._surface = pygame.display.set_mode(
-                    (theme.SCREEN_W, theme.SCREEN_H), flags
-                )
-                print(f"[arm_ui] display init OK (driver: {driver})", file=sys.stderr)
-                break
-            except pygame.error as exc:
-                last_error = exc
-                print(f"[arm_ui] driver {driver!r} unavailable: {exc}", file=sys.stderr)
-                pygame.quit()
-        else:
-            raise RuntimeError(
-                f"Could not init any SDL video driver. Last error: {last_error}\n"
-                "On tty1: ensure 'push' user is in the 'video' group "
-                "(sudo usermod -aG video push).\n"
-                "Over SSH: set SDL_VIDEODRIVER=offscreen for headless testing."
-            )
+        self._fb0_writer = Fb0Writer(theme.SCREEN_W, theme.SCREEN_H)
 
-        pygame.display.set_caption("Acordes")
         self._clock = pygame.time.Clock()
         pygame.mouse.set_visible(False)
 
@@ -177,7 +162,7 @@ class ArmApp:
 
             loading.update(dt)
             loading.draw(self._surface)
-            pygame.display.flip()
+            self._fb0_writer.write_surface(self._surface)
 
         loading.on_exit()
 
@@ -201,7 +186,7 @@ class ArmApp:
                 self._current_screen.update(dt)
                 self._current_screen.draw(self._surface)
 
-            pygame.display.flip()
+            self._fb0_writer.write_surface(self._surface)
 
     # ── Screen management ────────────────────────────────────────────────────
 
