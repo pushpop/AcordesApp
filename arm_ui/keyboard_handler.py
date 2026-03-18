@@ -88,12 +88,22 @@ class KeyboardHandler:
         # matching the same pattern used by EvdevGamepadBackend.
         fl = fcntl.fcntl(device.fd, fcntl.F_GETFL)  # type: ignore[name-defined]
         fcntl.fcntl(device.fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)  # type: ignore[name-defined]
+        # Grab exclusive access so keystrokes don't also reach the terminal
+        # and print characters over the pygame display in fb0.
+        try:
+            device.grab()
+        except Exception as exc:
+            print(f"[keyboard_handler] grab failed (non-fatal): {exc}", file=sys.stderr)
         self._device = device
         print(f"[keyboard_handler] {device.name} ({device.path})", file=sys.stderr)
 
     def stop(self) -> None:
-        """Close the keyboard device."""
+        """Release keyboard grab and close the device."""
         if self._device is not None:
+            try:
+                self._device.ungrab()
+            except Exception:
+                pass
             try:
                 self._device.close()
             except Exception:

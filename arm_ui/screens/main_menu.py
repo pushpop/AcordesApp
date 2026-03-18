@@ -47,10 +47,12 @@ class MainMenuScreen(BaseScreen):
     def _go_left(self) -> None:
         self._selected = max(0, self._selected - 1)
         self._quit_armed = False
+        self.app.request_redraw()
 
     def _go_right(self) -> None:
         self._selected = min(len(_MODES) - 1, self._selected + 1)
         self._quit_armed = False
+        self.app.request_redraw()
 
     def _select(self) -> None:
         screen_name = _MODES[self._selected][0]
@@ -61,6 +63,7 @@ class MainMenuScreen(BaseScreen):
             self.app.quit()
         else:
             self._quit_armed = True
+            self.app.request_redraw()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.KEYDOWN:

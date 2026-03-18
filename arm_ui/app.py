@@ -47,6 +47,7 @@ class ArmApp:
         self._fb0_writer: Fb0Writer | None = None
         self._keyboard: KeyboardHandler | None = None
         self._running = False
+        self._dirty = True   # Triggers first draw; cleared after each render
 
         # Screen cache: lazy-instantiated, state persists across visits
         self._screen_cache: dict = {}
@@ -168,9 +169,11 @@ class ArmApp:
                     self._running = False
                     return
 
-            loading.update(dt)
-            loading.draw(self._surface)
-            self._fb0_writer.write_surface(self._surface)
+            loading.update(dt)   # sets _dirty via request_redraw() if animating
+            if self._dirty:
+                loading.draw(self._surface)
+                self._fb0_writer.write_surface(self._surface)
+                self._dirty = False
 
         loading.on_exit()
 
@@ -190,12 +193,16 @@ class ArmApp:
                     self._running = False
                 elif self._current_screen is not None:
                     self._current_screen.handle_event(event)
+                    self._dirty = True   # any event always needs a redraw
 
             if self._current_screen is not None:
-                self._current_screen.update(dt)
-                self._current_screen.draw(self._surface)
+                self._current_screen.update(dt)  # may call request_redraw()
 
-            self._fb0_writer.write_surface(self._surface)
+            if self._dirty:
+                if self._current_screen is not None:
+                    self._current_screen.draw(self._surface)
+                self._fb0_writer.write_surface(self._surface)
+                self._dirty = False
 
     # ── Screen management ────────────────────────────────────────────────────
 
@@ -218,6 +225,7 @@ class ArmApp:
 
         self._current_screen = self._screen_cache[screen_name]
         self._current_screen.on_enter(**kwargs)
+        self._dirty = True   # always draw the first frame of a new screen
 
     def _create_screen(self, name: str):
         # Each import is deferred inside its lambda so missing modules only fail
@@ -247,6 +255,15 @@ class ArmApp:
         if factory is None:
             raise ValueError(f"Unknown screen name: {name!r}")
         return factory()
+
+    def request_redraw(self) -> None:
+        """Ask for a redraw on the next frame.
+
+        Screens call this from gamepad callbacks and update() when they have
+        animation or state changes. The main loop only calls draw()+fb0_write()
+        when dirty, so idle screens consume no CPU on rendering.
+        """
+        self._dirty = True
 
     def quit(self) -> None:
         """Cleanly stop the application."""

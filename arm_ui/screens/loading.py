@@ -40,6 +40,7 @@ class LoadingScreen(BaseScreen):
 
     def update(self, dt: float) -> None:
         self._elapsed += dt
+        self.app.request_redraw()   # loading screen always animates
 
         if self._transitioned:
             return

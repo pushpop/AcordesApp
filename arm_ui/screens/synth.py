@@ -128,21 +128,25 @@ class SynthScreen(BaseScreen):
         count = self.app.preset_manager.count()
         self._preset_index = (self._preset_index - 1) % count
         self._load_preset(self._preset_index)
+        self.app.request_redraw()
 
     def _next_preset(self) -> None:
         count = self.app.preset_manager.count()
         self._preset_index = (self._preset_index + 1) % count
         self._load_preset(self._preset_index)
+        self.app.request_redraw()
 
     def _jump_back_10(self) -> None:
         count = self.app.preset_manager.count()
         self._preset_index = (self._preset_index - 10) % count
         self._load_preset(self._preset_index)
+        self.app.request_redraw()
 
     def _jump_fwd_10(self) -> None:
         count = self.app.preset_manager.count()
         self._preset_index = (self._preset_index + 10) % count
         self._load_preset(self._preset_index)
+        self.app.request_redraw()
 
     def _load_preset(self, index: int) -> None:
         """Load preset at index, push params to engine, update bar displays."""
@@ -175,6 +179,7 @@ class SynthScreen(BaseScreen):
         self.app.synth_engine.note_on(_TEST_NOTE, _TEST_VELOCITY)
         self._note_active = True
         self._note_timer  = _NOTE_DURATION
+        self.app.request_redraw()
 
     # ── Randomize ────────────────────────────────────────────────────────────
 
@@ -271,12 +276,14 @@ class SynthScreen(BaseScreen):
             if self._note_timer <= 0.0:
                 self.app.synth_engine.note_off(_TEST_NOTE, 0)
                 self._note_active = False
+            self.app.request_redraw()
 
         # Status message countdown
         if self._status_timer > 0.0:
             self._status_timer -= dt
             if self._status_timer <= 0.0:
                 self._status_msg = ""
+            self.app.request_redraw()
 
     # ── Draw ──────────────────────────────────────────────────────────────────
 

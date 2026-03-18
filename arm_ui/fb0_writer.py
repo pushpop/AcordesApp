@@ -50,7 +50,7 @@ class Fb0Writer:
             with open(self._STRIDE_PATH) as f:
                 self._stride = int(f.read().strip())
 
-            self._fb_file = open(self._FB0_PATH, "wb")  # noqa: SIM115
+            self._fb_file = open(self._FB0_PATH, "wb", buffering=0)  # noqa: SIM115
             stride = self._stride if self._stride else self._fb_w * 4
             self._buf = bytearray(stride * self._fb_h)
             self._available = True
@@ -102,14 +102,16 @@ class Fb0Writer:
             if stride == row_bytes:
                 self._fb_file.write(raw)
             else:
-                # Reuse pre-allocated buffer to avoid per-frame allocation.
-                buf = self._buf
+                # Use memoryview for zero-copy slice assignment into the
+                # pre-allocated buffer (avoids temporary Python objects).
+                mv_raw = memoryview(raw)
+                mv_buf = memoryview(self._buf)
                 for y in range(self._fb_h):
                     src = y * row_bytes
                     dst = y * stride
-                    buf[dst : dst + row_bytes] = raw[src : src + row_bytes]
-                self._fb_file.write(buf)
-            self._fb_file.flush()
+                    mv_buf[dst : dst + row_bytes] = mv_raw[src : src + row_bytes]
+                self._fb_file.write(self._buf)
+            # No flush() needed: buffering=0 writes go directly to the kernel.
         except OSError as exc:
             print(f"[fb0_writer] write error: {exc}", file=sys.stderr)
             self._available = False
