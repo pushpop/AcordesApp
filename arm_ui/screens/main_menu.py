@@ -1,5 +1,5 @@
 # ABOUTME: Main menu carousel screen for the ARM Pygame UI.
-# ABOUTME: Shows 6 mode icons in a pixel-art style grid, navigated by D-pad, keyboard, or touch.
+# ABOUTME: Shows 6 mode icons in a pixel-art grid, navigated by D-pad, keyboard, or touch.
 
 import pygame
 
@@ -9,19 +9,19 @@ from gamepad.actions import GP
 
 # Mode definitions: (screen_name, display_label, icon_character)
 _MODES = [
-    ("piano",      "PIANO",      "♪"),
-    ("synth",      "SYNTH",      "~"),
-    ("metronome",  "METRO",      "M"),
-    ("tambor",     "TAMBOR",     "●"),
-    ("compendium", "CHORDS",     "♫"),
-    ("config",     "CONFIG",     "⚙"),
+    ("piano",      "PIANO",  "♪"),
+    ("synth",      "SYNTH",  "~"),
+    ("metronome",  "METRO",  "M"),
+    ("tambor",     "TAMBOR", "●"),
+    ("compendium", "CHORDS", "♫"),
+    ("config",     "CONFIG", "⚙"),
 ]
 
 _QUIT_CONFIRM = False  # Module-level default; instance state is per-object
 
 
 class MainMenuScreen(BaseScreen):
-    """Horizontal carousel main menu with pixel art style."""
+    """Horizontal carousel main menu with Elektron-inspired pixel art style."""
 
     def __init__(self, app) -> None:
         super().__init__(app)
@@ -120,41 +120,49 @@ class MainMenuScreen(BaseScreen):
             item_x  = item_cx - w // 2
             item_y  = theme.CAROUSEL_CENTER_Y + (theme.CAROUSEL_CENTER_H - h) // 2
 
+            rect = (item_x, item_y, w, h)
+
             # Panel fill
-            bg = theme.BG_PANEL
-            pygame.draw.rect(surface, bg, (item_x, item_y, w, h))
+            pygame.draw.rect(surface, theme.BG_PANEL, rect)
 
-            # Border: orange for selected, dim green for others - pixel sharp
-            border_col = theme.HIGHLIGHT if is_sel else theme.ACCENT_DIM
-            border_w   = 2 if is_sel else 1
-            pygame.draw.rect(surface, border_col, (item_x, item_y, w, h), border_w)
-
-            # Corner pixels (pixel art detail): bright dot at each corner when selected
             if is_sel:
-                for cx, cy in [(item_x, item_y), (item_x+w-1, item_y),
-                               (item_x, item_y+h-1), (item_x+w-1, item_y+h-1)]:
-                    pygame.draw.rect(surface, theme.ACCENT, (cx, cy, 2, 2))
+                # Selected: solid orange border + green corner marks
+                pygame.draw.rect(surface, theme.HIGHLIGHT, rect, 1)
+                theme.draw_corner_marks(surface, theme.ACCENT, rect, size=5)
+            else:
+                # Inactive: dotted dim green border
+                theme.draw_dotted_rect(surface, theme.ACCENT_DIM, rect, step=4)
 
-            # Icon
+            # Icon - green for selected, dim for others
             icon_size  = theme.FONT_LARGE if is_sel else theme.FONT_MEDIUM
-            icon_color = theme.ACCENT if is_sel else theme.TEXT_SECONDARY
+            icon_color = theme.ACCENT if is_sel else theme.TEXT_DIM
             icon_surf  = theme.txt(icon_size, icon, icon_color)
-            icon_rect  = icon_surf.get_rect(centerx=item_cx, centery=item_y + h // 2 - 8)
+            icon_rect  = icon_surf.get_rect(centerx=item_cx,
+                                            centery=item_y + h // 2 - 6)
             surface.blit(icon_surf, icon_rect)
 
-            # Label below box
-            lbl_color = theme.HIGHLIGHT if is_sel else theme.TEXT_DIM
+            # Label below box - white for selected, dim for others
+            lbl_color = theme.TEXT_PRIMARY if is_sel else theme.TEXT_DIM
             lbl_surf  = theme.txt(theme.FONT_TINY, label, lbl_color)
-            lbl_rect  = lbl_surf.get_rect(centerx=item_cx, y=item_y + h + 4)
+            lbl_rect  = lbl_surf.get_rect(centerx=item_cx, y=item_y + h + 5)
             surface.blit(lbl_surf, lbl_rect)
 
-        # Horizontal rule above hint bar
-        pygame.draw.line(surface, theme.ACCENT_DIM,
-                         (0, theme.SCREEN_H - 28), (theme.SCREEN_W, theme.SCREEN_H - 28))
+        # Title bar at very top
+        title = theme.txt(theme.FONT_TINY, "ACORDES", theme.ACCENT)
+        surface.blit(title, (6, 4))
+        ver = theme.txt(theme.FONT_TINY, "OStra", theme.TEXT_DIM)
+        surface.blit(ver, (theme.SCREEN_W - ver.get_width() - 6, 4))
+
+        # Separator above hint bar
+        pygame.draw.line(surface, theme.SEPARATOR,
+                         (0, theme.SCREEN_H - 22), (theme.SCREEN_W, theme.SCREEN_H - 22))
 
         # Hint bar
         if self._quit_armed:
-            hint = theme.txt(theme.FONT_TINY, ">> PRESS B AGAIN TO QUIT <<", theme.ERROR_COLOR)
+            hint = theme.txt(theme.FONT_TINY, ">> PRESS ESC AGAIN TO QUIT <<", theme.ERROR_COLOR)
         else:
-            hint = theme.txt(theme.FONT_TINY, "LEFT/RIGHT: navigate   A/Enter: select   B/Esc: quit", theme.TEXT_DIM)
-        surface.blit(hint, hint.get_rect(centerx=theme.SCREEN_W // 2, y=theme.SCREEN_H - 20))
+            hint = theme.txt(theme.FONT_TINY,
+                             "L/R: navigate   Enter: select   Esc: quit",
+                             theme.TEXT_DIM)
+        surface.blit(hint, hint.get_rect(centerx=theme.SCREEN_W // 2,
+                                         y=theme.SCREEN_H - 16))

@@ -249,12 +249,12 @@ class SynthScreen(BaseScreen):
 
     def _build_bars(self) -> None:
         """Create BarDisplay widgets at their screen positions."""
-        bar_h   = 36
-        bar_w   = 220
-        left_x  = 8
-        right_x = theme.SCREEN_W // 2 + 4
-        row1_y  = 125
-        row2_y  = 170
+        bar_h   = 34
+        bar_w   = 228
+        left_x  = 6
+        right_x = theme.SCREEN_W // 2 + 6
+        row1_y  = 82
+        row2_y  = 124
 
         self._bar_cutoff    = BarDisplay(pygame.Rect(left_x,  row1_y, bar_w, bar_h), "Cutoff")
         self._bar_resonance = BarDisplay(pygame.Rect(right_x, row1_y, bar_w, bar_h), "Resonance")
@@ -327,33 +327,50 @@ class SynthScreen(BaseScreen):
         surface.fill(theme.BG_COLOR)
         cx = theme.SCREEN_W // 2
 
-        # ── Header: index counter left, nav hint right ────────────────────
+        # ── Header row: screen label left, preset counter right ───────────
+        scr_lbl = theme.txt(theme.FONT_TINY, "SYNTH", theme.ACCENT)
+        surface.blit(scr_lbl, (6, 4))
+
         counter = theme.txt(theme.FONT_TINY,
-                            f"[{self._preset_index + 1}/{self._preset_count}]",
+                            f"{self._preset_index + 1}/{self._preset_count}",
                             theme.TEXT_DIM)
-        surface.blit(counter, (6, 5))
-
-        origin_lbl = "BUILT-IN" if self._preset_origin == "built-in" else "USER"
-        origin_col = theme.ACCENT_DIM if self._preset_origin == "built-in" else theme.HIGHLIGHT_DIM
-        orig = theme.txt(theme.FONT_TINY, origin_lbl, origin_col)
-        surface.blit(orig, (theme.SCREEN_W - orig.get_width() - 6, 5))
-
-        # ── Preset name ───────────────────────────────────────────────────
-        name = self._preset_name[:24]
-        name_surf = theme.txt(theme.FONT_LARGE, name.upper(), theme.TEXT_PRIMARY)
-        surface.blit(name_surf, name_surf.get_rect(centerx=cx, y=20))
+        surface.blit(counter, (theme.SCREEN_W - counter.get_width() - 6, 4))
 
         # ── Separator ─────────────────────────────────────────────────────
-        pygame.draw.line(surface, theme.ACCENT_DIM, (0, 58), (theme.SCREEN_W, 58))
+        pygame.draw.line(surface, theme.SEPARATOR, (0, 16), (theme.SCREEN_W, 16))
 
-        # ── Waveform + voice info ─────────────────────────────────────────
+        # ── Origin badge + preset name ────────────────────────────────────
+        origin_lbl = "BUILT-IN" if self._preset_origin == "built-in" else "USER"
+        origin_col = theme.TEXT_DIM if self._preset_origin == "built-in" else theme.HIGHLIGHT
+        orig = theme.txt(theme.FONT_TINY, origin_lbl, origin_col)
+        surface.blit(orig, (6, 21))
+
+        # Nav arrows flanking the preset name area
+        arrow_l = theme.txt(theme.FONT_TINY, "<", theme.TEXT_DIM)
+        arrow_r = theme.txt(theme.FONT_TINY, ">", theme.TEXT_DIM)
+        surface.blit(arrow_l, (6, 36))
+        surface.blit(arrow_r, (theme.SCREEN_W - arrow_r.get_width() - 6, 36))
+
+        name = self._preset_name[:22]
+        name_surf = theme.txt(theme.FONT_LARGE, name.upper(), theme.TEXT_PRIMARY)
+        surface.blit(name_surf, name_surf.get_rect(centerx=cx, y=28))
+
+        # ── Separator ─────────────────────────────────────────────────────
+        pygame.draw.line(surface, theme.SEPARATOR, (0, 62), (theme.SCREEN_W, 62))
+
+        # ── Waveform + voice info row ─────────────────────────────────────
         waveform   = self._current_params.get("waveform", "sine")
         voice_type = self._current_params.get("voice_type", "poly")
         wf_label   = _WAVEFORM_LABELS.get(waveform, waveform.upper())
-        info = theme.txt(theme.FONT_TINY,
-                         f"WAVE:{wf_label.upper()[:3]}  VOICE:{voice_type.upper()[:4]}",
-                         theme.HIGHLIGHT)
-        surface.blit(info, info.get_rect(centerx=cx, y=62))
+
+        wf_surf = theme.txt(theme.FONT_TINY,
+                            f"WAVE  {wf_label.upper()[:3]}",
+                            theme.TEXT_SECONDARY)
+        vc_surf = theme.txt(theme.FONT_TINY,
+                            f"VOICE  {voice_type.upper()[:4]}",
+                            theme.TEXT_SECONDARY)
+        surface.blit(wf_surf, (6, 67))
+        surface.blit(vc_surf, (theme.SCREEN_W - vc_surf.get_width() - 6, 67))
 
         # ── Parameter bars ────────────────────────────────────────────────
         if self._bar_cutoff is not None:
@@ -362,47 +379,51 @@ class SynthScreen(BaseScreen):
             self._bar_attack.draw(surface)
             self._bar_release.draw(surface)
 
-        # ── Separator ─────────────────────────────────────────────────────
-        pygame.draw.line(surface, theme.ACCENT_DIM, (0, 218), (theme.SCREEN_W, 218))
+        # ── Separator above buttons ────────────────────────────────────────
+        pygame.draw.line(surface, theme.SEPARATOR, (0, 216), (theme.SCREEN_W, 216))
 
-        # ── Action buttons - pixel art style ──────────────────────────────
-        btn_y   = 226
+        # ── Action buttons - Elektron style ───────────────────────────────
+        btn_y   = 224
         btn_h   = 38
-        btn_w   = 130
+        btn_w   = 128
         spacing = (theme.SCREEN_W - btn_w * 3) // 4
 
-        self._btn_random = pygame.Rect(spacing,                   btn_y, btn_w, btn_h)
-        self._btn_play   = pygame.Rect(spacing * 2 + btn_w,       btn_y, btn_w, btn_h)
-        self._btn_save   = pygame.Rect(spacing * 3 + btn_w * 2,   btn_y, btn_w, btn_h)
+        self._btn_random = pygame.Rect(spacing,                  btn_y, btn_w, btn_h)
+        self._btn_play   = pygame.Rect(spacing * 2 + btn_w,      btn_y, btn_w, btn_h)
+        self._btn_save   = pygame.Rect(spacing * 3 + btn_w * 2,  btn_y, btn_w, btn_h)
 
         for rect, label, key_hint, is_active in [
-            (self._btn_random, "RANDOM",    "Y", False),
-            (self._btn_play,   "PLAY",      "A", self._note_active),
-            (self._btn_save,   "SAVE",      "X", False),
+            (self._btn_random, "RANDOM", "Y", False),
+            (self._btn_play,   "PLAY",   "A", self._note_active),
+            (self._btn_save,   "SAVE",   "X", False),
         ]:
-            bg     = theme.ACCENT_DIM  if is_active else theme.BG_PANEL
-            border = theme.ACCENT      if is_active else theme.ACCENT_DIM
-            pygame.draw.rect(surface, bg, rect)
-            pygame.draw.rect(surface, border, rect, 1)
-            # Corner dots - pixel art detail
-            for px, py in [(rect.x, rect.y), (rect.right-2, rect.y),
-                           (rect.x, rect.bottom-2), (rect.right-2, rect.bottom-2)]:
-                pygame.draw.rect(surface, border, (px, py, 2, 2))
-            lbl = theme.txt(theme.FONT_TINY, label,
-                            theme.ACCENT if is_active else theme.TEXT_PRIMARY)
+            # Button background
+            pygame.draw.rect(surface, theme.BG_PANEL, rect)
+
+            if is_active:
+                # Active state: solid green border, green corner marks
+                pygame.draw.rect(surface, theme.ACCENT, rect, 1)
+                theme.draw_corner_marks(surface, theme.ACCENT, rect, size=4)
+                lbl_col = theme.ACCENT
+            else:
+                # Inactive: dotted dim border, white label
+                theme.draw_dotted_rect(surface, theme.ACCENT_DIM, rect, step=4)
+                lbl_col = theme.TEXT_PRIMARY
+
+            lbl = theme.txt(theme.FONT_TINY, label, lbl_col)
             surface.blit(lbl, lbl.get_rect(centerx=rect.centerx, y=rect.y + 5))
             hint = theme.txt(theme.FONT_TINY, f"[{key_hint}]", theme.TEXT_DIM)
             surface.blit(hint, hint.get_rect(centerx=rect.centerx, y=rect.y + 20))
 
         # ── Status / hint bar ─────────────────────────────────────────────
-        pygame.draw.line(surface, theme.ACCENT_DIM,
+        pygame.draw.line(surface, theme.SEPARATOR,
                          (0, theme.SCREEN_H - 18), (theme.SCREEN_W, theme.SCREEN_H - 18))
         if self._status_msg:
             color   = theme.ERROR_COLOR if self._status_error else theme.SUCCESS
             st_surf = theme.txt(theme.FONT_TINY, self._status_msg, color)
-            surface.blit(st_surf, st_surf.get_rect(centerx=cx, y=theme.SCREEN_H - 14))
+            surface.blit(st_surf, st_surf.get_rect(centerx=cx, y=theme.SCREEN_H - 13))
         else:
             hint = theme.txt(theme.FONT_TINY,
-                             "< LEFT/RIGHT: preset   ,/.: jump 10   B: back >",
+                             "L/R: preset   ,/.: jump10   Esc: back",
                              theme.TEXT_DIM)
-            surface.blit(hint, hint.get_rect(centerx=cx, y=theme.SCREEN_H - 14))
+            surface.blit(hint, hint.get_rect(centerx=cx, y=theme.SCREEN_H - 13))

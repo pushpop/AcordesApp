@@ -27,14 +27,14 @@ class BarDisplay:
     def draw(self, surface: pygame.Surface) -> None:
         rx, ry, rw, rh = self.rect
 
-        # Label (left-aligned, pixel font)
-        lbl_surf = theme.txt(theme.FONT_TINY, self.label.upper(), theme.TEXT_SECONDARY)
+        # Label (left-aligned, pixel font) - white label for readability
+        lbl_surf = theme.txt(theme.FONT_TINY, self.label.upper(), theme.TEXT_PRIMARY)
         lbl_y    = ry + (rh - lbl_surf.get_height()) // 2
         surface.blit(lbl_surf, (rx, lbl_y))
 
-        # Percentage text (right-aligned)
+        # Percentage text (right-aligned) - secondary grey
         pct_text = f"{int(self.value * 100):3d}%"
-        pct_surf = theme.txt(theme.FONT_TINY, pct_text, theme.TEXT_DIM)
+        pct_surf = theme.txt(theme.FONT_TINY, pct_text, theme.TEXT_SECONDARY)
         pct_x    = rx + rw - pct_surf.get_width()
         pct_y    = ry + (rh - pct_surf.get_height()) // 2
         surface.blit(pct_surf, (pct_x, pct_y))

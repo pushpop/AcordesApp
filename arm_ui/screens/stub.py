@@ -29,22 +29,28 @@ class StubScreen(BaseScreen):
         cx = theme.SCREEN_W // 2
         cy = theme.SCREEN_H // 2
 
-        # Pixel-art style box
-        box_w, box_h = 280, 100
+        # Elektron-style panel: dotted border, corner marks
+        box_w, box_h = 260, 90
         box_x = cx - box_w // 2
         box_y = cy - box_h // 2
-        pygame.draw.rect(surface, theme.BG_PANEL, (box_x, box_y, box_w, box_h))
-        pygame.draw.rect(surface, theme.ACCENT_DIM, (box_x, box_y, box_w, box_h), 1)
-        # Corner dots
-        for px, py in [(box_x, box_y), (box_x+box_w-2, box_y),
-                       (box_x, box_y+box_h-2), (box_x+box_w-2, box_y+box_h-2)]:
-            pygame.draw.rect(surface, theme.ACCENT, (px, py, 2, 2))
+        box_rect = (box_x, box_y, box_w, box_h)
 
-        title = theme.txt(theme.FONT_LARGE, self._title.upper(), theme.ACCENT)
-        surface.blit(title, title.get_rect(centerx=cx, y=box_y + 12))
+        pygame.draw.rect(surface, theme.BG_PANEL, box_rect)
+        theme.draw_dotted_rect(surface, theme.ACCENT_DIM, box_rect, step=4)
+        theme.draw_corner_marks(surface, theme.ACCENT, box_rect, size=5)
 
-        soon = theme.txt(theme.FONT_SMALL, "COMING SOON", theme.HIGHLIGHT)
-        surface.blit(soon, soon.get_rect(centerx=cx, y=box_y + 52))
+        # Screen label in green at top of panel
+        lbl = theme.txt(theme.FONT_TINY, self._title.upper(), theme.ACCENT)
+        surface.blit(lbl, lbl.get_rect(centerx=cx, y=box_y + 8))
 
-        back = theme.txt(theme.FONT_TINY, "B / Esc: back", theme.TEXT_DIM)
+        # Separator inside panel
+        pygame.draw.line(surface, theme.SEPARATOR,
+                         (box_x + 8, box_y + 22), (box_x + box_w - 8, box_y + 22))
+
+        # "Coming soon" in white
+        soon = theme.txt(theme.FONT_MEDIUM, "COMING SOON", theme.TEXT_PRIMARY)
+        surface.blit(soon, soon.get_rect(centerx=cx, y=box_y + 30))
+
+        # Hint below panel
+        back = theme.txt(theme.FONT_TINY, "Esc: back", theme.TEXT_DIM)
         surface.blit(back, back.get_rect(centerx=cx, y=theme.SCREEN_H - 16))

@@ -72,15 +72,15 @@ class LoadingScreen(BaseScreen):
 
         # Status line
         if self._is_done:
-            status_text  = "> READY"
+            status_text  = "READY"
             status_color = theme.SUCCESS
         else:
             err = self.app.synth_engine.get_error() if self.app.synth_engine else None
             if err:
-                status_text  = f"! ERROR: {err[:32]}"
+                status_text  = f"ERR  {err[:30]}"
                 status_color = theme.ERROR_COLOR
             else:
-                status_text  = "Loading audio engine..."
+                status_text  = "LOADING AUDIO ENGINE"
                 status_color = theme.TEXT_SECONDARY
 
         status = theme.txt(theme.FONT_SMALL, status_text, status_color)
@@ -88,7 +88,7 @@ class LoadingScreen(BaseScreen):
 
         # Progress bar - blocky pixel style
         bar_w  = 320
-        bar_h  = 10
+        bar_h  = 8
         bar_x  = (theme.SCREEN_W - bar_w) // 2
         bar_y  = 158
         fill_w = int(bar_w * pct)
@@ -96,7 +96,7 @@ class LoadingScreen(BaseScreen):
         pygame.draw.rect(surface, theme.BAR_BG, (bar_x, bar_y, bar_w, bar_h))
         if fill_w > 0:
             pygame.draw.rect(surface, theme.BAR_FG, (bar_x, bar_y, fill_w, bar_h))
-        pygame.draw.rect(surface, theme.ACCENT_DIM, (bar_x, bar_y, bar_w, bar_h), 1)
+        theme.draw_dotted_rect(surface, theme.ACCENT_DIM, (bar_x, bar_y, bar_w, bar_h), step=4)
 
         # Percentage
         pct_txt = theme.txt(theme.FONT_TINY, f"{int(pct * 100):3d}%", theme.TEXT_SECONDARY)
