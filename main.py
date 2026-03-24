@@ -710,11 +710,18 @@ class MainScreen(Screen):
             engine.all_notes_off()
             engine.restart_with_buffer_size(new_buffer_size)
 
+        def on_oversampling_change(enabled):
+            """Restart the audio subprocess with the new oversampling setting."""
+            engine = self.app_context["synth_engine"]
+            engine.all_notes_off()
+            engine.restart_with_oversampling(enabled)
+
         config = ConfigMode(
             self.app_context["device_manager"],
             self.app_context["config_manager"],
             on_audio_device_change=on_audio_device_change,
             on_buffer_size_change=on_buffer_size_change,
+            on_oversampling_change=on_oversampling_change,
             gamepad_handler=self.app_context.get("gamepad_handler"),
         )
         self.app.push_screen(config, on_closed)
@@ -801,7 +808,8 @@ class AcordesApp(App):
 
         buffer_size = self.config_manager.get_buffer_size()
         audio_backend = self.config_manager.get_audio_backend()
-        self.synth_engine = SynthEngineProxy(output_device_index=actual_index, buffer_size=buffer_size, audio_backend=audio_backend)
+        enable_oversampling = self.config_manager.get_oversampling_enabled()
+        self.synth_engine = SynthEngineProxy(output_device_index=actual_index, buffer_size=buffer_size, audio_backend=audio_backend, enable_oversampling=enable_oversampling)
         self.app_context["synth_engine"] = self.synth_engine
 
         # Auto-open saved MIDI device now that we have an engine to pair with.

@@ -7,7 +7,7 @@ import threading
 from music.preset_manager import DEFAULT_PARAMS
 
 
-def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, startup_info_arr, output_device_index=None, buffer_size=1024, audio_backend=None):
+def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, startup_info_arr, output_device_index=None, buffer_size=1024, audio_backend=None, enable_oversampling=True):
     """Entry point for the audio subprocess.
 
     Constructs SynthEngine, signals the main process when ready, then
@@ -21,7 +21,7 @@ def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, star
         # Import here so only the audio process loads PyAudio/numpy.
         from music.synth_engine import SynthEngine
 
-        engine = SynthEngine(output_device_index=output_device_index, buffer_size=buffer_size, audio_backend=audio_backend)
+        engine = SynthEngine(output_device_index=output_device_index, buffer_size=buffer_size, audio_backend=audio_backend, enable_oversampling=enable_oversampling)
         engine.warm_up()
 
         # Write startup diagnostics to the shared array so the LoadingScreen
@@ -100,10 +100,12 @@ class SynthEngineProxy:
     implemented here.  No mode code needs to change.
     """
 
-    def __init__(self, output_device_index=None, buffer_size=1024, audio_backend=None):
+    def __init__(self, output_device_index=None, buffer_size=1024, audio_backend=None,
+                 enable_oversampling=True):
         self._output_device_index = output_device_index
         self._buffer_size = buffer_size
         self._audio_backend = audio_backend
+        self._enable_oversampling = enable_oversampling
         self._cmd_queue = multiprocessing.Queue()
         self._ready_event = multiprocessing.Event()
         self._error_event = multiprocessing.Event()
@@ -134,6 +136,7 @@ class SynthEngineProxy:
                 output_device_index,
                 buffer_size,
                 audio_backend,
+                enable_oversampling,
             ),
             daemon=True,
             name="acordes-audio",
@@ -206,11 +209,17 @@ class SynthEngineProxy:
                 output_device_index,
                 self._buffer_size,
                 self._audio_backend,
+                self._enable_oversampling,
             ),
             daemon=True,
             name="acordes-audio",
         )
         self._process.start()
+
+    def restart_with_oversampling(self, enable_oversampling: bool):
+        """Shut down and restart with oversampling enabled or disabled."""
+        self._enable_oversampling = enable_oversampling
+        self.restart_with_device(self._output_device_index)
 
     def restart_with_buffer_size(self, buffer_size: int):
         """Shut down and restart with a new buffer size, keeping the current output device."""

@@ -49,6 +49,7 @@ class ConfigManager:
             "audio_device_name": None,    # Human-readable name for display
             "audio_backend": None,        # Host API name filter (None = not yet chosen)
             "buffer_size": 2048 if platform.machine() in ("armv7l", "aarch64") else 1024,  # Audio buffer size in samples
+            "oversampling_enabled": True,  # 2x oscillator oversampling (desktop only; always off on ARM)
         }
 
     def _flush_to_disk(self):
@@ -188,6 +189,17 @@ class ConfigManager:
     def set_buffer_size(self, size: int):
         """Save the selected audio buffer size in samples."""
         self.config["buffer_size"] = int(size)
+        self.save_config()
+
+    # ── Oversampling (desktop only) ───────────────────────────────
+
+    def get_oversampling_enabled(self) -> bool:
+        """Return whether 2x oscillator oversampling is enabled (desktop only)."""
+        return bool(self.config.get("oversampling_enabled", True))
+
+    def set_oversampling_enabled(self, enabled: bool):
+        """Persist the oversampling setting."""
+        self.config["oversampling_enabled"] = bool(enabled)
         self.save_config()
 
     # ── Shared BPM (Metronome ↔ Arpeggiator) ─────────────────────

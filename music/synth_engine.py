@@ -365,14 +365,12 @@ class SynthEngine:
     # of a Raspberry Pi or similar single-board computer.
     _IS_ARM = platform.machine() in ("armv7l", "aarch64")
 
-    def __init__(self, output_device_index=None, buffer_size=480, audio_backend=None):
-        # ARM: use 44100 Hz — the bcm2835 headphone jack's native rate.
-        # At 48000 Hz ALSA runs a sample-rate converter on every callback
-        # on the ARM CPU itself, which adds significant load and jitter that
-        # causes output_underflow xruns even at low CPU utilisation.
-        # All DSP (filters, envelopes, LFO, arpeggiator) uses self.sample_rate
-        # throughout, so 44100 is applied consistently with no hardcoded paths.
-        self.sample_rate = 44100 if self._IS_ARM else 48000
+    def __init__(self, output_device_index=None, buffer_size=480, audio_backend=None,
+                 enable_oversampling=True):
+        # 44100 Hz on all platforms. Matches the bcm2835 headphone jack native
+        # rate on ARM (avoids ALSA resampling overhead). On desktop the difference
+        # from 48000 is inaudible for synth use and keeps ARM/desktop parity.
+        self.sample_rate = 44100
         # ARM: floor at 2048 (~46ms at 44100Hz). The Pi 4's single usable Python
         # core (GIL) must handle both Textual UI and the audio callback. 1024
         # (~43ms) leaves too little headroom and causes periodic underruns that
@@ -626,11 +624,12 @@ class SynthEngine:
         self.pitch_bend_smoothing = 0.85
         self.mod_wheel = 0.0
 
-        # ── Oversampling configuration (Phase 3) ──────────────────────────────
+        # ── Oversampling configuration ─────────────────────────────────────────
         # 2× internal oscillator oversampling for alias-free sawtooth/square/triangle.
-        # Disabled on ARM: Pi 4 single-core cannot sustain 4 voices at 2× without xruns.
-        self.OVERSAMPLE_FACTOR = 1 if self._IS_ARM else 2
-        self.ENABLE_OVERSAMPLING = not self._IS_ARM
+        # Always disabled on ARM (CPU budget). On desktop controlled by the
+        # enable_oversampling constructor parameter (from config_manager).
+        self.ENABLE_OVERSAMPLING = enable_oversampling and not self._IS_ARM
+        self.OVERSAMPLE_FACTOR = 2 if self.ENABLE_OVERSAMPLING else 1
         self.OVERSAMPLE_SAMPLE_RATE = self.sample_rate * self.OVERSAMPLE_FACTOR
         self._downsample_filter_taps = None     # Pre-computed FIR filter (initialized below)
 

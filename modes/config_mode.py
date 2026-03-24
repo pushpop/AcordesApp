@@ -203,7 +203,12 @@ class ConfigMode(Screen):
     BUFFER_SIZES = [2048, 4096, 8192] if _IS_ARM else [128, 256, 480, 512, 1024, 2048]
 
     # Ordered list of list IDs for LB/RB cycling.
-    _LIST_IDS = ["#backend-list", "#audio-list", "#buffer-list", "#device-list", "#curve-list"]
+    # Oversampling list is desktop-only; ARM always has it disabled.
+    _LIST_IDS = (
+        ["#backend-list", "#audio-list", "#buffer-list", "#device-list", "#curve-list", "#oversample-list"]
+        if not platform.machine() in ("armv7l", "aarch64")
+        else ["#backend-list", "#audio-list", "#buffer-list", "#device-list", "#curve-list"]
+    )
 
     def __init__(
         self,
@@ -211,6 +216,7 @@ class ConfigMode(Screen):
         config_manager: 'ConfigManager',
         on_audio_device_change: Optional[Callable[[int], None]] = None,
         on_buffer_size_change: Optional[Callable[[int], None]] = None,
+        on_oversampling_change: Optional[Callable[[bool], None]] = None,
         gamepad_handler=None,
     ):
         super().__init__()
@@ -223,6 +229,8 @@ class ConfigMode(Screen):
         # Callback invoked when user selects a new buffer size (engine is running).
         # If None, buffer size is saved to config only (engine not yet running).
         self.on_buffer_size_change = on_buffer_size_change
+        # Callback invoked when user toggles oversampling (desktop only).
+        self.on_oversampling_change = on_oversampling_change
 
         # Audio backend state: list of (name, hostapi_index) tuples
         self.backends: List[Tuple[str, int]] = []
@@ -249,6 +257,9 @@ class ConfigMode(Screen):
         self.velocity_curves = ["Linear", "Soft", "Normal", "Strong", "Very Strong"]
         self.pending_curve = config_manager.get_velocity_curve()
 
+        # Oversampling state (desktop only)
+        self.pending_oversampling: bool = config_manager.get_oversampling_enabled()
+
     def compose(self):
         """Compose the config mode layout as a 3x2 grid."""
         yield Header()
@@ -272,7 +283,7 @@ class ConfigMode(Screen):
                     yield ListView(id="buffer-list")
                     yield Label("", id="selected-buffer")
 
-            # Bottom row: MIDI Input Device (left) | Velocity Curve (right)
+            # Bottom row: MIDI Input Device | Velocity Curve | Oversampling (desktop only)
             with Horizontal(id="bottom-row"):
                 with Vertical(id="device-section"):
                     yield Label("MIDI INPUT DEVICE", id="device-label")
@@ -283,6 +294,12 @@ class ConfigMode(Screen):
                     yield Label("VELOCITY CURVE", id="curve-label")
                     yield ListView(id="curve-list")
                     yield Label("", id="selected-curve")
+
+                if not self._IS_ARM:
+                    with Vertical(id="oversample-section"):
+                        yield Label("OVERSAMPLING (2×)", id="oversample-label")
+                        yield ListView(id="oversample-list")
+                        yield Label("", id="selected-oversample")
 
             yield Label(
                 "Tab: Switch section | ↑↓: Navigate | Space: Select | R: Refresh | Esc: Close",
@@ -305,6 +322,8 @@ class ConfigMode(Screen):
         self.refresh_buffer_list()
         self.refresh_device_list()
         self.refresh_curve_list()
+        if not self._IS_ARM:
+            self.refresh_oversample_list()
 
         # Start focus on backend list so user picks driver first
         self.query_one("#backend-list", ListView).focus()
@@ -635,11 +654,39 @@ class ConfigMode(Screen):
         label = self.query_one("#selected-curve", Label)
         label.update(f"Selected: {self.pending_curve}")
 
+    def refresh_oversample_list(self):
+        """Refresh the oversampling toggle list (desktop only)."""
+        list_view = self.query_one("#oversample-list", ListView)
+        list_view.clear()
+        for label_text, value in [("On  (2× aliasing reduction)", True),
+                                   ("Off (lower CPU usage)", False)]:
+            marker = "☑" if value == self.pending_oversampling else "☐"
+            list_view.append(ListItem(Label(f"{marker} {label_text}")))
+        self._update_oversample_label()
+
+    def _select_oversample(self):
+        """Apply the highlighted oversampling choice."""
+        list_view = self.query_one("#oversample-list", ListView)
+        options = [True, False]
+        if list_view.index is not None and 0 <= list_view.index < len(options):
+            selected = options[list_view.index]
+            self.pending_oversampling = selected
+            self.config_manager.set_oversampling_enabled(selected)
+            self.refresh_oversample_list()
+            if self.on_oversampling_change:
+                self.on_oversampling_change(selected)
+
+    def _update_oversample_label(self):
+        """Update the oversampling status label."""
+        label = self.query_one("#selected-oversample", Label)
+        label.update(f"Selected: {'On' if self.pending_oversampling else 'Off'}")
+
     # ── Navigation ───────────────────────────────────────────────────────────
 
     def _focused_list_id(self) -> str:
         """Return the ID of whichever list currently has focus."""
-        for list_id in ("#backend-list", "#audio-list", "#buffer-list", "#device-list", "#curve-list"):
+        ids = self._LIST_IDS
+        for list_id in ids:
             lv = self.query_one(list_id, ListView)
             if self.focused is lv:
                 return list_id
@@ -672,6 +719,9 @@ class ConfigMode(Screen):
             next_id = "#curve-list"
             if self.pending_curve in self.velocity_curves:
                 self.query_one("#curve-list", ListView).index = self.velocity_curves.index(self.pending_curve)
+        elif current == "#curve-list" and not self._IS_ARM:
+            next_id = "#oversample-list"
+            self.query_one("#oversample-list", ListView).index = 0 if self.pending_oversampling else 1
         else:
             next_id = "#backend-list"
             # Auto-highlight current backend selection
@@ -693,8 +743,10 @@ class ConfigMode(Screen):
             self._select_buffer_size()
         elif current == "#device-list":
             self._select_device()
-        else:
+        elif current == "#curve-list":
             self._select_curve()
+        elif current == "#oversample-list":
+            self._select_oversample()
 
     def action_refresh_devices(self):
         """Refresh all device lists."""
