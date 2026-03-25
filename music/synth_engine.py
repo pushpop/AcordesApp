@@ -119,6 +119,16 @@ class Voice:
         # to become audible.  Cleared to 0.0 in reset() so normal note-offs are unaffected.
         self.release_time_cap: float = 0.0
 
+        # Portamento glide state.
+        # _glide_from_freq > 0 means a pitch glide is in progress.
+        # v.frequency is updated each buffer by exponential interpolation from
+        # _glide_from_freq toward base_frequency over _glide_elapsed samples.
+        # Because v.frequency drives both the oscillator AND the key-tracking
+        # filter cutoff, the VCF cutoff glides in sync with the pitch — no
+        # sudden coefficient jump at high resonance.
+        self._glide_from_freq: float = 0.0   # source frequency (0 = no glide)
+        self._glide_elapsed:   int   = 0     # samples elapsed since glide start
+
         # Ghost voice flag: True when this voice has been promoted to the ghost pool
         # after being stolen while still audible.  Ghost voices drain their release tail
         # to silence at a capped rate but are never assigned new notes and are excluded
@@ -231,6 +241,8 @@ class Voice:
         self._arm_dcblock_zi = None
         self.release_time_cap = 0.0
         self.is_ghost = False
+        self._glide_from_freq = 0.0
+        self._glide_elapsed   = 0
 
 
 def list_output_devices() -> list:
@@ -587,6 +599,15 @@ class SynthEngine:
         self.mono_voice_index = 0  # For mono mode, which voice to use (always self._mono_primary)
         self._mono_primary = 0    # Alternates between 0 and 1: active MONO voice slot
         self.unison_detune = 8.0   # Cents spread for unison mode (each voice detuned within ±unison_detune)
+        # Portamento glide time in seconds.  0.0 = off (hard frequency change).
+        # When > 0, MONO and UNISON legato triggers glide the oscillator frequency
+        # (and therefore the key-tracking filter cutoff) from the previous note's
+        # pitch to the new one over this duration.  Exponential interpolation in
+        # frequency space gives equal-tempered semitone steps the same duration
+        # regardless of interval size (1 semitone glides as smoothly as 1 octave).
+        # Subtle default (40ms) hides the abrupt frequency step without sounding
+        # like a pronounced slide effect.
+        self.portamento_time: float = 0.040   # seconds; 0 = hard, 0.040 = subtle legato
         self._held_notes_ordered: list = []  # Ordered note stack for MONO/UNISON last-note priority (list of (note, velocity))
         self._held_notes_vel: dict = {}      # note -> velocity (0-1) for last-note priority resume
         self.velocity_current = 1.0
@@ -2054,12 +2075,21 @@ class SynthEngine:
                 new_v.dc_blocker_x  = _old_dc_x
                 new_v.dc_blocker_y  = _old_dc_y
                 new_v.onset_samples = _old_onset
+                # Portamento glide: if enabled, slide from the old pitch to the new one.
+                # Because v.frequency also drives key-tracking cutoff, the filter cutoff
+                # glides in sync — no sudden coefficient jump at the steal moment.
+                if self.portamento_time > 0.0 and old_v.frequency and old_v.frequency != freq:
+                    new_v._glide_from_freq = old_v.frequency
+                    new_v._glide_elapsed   = 0
+                else:
+                    new_v._glide_from_freq = 0.0
                 self._mono_primary = new_idx
                 self.mono_voice_index = new_idx
                 # Engine crossfade to hide any residual FIR boundary transient.
                 self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
             else:
-                # From silence: hard trigger on the primary slot, no crossfade needed.
+                # From silence: hard trigger on the primary slot, no glide.
+                old_v._glide_from_freq = 0.0
                 old_v.trigger(note, freq, vel)
                 old_v.onset_ms = onset_ms_for_note
                 old_v.phase = 0.0
@@ -2069,6 +2099,14 @@ class SynthEngine:
             # Unison mode: all voices play same note with detuning spread.
             # Voices are detuned across ±unison_detune cents for the characteristic thick sound.
             n = len(self.voices)
+            # _legato_base_phase is set by the first voice that takes the soft-trigger
+            # (legato) path.  Initialise to voice 0's current phase so that voices
+            # taking the soft path always have a valid anchor even if voice 0 itself
+            # fell below the amplitude threshold and took the hard-trigger path instead.
+            # (Without this initialisation, if voice 0 goes hard and voice 1 goes soft,
+            # reading _legato_base_phase before it is ever assigned raises UnboundLocalError.)
+            _legato_base_phase = self.voices[0].phase
+            _legato_phase_set  = False   # True once an actual soft-trigger voice has anchored it
             for i, v in enumerate(self.voices):
                 # Spread voices evenly from -unison_detune to +unison_detune cents
                 if n > 1:
@@ -2087,19 +2125,27 @@ class SynthEngine:
                     # double-attack dip.  pre_gate_progress is NOT reset — same reason
                     # as MONO steal (would stutter to zero on rapid re-triggers).
                     #
-                    # Phase: voices are re-distributed evenly relative to voice 0's
-                    # current phase.  After playing a note, the N detuned voices have
-                    # drifted to random relative phases.  Starting the next note with
-                    # those arbitrary offsets produces unpredictable constructive or
-                    # destructive interference — the amplitude of the new note can land
-                    # anywhere from near-zero to sqrt(N) depending purely on timing.
-                    # Re-anchoring to even spacing (voice_i = phase_0 + i/N) gives a
-                    # deterministic, balanced interference state on every legato trigger
-                    # while still preserving the beating motion that develops naturally
-                    # as voices drift apart during the note.
-                    if i == 0:
-                        _legato_base_phase = v.phase  # anchor all voices to voice 0
+                    # Phase: voices are re-distributed evenly relative to the first
+                    # soft-triggered voice's current phase.  After playing a note,
+                    # the N detuned voices have drifted to random relative phases.
+                    # Starting the next note with those arbitrary offsets produces
+                    # unpredictable constructive or destructive interference — amplitude
+                    # can land anywhere from near-zero to sqrt(N) depending on timing.
+                    # Re-anchoring to even spacing gives a deterministic, balanced
+                    # interference state on every legato trigger while still preserving
+                    # the beating motion that develops naturally as voices drift apart.
+                    if not _legato_phase_set:
+                        _legato_base_phase = v.phase
+                        _legato_phase_set  = True
                     v.phase = _legato_base_phase + i / n
+                    # Arm portamento glide from current pitch to new target.
+                    # Each voice carries its own detuned source and target frequency
+                    # so the detune spread glides in proportion across the interval.
+                    if self.portamento_time > 0.0 and v.frequency and v.frequency != detuned_freq:
+                        v._glide_from_freq = v.frequency
+                        v._glide_elapsed   = 0
+                    else:
+                        v._glide_from_freq = 0.0
                     v.midi_note = note
                     v.base_frequency = detuned_freq
                     v.frequency = detuned_freq
@@ -2111,7 +2157,8 @@ class SynthEngine:
                     # Arm engine-level crossfade (same as MONO).
                     self._transition_xf_remaining = self._TRANSITION_XF_SAMPLES
                 else:
-                    # Hard trigger from true silence: full reset
+                    # Hard trigger from true silence: full reset, no glide.
+                    v._glide_from_freq = 0.0
                     v.trigger(note, detuned_freq, vel)
                     # Distribute phases evenly across one cycle instead of all-zero.
                     # All-zero phases create a brief phase-coherent comb filter on attack
@@ -2512,6 +2559,23 @@ class SynthEngine:
                     v.velocity = v.velocity_current  # Update the velocity used in envelope/filter calculations
 
                     p1_s, p2_s = v.phase, v.phase2
+
+                    # Portamento glide: smoothly interpolate v.frequency from the
+                    # source pitch toward base_frequency using exponential (log-linear)
+                    # interpolation.  Equal-tempered intervals all take the same time
+                    # regardless of size.  Updating v.frequency (not just f1) ensures
+                    # the key-tracking filter cutoff also glides in sync, eliminating
+                    # the abrupt coefficient jump that causes resonance spikes on note changes.
+                    if v._glide_from_freq > 0.0 and v.base_frequency:
+                        _glide_dur = max(1, int(self.portamento_time * self.sample_rate))
+                        _t = min(1.0, v._glide_elapsed / _glide_dur)
+                        # Exponential interpolation in frequency space = linear in semitones
+                        v.frequency = v._glide_from_freq * (v.base_frequency / v._glide_from_freq) ** _t
+                        v._glide_elapsed += frame_count
+                        if v._glide_elapsed >= _glide_dur:
+                            v._glide_from_freq = 0.0
+                            v.frequency = v.base_frequency
+
                     f1 = v.frequency * vco_lfo if v.frequency else 440.0
                     if self.octave_enabled and self.octave != 0: f1 *= (2.0 ** self.octave)
 
