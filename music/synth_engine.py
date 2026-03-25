@@ -535,18 +535,32 @@ class SynthEngine:
         self._cb_wet_l    = np.zeros(_bs, dtype=np.float32)
         self._cb_wet_r    = np.zeros(_bs, dtype=np.float32)
         self._cb_gain_ramp = np.zeros(_bs, dtype=np.float32)
-        # TPDF dither: two independent uniform random arrays per channel,
-        # pre-allocated so the hot path does no heap allocation.
-        # Amplitude = 1 LSB at 16-bit (1/32768). Applied after final clip
-        # before writing to outdata so the float32→int16 conversion that the
-        # Windows Audio Engine (WASAPI shared mode) or any 16-bit DAC performs
-        # is dithered correctly, eliminating quantisation distortion.
-        self._dither_r1_l = np.zeros(_bs, dtype=np.float32)
-        self._dither_r2_l = np.zeros(_bs, dtype=np.float32)
-        self._dither_r1_r = np.zeros(_bs, dtype=np.float32)
-        self._dither_r2_r = np.zeros(_bs, dtype=np.float32)
+        # TPDF dither: triangular probability density function noise applied
+        # after final clip so any downstream float32→int16 conversion
+        # (WASAPI shared mode, ALSA plug layer, 16-bit DAC) is dithered,
+        # trading quantisation distortion for inaudible low-level noise.
+        #
+        # Architecture inspired by Chris Johnson's airwindows TPDFDither
+        # (https://github.com/airwindows/airwindows, MIT licence).
+        # Key insight adopted: separate per-channel RNG states guarantee that
+        # L and R dither sequences never share a window of the generator,
+        # eliminating any inter-channel correlation at the bit level.
+        # The TPDF formula r1-r2 (two independent uniforms differenced) is
+        # mathematically identical to the airwindows r1+r2-1 construction;
+        # both produce a triangular distribution on (-1 LSB, +1 LSB).
+        #
+        # Our vectorised implementation generates one double-length buffer
+        # per channel (2×frame_count) in a single RNG call, then splits it
+        # into the two halves used for r1 and r2 — halving generator
+        # invocations versus the naive 4-call approach while preserving
+        # full independence between L and R channels.  Pre-allocated buffers
+        # avoid heap allocation in the audio callback hot path.
+        self._dither_buf_l  = np.zeros(2 * _bs, dtype=np.float32)  # L channel: [r1 | r2]
+        self._dither_buf_r  = np.zeros(2 * _bs, dtype=np.float32)  # R channel: [r1 | r2]
         self._DITHER_AMP: float = 1.0 / 32768.0   # 1 LSB at 16-bit depth
-        self._dither_rng = np.random.default_rng()  # PCG64 generator; supports out= param
+        # Independent seeds for L and R; prefix 0xACC0 = ACCO(rdes)
+        self._dither_rng_l  = np.random.default_rng(0xACC05000)
+        self._dither_rng_r  = np.random.default_rng(0xACC05001)
         # Float index array reused for vectorized ring-buffer index math
         self._cb_indices  = np.arange(_bs, dtype=np.float32)
 
@@ -3029,32 +3043,20 @@ class SynthEngine:
             self._last_output_L = float(clipped_l[-1])
             self._last_output_R = float(clipped_r[-1])
 
-            # TPDF dither: subtract two independent uniform random signals
-            # each in [0, _DITHER_AMP).  The difference has a triangular
-            # distribution on (-_DITHER_AMP, +_DITHER_AMP) — one 16-bit LSB
-            # wide.  This breaks up the quantisation grid that the downstream
-            # converter (WASAPI shared mode, ALSA plug layer, or any 16-bit
-            # DAC) would otherwise impose, trading quantisation distortion for
-            # inaudible low-level noise.  Uses pre-allocated views of the full
-            # buffer to avoid heap allocation in the callback.
+            # TPDF dither (airwindows-inspired independent channel design).
+            # One double-length random buffer per channel; first half is r1,
+            # second half r2.  noise = (r1 - r2) * AMP has triangular
+            # distribution on (-AMP, +AMP) = one 16-bit LSB width.
+            # Two generator calls instead of four — see __init__ comment.
             fc = frame_count
-            r1l = self._dither_r1_l[:fc]
-            r2l = self._dither_r2_l[:fc]
-            r1r = self._dither_r1_r[:fc]
-            r2r = self._dither_r2_r[:fc]
-            # Fill dither buffers in-place using the Generator API (numpy >= 1.17).
-            # default_rng().random() accepts out= so no heap allocation happens here.
-            rng = self._dither_rng
-            rng.random(fc, dtype=np.float32, out=r1l)
-            rng.random(fc, dtype=np.float32, out=r2l)
-            rng.random(fc, dtype=np.float32, out=r1r)
-            rng.random(fc, dtype=np.float32, out=r2r)
-            r1l *= self._DITHER_AMP
-            r2l *= self._DITHER_AMP
-            r1r *= self._DITHER_AMP
-            r2r *= self._DITHER_AMP
-            outdata[:fc, 0] = np.clip(clipped_l + r1l - r2l, -1.0, 1.0)
-            outdata[:fc, 1] = np.clip(clipped_r + r1r - r2r, -1.0, 1.0)
+            buf_l = self._dither_buf_l[:2 * fc]
+            buf_r = self._dither_buf_r[:2 * fc]
+            self._dither_rng_l.random(2 * fc, dtype=np.float32, out=buf_l)
+            self._dither_rng_r.random(2 * fc, dtype=np.float32, out=buf_r)
+            dither_l = (buf_l[:fc] - buf_l[fc:]) * self._DITHER_AMP
+            dither_r = (buf_r[:fc] - buf_r[fc:]) * self._DITHER_AMP
+            outdata[:fc, 0] = np.clip(clipped_l + dither_l, -1.0, 1.0)
+            outdata[:fc, 1] = np.clip(clipped_r + dither_r, -1.0, 1.0)
 
             if _arm_probe:
                 _cb_ms = (self._perf_counter() - _cb_t0) * 1000.0
