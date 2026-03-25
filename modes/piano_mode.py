@@ -18,22 +18,23 @@ if TYPE_CHECKING:
     from music.synth_engine import SynthEngine
 
 # Piano-mode exclusive sound — applied on mount, restored on exit.
-# Modelled after a bright acoustic piano: sine-based, fast attack, natural decay,
-# moderate key tracking, no LFO/delay/chorus, arpeggiator off.
+# Uses the "Default" preset which provides a well-balanced, natural tone:
+# sine-based, moderate attack/decay, good sustain, clean resonance character,
+# no LFO/delay/chorus, arpeggiator off.
 _PIANO_PARAMS: dict = {
     "waveform":       "sine",
     "octave":         0,
     "noise_level":    0.0,
-    "amp_level":      0.88,
-    "cutoff":         6000.0,
-    "hpf_cutoff":     40.0,
-    "resonance":      0.15,
+    "amp_level":      0.95,
+    "cutoff":         2000.0,
+    "hpf_cutoff":     20.0,
+    "resonance":      0.3,
     "hpf_resonance":  0.0,
-    "key_tracking":   0.75,
-    "attack":         0.004,
-    "decay":          0.55,
-    "sustain":        0.25,
-    "release":        0.45,
+    "key_tracking":   0.5,
+    "attack":         0.01,
+    "decay":          0.2,
+    "sustain":        0.7,
+    "release":        0.1,
     "rank2_enabled":  False,
     "rank2_waveform": "sine",
     "rank2_detune":   0.0,
@@ -58,11 +59,11 @@ _PIANO_PARAMS: dict = {
     "arp_gate":       0.5,
     "arp_range":      1,
     "voice_type":     "poly",
-    "feg_attack":     0.004,
-    "feg_decay":      0.3,
+    "feg_attack":     0.01,
+    "feg_decay":      0.2,
     "feg_sustain":    0.0,
-    "feg_release":    0.3,
-    "feg_amount":     0.35,
+    "feg_release":    0.1,
+    "feg_amount":     0.0,
 }
 
 
