@@ -2064,9 +2064,18 @@ class SynthEngine:
                 # Phase continuity: match outgoing oscillator to prevent destructive
                 # interference during the dissolve overlap period.
                 new_v.phase = _old_phase
-                # Gate continuity: inherit the outgoing voice's pre-gate progress so
-                # the oscillator does not dip back to zero on every re-trigger.
-                new_v.pre_gate_progress = _old_pre_gate
+                # Gate bypass on steal: set gate fully open regardless of the outgoing
+                # voice's gate position.  The pre-gate S-curve was designed to hide
+                # the DC blocker cold-start transient on a fresh note from silence.
+                # During a steal the DC blocker state IS inherited (see above), so
+                # that transient is already handled — re-applying the gate ramp only
+                # compounds the envelope attack with a second fade-in, producing a
+                # 20-30ms near-silence window whenever the old voice was still in its
+                # gate ramp (e.g. rapid staccato playing, half-pressed key bounces).
+                # With gate=1.0, ADSR is the sole amplitude shaper and the CROSS
+                # crossfade provides the click-free onset.  _old_pre_gate is kept for
+                # reference in the portamento block above but not applied to the gate.
+                new_v.pre_gate_progress = 1.0
                 # Inherit coefficient smoothers so the filter cutoff does not jump.
                 new_v.smooth_fl_lpf = _old_smooth_lpf
                 new_v.smooth_fl_hpf = _old_smooth_hpf
@@ -2138,6 +2147,13 @@ class SynthEngine:
                         _legato_base_phase = v.phase
                         _legato_phase_set  = True
                     v.phase = _legato_base_phase + i / n
+                    # Gate bypass on legato retrigger: same reasoning as MONO steal.
+                    # The envelope does NOT reset here (legato), so the gate ramp would
+                    # sit at whatever low progress it had (e.g. 0.1 from a recent steal)
+                    # and multiply down an already-playing envelope — audible as a quiet,
+                    # smeared transition.  Gate fully open means the CROSS crossfade is
+                    # the only smoothing needed; ADSR handles all amplitude shaping.
+                    v.pre_gate_progress = 1.0
                     # Arm portamento glide from current pitch to new target.
                     # Each voice carries its own detuned source and target frequency
                     # so the detune spread glides in proportion across the interval.
