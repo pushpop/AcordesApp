@@ -3,11 +3,13 @@
 
 import multiprocessing
 import queue
+import struct
 import threading
+from multiprocessing.shared_memory import SharedMemory
 from music.preset_manager import DEFAULT_PARAMS
 
 
-def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, startup_info_arr, output_device_index=None, buffer_size=1024, audio_backend=None, enable_oversampling=True):
+def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, startup_info_arr, level_shm_name, output_device_index=None, buffer_size=1024, audio_backend=None, enable_oversampling=True):
     """Entry point for the audio subprocess.
 
     Constructs SynthEngine, signals the main process when ready, then
@@ -21,7 +23,7 @@ def _audio_process_main(cmd_queue, ready_event, error_event, error_msg_arr, star
         # Import here so only the audio process loads PyAudio/numpy.
         from music.synth_engine import SynthEngine
 
-        engine = SynthEngine(output_device_index=output_device_index, buffer_size=buffer_size, audio_backend=audio_backend, enable_oversampling=enable_oversampling)
+        engine = SynthEngine(output_device_index=output_device_index, buffer_size=buffer_size, audio_backend=audio_backend, enable_oversampling=enable_oversampling, level_shm_name=level_shm_name)
         engine.warm_up()
 
         # Write startup diagnostics to the shared array so the LoadingScreen
@@ -114,6 +116,13 @@ class SynthEngineProxy:
         # Shared byte array for startup diagnostic info (device, rate, etc.).
         self._startup_info_arr = multiprocessing.Array('c', 1024)
 
+        # Shared memory block for VU meter levels and waveform written by audio subprocess.
+        # Layout: [level_l f32][level_r f32][write_pos i32][2048 x f32 waveform samples]
+        # Total: 8 + 4 + 2048*4 = 8204 bytes.
+        _WAVEFORM_SAMPLES = 2048
+        self._level_shm = SharedMemory(create=True, size=8 + 4 + _WAVEFORM_SAMPLES * 4)
+        struct.pack_into('ffi', self._level_shm.buf, 0, 0.0, 0.0, 0)
+
         # Local shadow of engine parameters — updated on every update_parameters()
         # call so get_current_params() can return accurate state without IPC.
         self._shadow_params: dict = dict(DEFAULT_PARAMS)
@@ -133,6 +142,7 @@ class SynthEngineProxy:
                 self._error_event,
                 self._error_msg_arr,
                 self._startup_info_arr,
+                self._level_shm.name,
                 output_device_index,
                 buffer_size,
                 audio_backend,
@@ -181,6 +191,11 @@ class SynthEngineProxy:
         self._process.join(timeout=3.0)
         if self._process.is_alive():
             self._process.terminate()
+        try:
+            self._level_shm.close()
+            self._level_shm.unlink()
+        except Exception:
+            pass
 
     def restart_with_device(self, output_device_index):
         """Shut down the current audio process and start a new one with a different device.
@@ -206,6 +221,7 @@ class SynthEngineProxy:
                 self._error_event,
                 self._error_msg_arr,
                 self._startup_info_arr,
+                self._level_shm.name,
                 output_device_index,
                 self._buffer_size,
                 self._audio_backend,
@@ -258,6 +274,34 @@ class SynthEngineProxy:
     def get_current_params(self) -> dict:
         """Return the last-known parameter state from the local shadow copy."""
         return dict(self._shadow_params)
+
+    def get_level_l(self) -> float:
+        """Get left channel audio level (max amplitude 0.0-1.0) written by audio subprocess."""
+        try:
+            return struct.unpack_from('ff', self._level_shm.buf, 0)[0]
+        except Exception:
+            return 0.0
+
+    def get_level_r(self) -> float:
+        """Get right channel audio level (max amplitude 0.0-1.0) written by audio subprocess."""
+        try:
+            return struct.unpack_from('ff', self._level_shm.buf, 0)[1]
+        except Exception:
+            return 0.0
+
+    def get_waveform_frame(self):
+        """Return (write_pos, waveform_bytes) snapshot for copying into the visualizer shm.
+
+        write_pos is the circular buffer's next-write index (0-2047).
+        waveform_bytes is the raw 2048 x float32 buffer (8192 bytes).
+        """
+        _WAVEFORM_SAMPLES = 2048
+        try:
+            write_pos = struct.unpack_from('i', self._level_shm.buf, 8)[0]
+            waveform_bytes = bytes(self._level_shm.buf[12:12 + _WAVEFORM_SAMPLES * 4])
+            return write_pos, waveform_bytes
+        except Exception:
+            return 0, b'\x00' * (_WAVEFORM_SAMPLES * 4)
 
     # ── MIDI expression ───────────────────────────────────────────
 

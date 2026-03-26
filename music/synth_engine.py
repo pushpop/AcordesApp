@@ -2,6 +2,7 @@
 import os
 import sys
 import math
+import struct
 import ctypes
 import platform
 import numpy as np
@@ -414,7 +415,7 @@ class SynthEngine:
     _IS_ARM = platform.machine() in ("armv7l", "aarch64")
 
     def __init__(self, output_device_index=None, buffer_size=480, audio_backend=None,
-                 enable_oversampling=True):
+                 enable_oversampling=True, level_shm_name=None):
         # Sample rate default: 48000 Hz. Override with ACORDES_SAMPLE_RATE env var
         # for quick testing without touching code, e.g.:
         #   ACORDES_SAMPLE_RATE=44100 uv run python main.py
@@ -628,6 +629,21 @@ class SynthEngine:
         self.master_volume = 1.0
         self.master_volume_target = 1.0
         self.amp_compensation = True
+
+        # ── VU Meter audio level caching (for visualizer) ─────────────────────
+        # Real-time max amplitude per channel from last buffer. Computed in
+        # _audio_callback and cached for UI thread polling (thread-safe float read).
+        self.level_l = 0.0
+        self.level_r = 0.0
+        # Optional shared memory block supplied by SynthEngineProxy so the main
+        # process can read VU meter levels across the subprocess boundary.
+        self._level_shm = None
+        if level_shm_name:
+            try:
+                from multiprocessing.shared_memory import SharedMemory
+                self._level_shm = SharedMemory(name=level_shm_name)
+            except Exception:
+                pass
 
         # --- Smoothed filter / intensity parameters (target/current pattern) ---
         # DSP reads *_current; UI sets the raw attribute which routes to *_target via
@@ -3203,6 +3219,29 @@ class SynthEngine:
 
             self._last_output_L = float(clipped_l[-1])
             self._last_output_R = float(clipped_r[-1])
+
+            # Cache VU meter levels for visualizer (thread-safe float write).
+            # Max amplitude of this buffer for left/right channels.
+            self.level_l = float(np.max(np.abs(clipped_l)))
+            self.level_r = float(np.max(np.abs(clipped_r)))
+            if self._level_shm is not None:
+                struct.pack_into('ff', self._level_shm.buf, 0, self.level_l, self.level_r)
+                # Write mono-mix samples into the circular waveform buffer.
+                # Layout: bytes 8-11 = write_pos (i32), bytes 12+ = 2048 x f32 samples.
+                _WF_N = 2048
+                mono = ((clipped_l + clipped_r) * 0.5).astype(np.float32)
+                n = len(mono)
+                wp = struct.unpack_from('i', self._level_shm.buf, 8)[0]
+                wf_arr = np.ndarray((_WF_N,), dtype=np.float32,
+                                    buffer=self._level_shm.buf, offset=12)
+                end = wp + n
+                if end <= _WF_N:
+                    wf_arr[wp:end] = mono
+                else:
+                    first = _WF_N - wp
+                    wf_arr[wp:] = mono[:first]
+                    wf_arr[:end - _WF_N] = mono[first:]
+                struct.pack_into('i', self._level_shm.buf, 8, end % _WF_N)
 
             # TPDF dither (airwindows-inspired independent channel design).
             # One double-length random buffer per channel; first half is r1,

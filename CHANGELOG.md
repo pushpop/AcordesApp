@@ -5,6 +5,46 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.2] - 2026-03-26 - Scope: Desktop Visualizer
+
+### Added
+
+**Desktop Visualizer Window** (Windows, macOS, and Linux):
+- New visual monitoring window for real-time audio analysis in Synth Mode
+- Triggered via `v` keybinding (desktop versions only; silently disabled on Raspberry Pi/OStra)
+- Fullscreen toggle via `f` keybinding with nearest-neighbor scaling, aspect-ratio preservation, and pure black background
+- **VU Meter mode**: Dual asymmetric smoothing (fast attack 0.6, slow release 0.88) with color gradient (yellow → orange → red) mapped to dB scale (-48 to 0 dBFS)
+- **Oscilloscope mode**: Zero-crossing triggered waveform display with phosphor-green anti-aliased line rendering, 512-sample window at 60 FPS
+- Tab key cycles between visual modes
+- Window positioning persistent across sessions (saved to `visualizer/window_position.json`)
+- **Platform implementation**:
+  - **Windows**: Uses Win32 API (SetWindowLongW/SetWindowPos) for always-on-top and drag-to-move
+  - **Linux desktop**: Uses wmctrl subprocess calls for always-on-top and X11 window positioning (requires `wmctrl` package, typically `apt install wmctrl`)
+  - **macOS**: Window opens and cycles modes fully; always-on-top and drag not supported without pyobjc dependency
+  - **Raspberry Pi/OStra (ARM Linux)**: Visualizer silently disabled; all synth features unaffected
+
+**Shared Memory IPC**:
+- Lightweight per-buffer data flow: audio callback → shared memory → 30 Hz Textual timer → visualizer process
+- Real-time waveform circular buffer (2048-sample, f32) for oscilloscope triggering
+- NaN sentinel for clean shutdown coordination
+
+### Changed
+
+- Renamed `visualizer/vumeter_window.py` → `visualizer/visualizer_window.py` to reflect multi-mode architecture
+- Synth Mode subprocess launch now detaches cleanly on all platforms (Win32 `DETACHED_PROCESS`, Unix `start_new_session=True`)
+- Updated fonts to Silkscreen from arm_ui/fonts (pixel-perfect rendering at 6-8pt)
+
+### Technical Notes
+
+- Visualizer window runs as a separate pygame subprocess with no console attachment
+- Always-on-top implemented via platform-native window managers (Win32, wmctrl on Linux)
+- Asymmetric smoothing on VU meter creates responsive peak response while smooth decay for musical feel
+- dB-to-bar conversion uses 20log10(level) with DB_MIN=-48 and DB_MAX=0 (dBFS)
+- Zero-crossing trigger finds stable display point in waveform buffer to prevent flicker
+- Crossfading rendered surfaces to nearest-neighbor scaling eliminates anti-aliasing artifacts in fullscreen
+
+---
+
 ## [1.10.1] - 2026-03-26 - Grasp Refinement: RAM Pre-Allocation, TPDF Dithering & Performance Tuning
 
 ### Added

@@ -1,0 +1,4 @@
+exe: C:\DEV\Claudes\acordes\.venv\Scripts\python.exe
+cmd: ['C:\\DEV\\Claudes\\acordes\\.venv\\Scripts\\python.exe', '-m', 'visualizer.vumeter_window', 'wnsm_6453d163']
+cwd: C:\DEV\Claudes\acordes
+shm: wnsm_6453d163

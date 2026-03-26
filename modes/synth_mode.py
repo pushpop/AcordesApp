@@ -3,6 +3,8 @@ import json
 import math
 import random
 import re
+import multiprocessing
+import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -27,7 +29,7 @@ if TYPE_CHECKING:
 # Sections arranged in visual order: row × col.
 # Arrow keys move within this grid; wrapping is per-axis.
 _SECTION_GRID = [
-    ["oscillator", "filter", "filter_eg", "amp_eg"],  # row 0 — core signal chain (VCO→VCF→VCA)
+    ["oscillator", "filter", "filter_eg", "amp_eg", "video"],  # row 0 — core signal chain (VCO→VCF→VCA)
     ["lfo", "chorus", "fx",  "arpeggio", "mixer"   ],  # row 1 — modulation + effects
 ]
 _FLAT_SECTIONS = [s for row in _SECTION_GRID for s in row]  # linear order
@@ -73,6 +75,9 @@ class SynthMode(Widget):
         Binding("i", "init_patch",   "Init Patch",            show=False),
         # Focus-mode: reset highlighted param to init value
         Binding("r", "reset_focused_param", "Reset param",    show=False),
+        # ── Visualizer ────────────────────────────────────────────────────────
+        Binding("v", "toggle_visualizer",            "VU Meter (v)",          show=False),
+        Binding("f", "toggle_visualizer_fullscreen", "VU Fullscreen (f)",     show=False),
     ]
 
     CSS = """
@@ -130,7 +135,7 @@ class SynthMode(Widget):
 
     #oscillator-section {
         layout: vertical;
-        width: 1fr;
+        width: 4fr;
         height: auto;
         background: #0d0d0d;
         padding: 0;
@@ -139,7 +144,7 @@ class SynthMode(Widget):
 
     #filter-section {
         layout: vertical;
-        width: 1fr;
+        width: 4fr;
         height: auto;
         background: #0d0d0d;
         padding: 0;
@@ -148,7 +153,7 @@ class SynthMode(Widget):
 
     #amp-eg-section {
         layout: vertical;
-        width: 1fr;
+        width: 4fr;
         height: auto;
         background: #0d0d0d;
         padding: 0;
@@ -157,7 +162,7 @@ class SynthMode(Widget):
 
     #filter-eg-section {
         layout: vertical;
-        width: 1fr;
+        width: 4fr;
         height: auto;
         background: #0d0d0d;
         padding: 0;
@@ -207,6 +212,34 @@ class SynthMode(Widget):
         background: #0d0d0d;
         padding: 0;
         margin: 0;
+    }
+
+    #video-section {
+        layout: vertical;
+        width: 7fr;
+        height: auto;
+        background: #0d0d0d;
+        padding: 0;
+        margin: 0;
+    }
+
+    .video-art {
+        width: 100%;
+        height: 1;
+        text-align: center;
+        padding: 0;
+        margin: 0;
+        color: #556655;
+    }
+
+    .video-art-bright {
+        width: 100%;
+        height: 1;
+        text-align: center;
+        padding: 0;
+        margin: 0;
+        color: #ffffff;
+        text-style: bold;
     }
 
     .section-label {
@@ -262,6 +295,7 @@ class SynthMode(Widget):
         "fx":         ["Delay Time", "Delay Fdbk", "Delay Mix", "Rev Size"],
         "arpeggio":   ["Mode", "BPM", "Gate", "Range", "ON/OFF"],
         "mixer":      ["Voice Type", "Amp", "Master Vol"],
+        "video":      [],
     }
 
     # Parameter metadata for CC 75 in focus mode: param_label → metadata tuple
@@ -486,6 +520,15 @@ class SynthMode(Widget):
         # Populated in compose(); used to re-render the header on focus change.
         self._section_header_ids: dict = {}
 
+        # ── VU Meter Visualizer ──────────────────────────────────────────────
+        # Desktop-only pygame window showing real-time audio levels.
+        # Launched via subprocess.Popen with DETACHED_PROCESS on Windows so it
+        # is not grouped with the terminal and cannot be hidden by focus changes.
+        # Level data is passed via OS shared memory (multiprocessing.SharedMemory).
+        self._visualizer_process = None          # subprocess.Popen handle
+        self._visualizer_shm = None              # SharedMemory block
+        self._visualizer_feed_timer = None       # Textual timer handle
+
     def _load_initial_params(self) -> dict:
         # Load parameters in order: preset → synth_state → defaults
         # Synth state takes priority (preserves parameter tweaks even after preset load)
@@ -647,6 +690,22 @@ class SynthMode(Widget):
                     yield self.filter_routing_display
                     yield Label(self._section_bottom(), classes="section-bottom")
 
+                # ── VIDEO PLACEHOLDER ────────────────────────────────────
+                with Vertical(id="video-section"):
+                    yield Label(self._section_top("VIDEO", False), classes="section-label", id="hdr-video")
+                    yield Label("", classes="video-art", id="video-art-1")
+                    yield Label("", classes="video-art", id="video-art-2")
+                    yield Label("", classes="video-art", id="video-art-3")
+                    yield Label("", classes="video-art", id="video-art-4")
+                    yield Label("", classes="video-art", id="video-art-5")
+                    yield Label("", classes="video-art", id="video-art-6")
+                    yield Label("", classes="video-art", id="video-art-7")
+                    yield Label("", classes="video-art", id="video-art-8")
+                    yield Label("", classes="video-art", id="video-art-9")
+                    yield Label("", classes="video-art", id="video-art-10")
+                    yield Label("", classes="video-art", id="video-art-11")
+                    yield Label(self._section_bottom(), classes="section-bottom")
+
             # ── SPACING ───────────────────────────────────────────────────
             yield Label("")
             yield Label("")
@@ -785,6 +844,7 @@ class SynthMode(Widget):
     def on_unmount(self):
         """Save state when switching away — do NOT close the shared engine."""
         self._autosave_state()
+        self._stop_visualizer()
 
     def _register_midi_callbacks(self):
         """Register MIDI callbacks with the MIDI handler."""
@@ -1081,7 +1141,15 @@ class SynthMode(Widget):
             self.action_preset_prev()
             return
         r, c = self._grid_pos(self._focus_section)
+        # Skip sections with no parameters
         nc = (c - 1) % len(_SECTION_GRID[r])
+        steps = 0
+        while steps < len(_SECTION_GRID[r]):
+            sec = _SECTION_GRID[r][nc]
+            if self._SECTION_PARAMS.get(sec, []):
+                break
+            nc = (nc - 1) % len(_SECTION_GRID[r])
+            steps += 1
         self._set_focus(_SECTION_GRID[r][nc], self._focus_param)
 
     def action_nav_right(self):
@@ -1089,7 +1157,15 @@ class SynthMode(Widget):
             self.action_preset_next()
             return
         r, c = self._grid_pos(self._focus_section)
+        # Skip sections with no parameters
         nc = (c + 1) % len(_SECTION_GRID[r])
+        steps = 0
+        while steps < len(_SECTION_GRID[r]):
+            sec = _SECTION_GRID[r][nc]
+            if self._SECTION_PARAMS.get(sec, []):
+                break
+            nc = (nc + 1) % len(_SECTION_GRID[r])
+            steps += 1
         self._set_focus(_SECTION_GRID[r][nc], self._focus_param)
 
     def action_nav_up(self):
@@ -1108,6 +1184,16 @@ class SynthMode(Widget):
             nr = (r - 1) % len(_SECTION_GRID)
             c = min(c, len(_SECTION_GRID[nr]) - 1)
             new_sec = _SECTION_GRID[nr][c]
+            # Skip if this section has no parameters
+            if not self._SECTION_PARAMS.get(new_sec, []):
+                # Try left in the same row
+                for offset in range(1, len(_SECTION_GRID[nr])):
+                    try_c = (c - offset) % len(_SECTION_GRID[nr])
+                    try_sec = _SECTION_GRID[nr][try_c]
+                    if self._SECTION_PARAMS.get(try_sec, []):
+                        new_sec = try_sec
+                        c = try_c
+                        break
             new_params = self._SECTION_PARAMS.get(new_sec, [])
             self._set_focus(new_sec, max(0, len(new_params) - 1))
 
@@ -1127,6 +1213,16 @@ class SynthMode(Widget):
             nr = (r + 1) % len(_SECTION_GRID)
             c = min(c, len(_SECTION_GRID[nr]) - 1)
             new_sec = _SECTION_GRID[nr][c]
+            # Skip if this section has no parameters
+            if not self._SECTION_PARAMS.get(new_sec, []):
+                # Try left in the same row
+                for offset in range(1, len(_SECTION_GRID[nr])):
+                    try_c = (c - offset) % len(_SECTION_GRID[nr])
+                    try_sec = _SECTION_GRID[nr][try_c]
+                    if self._SECTION_PARAMS.get(try_sec, []):
+                        new_sec = try_sec
+                        c = try_c
+                        break
             self._set_focus(new_sec, 0)
 
     def action_nav_escape(self):
@@ -2289,6 +2385,165 @@ class SynthMode(Widget):
     def action_panic(self):
         self.synth_engine.all_notes_off()
         self._show_notification("🛑 All notes off (Panic)", severity="warning", timeout=2)
+
+    def action_toggle_visualizer(self):
+        """Toggle visualizer window (desktop only; disabled on Linux ARM)."""
+        import platform
+        # Guard: disabled on ARM Linux (OStra / Raspberry Pi)
+        if platform.system() == "Linux" and platform.machine() in ('armv7l', 'aarch64'):
+            return
+
+        # Close if already running
+        if self._visualizer_process is not None and self._visualizer_process.poll() is None:
+            self._stop_visualizer()
+            self._show_notification("Visualizer closed", timeout=1)
+            return
+
+        # Start visualizer as a detached subprocess with shared memory IPC
+        try:
+            import sys
+            import struct
+            import subprocess
+            from multiprocessing.shared_memory import SharedMemory
+
+            # Shared memory layout for the visualizer subprocess:
+            #   bytes  0-3:  level_l (f32)
+            #   bytes  4-7:  level_r (f32)
+            #   bytes  8-11: command (i32)  0=idle, 1=toggle fullscreen
+            #   bytes 12-15: waveform write_pos (i32)
+            #   bytes 16+:   2048 x f32 waveform circular buffer
+            # Total: 16 + 2048*4 = 8208 bytes.
+            _VIS_WF_N = 2048
+            self._visualizer_shm = SharedMemory(create=True, size=16 + _VIS_WF_N * 4)
+            struct.pack_into('ffii', self._visualizer_shm.buf, 0, 0.0, 0.0, 0, 0)
+
+            # On Windows use pythonw.exe — the GUI variant that never allocates
+            # a console, so no terminal tab appears alongside the pygame window.
+            # Falls back to python.exe if pythonw.exe is not found (e.g. venvs).
+            python_exe = sys.executable
+            _project_root = Path(__file__).parent.parent
+            if platform.system() == "Windows":
+                import os as _os
+                pythonw = _os.path.join(_os.path.dirname(sys.executable), 'pythonw.exe')
+                if _os.path.exists(pythonw):
+                    python_exe = pythonw
+
+            cmd = [python_exe, '-m', 'visualizer.visualizer_window',
+                   self._visualizer_shm.name]
+
+            kwargs = {}
+            if platform.system() == "Windows":
+                DETACHED_PROCESS = 0x00000008
+                kwargs['creationflags'] = DETACHED_PROCESS
+            else:
+                # Detach from the parent process group so the subprocess
+                # keeps running independently on Linux and macOS.
+                kwargs['start_new_session'] = True
+
+            self._visualizer_process = subprocess.Popen(
+                cmd, cwd=str(_project_root), **kwargs
+            )
+
+            # After spawning, find the visualizer window and configure it while Acordes retains focus.
+            # This avoids focus-stealing during window creation.
+            if platform.system() == "Windows":
+                def setup_visualizer_window():
+                    try:
+                        import ctypes
+                        import ctypes.wintypes
+                        user32 = ctypes.windll.user32
+                        kernel32 = ctypes.windll.kernel32
+
+                        # Find the visualizer window by title
+                        hwnd = user32.FindWindowW(None, "Acordes Visualizer")
+                        if hwnd:
+                            # Set as always-on-top without stealing focus
+                            GWL_EXSTYLE = -20
+                            WS_EX_TOPMOST = 0x00000008
+                            current = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                            user32.SetWindowLongW(hwnd, GWL_EXSTYLE, current | WS_EX_TOPMOST)
+                            HWND_TOPMOST = ctypes.wintypes.HWND(-1)
+                            SWP_NOACTIVATE = 0x0010  # Don't activate the window
+                            user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | 0x0002 | 0x0001)
+
+                            # Restore focus to Acordes (the main window/console)
+                            self.app.focus()
+                    except Exception:
+                        pass
+
+                # Run setup once after visualizer window has time to be created
+                self.set_timer(0.15, setup_visualizer_window)
+
+            # Textual timer writes levels to shared memory at ~30 Hz
+            self._visualizer_feed_timer = self.set_interval(
+                1 / 30, self._feed_visualizer_levels
+            )
+            self._show_notification("📊 Visualizer opened (v to close)", timeout=2)
+        except Exception as e:
+            self._show_notification(f"Visualizer error: {e}", severity="error", timeout=3)
+
+    def _feed_visualizer_levels(self):
+        """Timer callback: write current audio levels and waveform into shared memory."""
+        import struct
+        # Check if subprocess has exited (user closed window)
+        if self._visualizer_process is None or self._visualizer_process.poll() is not None:
+            self._stop_visualizer(skip_signal=True)
+            return
+        if self._visualizer_shm is None:
+            return
+        try:
+            lvl_l = self.synth_engine.get_level_l()
+            lvl_r = self.synth_engine.get_level_r()
+            struct.pack_into('ff', self._visualizer_shm.buf, 0, lvl_l, lvl_r)
+            # Copy waveform circular buffer (write_pos at offset 12, samples at offset 16)
+            write_pos, waveform_bytes = self.synth_engine.get_waveform_frame()
+            struct.pack_into('i', self._visualizer_shm.buf, 12, write_pos)
+            self._visualizer_shm.buf[16:16 + len(waveform_bytes)] = waveform_bytes
+        except Exception:
+            pass
+
+    def _stop_visualizer(self, skip_signal: bool = False):
+        """Cleanly stop the visualizer subprocess and release shared memory."""
+        import struct
+        import math
+        if self._visualizer_feed_timer is not None:
+            self._visualizer_feed_timer.stop()
+            self._visualizer_feed_timer = None
+        # Write NaN as shutdown sentinel so subprocess exits its render loop
+        if not skip_signal and self._visualizer_shm is not None:
+            try:
+                struct.pack_into('ff', self._visualizer_shm.buf, 0,
+                                 math.nan, math.nan)
+            except Exception:
+                pass
+        if self._visualizer_process is not None:
+            try:
+                self._visualizer_process.wait(timeout=2)
+            except Exception:
+                self._visualizer_process.terminate()
+            self._visualizer_process = None
+        if self._visualizer_shm is not None:
+            try:
+                self._visualizer_shm.close()
+                self._visualizer_shm.unlink()
+            except Exception:
+                pass
+            self._visualizer_shm = None
+
+    def action_toggle_visualizer_fullscreen(self):
+        """Toggle visualizer fullscreen via shared memory command (desktop only, visualizer must be active)."""
+        import platform, struct
+        # Disabled on ARM Linux (OStra / Raspberry Pi)
+        if platform.system() == "Linux" and platform.machine() in ('armv7l', 'aarch64'):
+            return
+        if self._visualizer_process is None or self._visualizer_process.poll() is not None:
+            return
+        if self._visualizer_shm is None:
+            return
+        try:
+            struct.pack_into('i', self._visualizer_shm.buf, 8, 1)
+        except Exception:
+            pass
 
     def action_randomize(self):
         """Roll the dice — generate musically useful random synth parameters."""

@@ -1,4 +1,4 @@
-# Acordes v1.10.1 - Grasp: Polyphonic MIDI Synthesizer & Piano TUI
+# Acordes v1.10.2 - Scope: Polyphonic MIDI Synthesizer & Piano TUI
 
 ## Application Overview
 
@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.10.1 - Grasp (Full Gamepad Controller Support + Output Gain Optimization)
+**Latest Version**: 1.10.2 - Scope (Desktop Visualizer: Real-time VU Meter & Oscilloscope)
 
 ---
 
