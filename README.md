@@ -1,4 +1,4 @@
-# Acordes v1.10.2 - Scope: Polyphonic MIDI Synthesizer & Piano TUI
+# Acordes v1.11.0 - Analog Capacitor Simulation: Polyphonic MIDI Synthesizer & Piano TUI
 
 ## Application Overview
 
@@ -25,7 +25,7 @@ Whether you're a musician exploring synthesis in the terminal, a developer inter
 - **Metronome**: Musically aware metronome with correct accentuation for time signatures
 - **Velocity Curves**: Adaptive velocity response (Linear, Soft, Normal, Strong, Very Strong)
 
-**Latest Version**: 1.10.2 - Scope (Desktop Visualizer: Real-time VU Meter & Oscilloscope)
+**Latest Version**: 1.11.0 - Analogue (Analog Capacitor Simulation)
 
 ---
 
@@ -80,6 +80,13 @@ A full 8-voice polyphonic synthesizer with real-time MIDI playback:
 - **OS-level audio thread priority**: Elevated scheduling on Windows/Linux/macOS
 - **Thread-safe parameter routing**: All changes via MIDI event queue
 - **Sample-accurate timing**: Audio callback processes all MIDI events at buffer boundaries
+
+**Analog Capacitor Simulation** (v1.11.0 Analogue):
+- **Varicap Filter Modulation**: Loud input signals subtly darken the filter cutoff (up to 10%), modeling non-linear capacitor behavior under high drive in real analog circuits
+- **Sustain Leakage**: Very long held notes drift slightly downward over ~6.5 seconds, simulating dielectric loss in analog envelope generator hold capacitors
+- **Capacitor Waveshaper**: Frequency-dependent oscillator rounding via a leaky integrator (7% blend); low notes charge fully (near-identity), high notes soften transient peaks
+- **RC Gate Curve**: Onset ramp uses exponential RC charge curve instead of linear, giving attacks the characteristic "fast rise then gradual approach" of real capacitor-gated analog circuits
+- All effects are subtle, automatic, and transparent — no user controls needed
 
 **Preset System**:
 - **Factory Presets**: 128 professionally programmed presets across 8 categories (Bass, Leads, Pads, Plucked, Seq, FX, Misc, Synth)

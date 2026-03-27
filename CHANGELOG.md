@@ -5,6 +5,55 @@ All notable changes to the Acordes MIDI Piano TUI Application will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-03-27 - Analogue: Analog Capacitor Simulation
+
+### Added
+
+**Analog Capacitor Simulation** — Four subtle physical modeling features that add authentic analog character without exposing any new UI controls:
+
+1. **Varicap Filter Modulation (Voltage-Dependent Capacitance)**:
+   - Per-voice RMS envelope follower tracks input signal level
+   - Loud signals increase filter capacitance, darkening the cutoff by up to 10%
+   - Attack rate: ~200ms for smooth, musical response
+   - Models real non-linear capacitor behavior in analog filter circuits under high drive
+
+2. **Sustain Capacitor Leakage (Dielectric Loss)**:
+   - Sustained notes drift subtly downward over ~6.5 seconds
+   - Floor at 65% prevents infinite decay (maximum ~35% drift)
+   - Only active during sustain stage, transparent on release
+   - Simulates slow charge bleed in analog envelope generator hold capacitors
+
+3. **Capacitor Waveshaper (Frequency-Dependent Rounding)**:
+   - Leaky integrator applied post-oscillator at 7% wet blend
+   - Low frequencies: capacitor charges fully each cycle (near-identity)
+   - High frequencies: capacitor barely moves (softens transient peaks)
+   - RC time constant normalized to oscillator frequency
+   - Adds subtle analog warmth to waveforms, most audible on high-register notes
+
+4. **RC Gate Curve (Exponential Onset Ramp)**:
+   - Onset ramp now uses exponential RC charge curve instead of linear
+   - Characteristic "fast rise then gradual approach" of real capacitor-gated circuits
+   - Applied to both main voice and ghost voice (release tail) render paths
+   - Time constant: reaches 95% of full amplitude at ramp end
+
+### Technical Details
+
+- **Voice State**: Per-voice tracking of `cap_env` (RMS follower), `sustain_cap` (leakage charge), and `cap_ws_state` (waveshaper integrator)
+- **Engine Constants**: All tuning parameters (attack rate, depth, leak rate, blend, RC values) defined in `SynthEngine.__init__` for easy adjustment
+- **Signal Flow**: Waveshaper (post-oscillator) → Varicap (inside filter) → Sustain leak (inside envelope) → RC gate (onset ramp application)
+- **Performance**: Negligible overhead; waveshaper is the only per-sample loop, constrained to 8 voices maximum
+- **Thread Safety**: All state updated in audio callback only; no synchronization overhead
+
+### Musical Impact
+
+- Adds "analog warmth" and organic character to the synthesizer sound
+- Enhances filter response under dynamic playing (kick brings darker tone)
+- Makes very long sustains feel alive (subtle drift rather than static)
+- Softens attack transients on high notes (less digital harshness)
+- All effects are automatic and transparent — no learning curve, pure benefit
+
+---
+
 ## [1.10.2] - 2026-03-26 - Scope: Desktop Visualizer
 
 ### Added

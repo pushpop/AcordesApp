@@ -175,6 +175,15 @@ class Voice:
         self._v_flt_buf:     np.ndarray = np.zeros(buffer_size, dtype=np.float32)
         # DC blocker output buffer (desktop non-scipy path).
         self._v_dc_buf:      np.ndarray = np.zeros(buffer_size, dtype=np.float32)
+        # ── Analog capacitor simulation state ───────────────────────────────────
+        # cap_env: slow RMS follower for varicap filter darkening (Feature 1).
+        self.cap_env: float = 0.0
+        # sustain_cap: capacitor charge for sustain leakage (Feature 2); reset on trigger.
+        self.sustain_cap: float = 1.0
+        # cap_ws_state: leaky integrator state for waveform rounding (Feature 3).
+        self.cap_ws_state: float = 0.0
+        # cap waveshaper working buffer — same size convention as other _v_* buffers.
+        self._v_cap_ws_buf:  np.ndarray = np.zeros(_vbs, dtype=np.float32)
 
     def is_available(self) -> bool:
         return not self.note_active and not self.is_releasing
@@ -212,6 +221,10 @@ class Voice:
             self.filter_state_svf1_lp = self.filter_state_svf1_bp = 0.0
             self.filter_state_svf2_lp = self.filter_state_svf2_bp = 0.0
             self.dc_blocker_x = self.dc_blocker_y = 0.0
+            # Reset capacitor simulation states on every new trigger.
+            self.cap_env      = 0.0
+            self.sustain_cap  = 1.0
+            self.cap_ws_state = 0.0
             # Note: self.phase and self.sine_phase are NOT reset here (Free-Running)
             # Clear FIR history only when starting from true silence.  For voice-steal
             # or legato transitions (was_silent=False), preserve history so the FIR
@@ -264,6 +277,9 @@ class Voice:
         self._arm_dcblock_zi = None
         self.release_time_cap = 0.0
         self.is_ghost = False
+        self.cap_env      = 0.0
+        self.sustain_cap  = 1.0
+        self.cap_ws_state = 0.0
         self._glide_from_freq = 0.0
         self._glide_elapsed   = 0
 
@@ -747,6 +763,50 @@ class SynthEngine:
         # Eliminates click artifacts from filter/DC blocker transients during warm-up.
         # 1 second allows all DSP state (filters, DC blockers, LFO, arpeggiator) to fully settle.
         self._startup_silence_samples = int(self.sample_rate * 1.0)  # 1 second of silence
+
+        # ── Output transformer simulation ──────────────────────────────────────
+        # Models the subtle tonal shaping of an analog output transformer:
+        # a gentle one-pole LP at 18 kHz softens extreme highs (roundness), and
+        # a small even-harmonic injection adds warmth proportional to signal level.
+        # State is per-engine (post-mix, stereo). Shares the scipy lfilter fast
+        # path with the per-voice DC blocker for zero extra Python overhead.
+        _xfmr_c = math.exp(-2.0 * math.pi * 18000.0 / self.sample_rate)
+        self._XFMR_LP_B    = np.array([(1.0 - _xfmr_c)], dtype=np.float64)
+        self._XFMR_LP_A    = np.array([1.0, -_xfmr_c],   dtype=np.float64)
+        self._XFMR_LP_ZI_L = np.zeros(1, dtype=np.float64)  # filter memory L
+        self._XFMR_LP_ZI_R = np.zeros(1, dtype=np.float64)  # filter memory R
+        self._XFMR_EVEN    = 0.04   # 2nd harmonic coefficient (subtle asymmetry)
+        self._xfmr_sq_buf  = np.zeros(self.buffer_size, dtype=np.float32)  # pre-alloc
+
+        # ── Tube compressor ─────────────────────────────────────────────────────
+        # Warm RMS compression at the output stage. Per-buffer RMS detection
+        # avoids per-sample overhead. Soft-knee 3:1 at -10 dBFS with program-
+        # dependent attack/release ballistics. 2nd harmonic injection scales
+        # with gain reduction, adding warmth only when the compressor is working.
+        self._comp_env       = 0.0    # RMS envelope follower state
+        self._comp_gain      = 1.0    # current smoothed gain (1.0 = unity)
+        self._COMP_THRESH    = 0.316  # -10 dBFS threshold
+        self._COMP_RATIO_EXP = 0.6667 # 1 - 1/ratio (3:1 → 0.667)
+        self._COMP_ENV_ATK   = 0.60   # fast attack (~1 buffer response)
+        self._COMP_ENV_REL   = 0.08   # slower release (~8 buffers / ~85 ms)
+        self._COMP_GAIN_ATK  = 0.40   # gain ramp down quickly
+        self._COMP_GAIN_REL  = 0.04   # gain recovers slowly (tube pumping character)
+        self._COMP_MAKEUP    = 1.15   # +1.2 dB makeup gain
+        self._COMP_HARMONIC  = 0.12   # 2nd harmonic depth during compression
+
+        # ── Analog capacitor simulation constants ──────────────────────────────
+        # Varicap: attack rate for the per-voice RMS envelope follower (~200ms).
+        self._CAP_VARICAP_ATK   = 0.003
+        # Varicap: maximum fractional cutoff reduction at full signal level (10%).
+        self._CAP_VARICAP_DEPTH = 0.10
+        # Sustain leakage: one-sample charge loss, giving a ~6.5 s time constant.
+        self._CAP_SUSTAIN_LEAK  = 1.0 / (6.5 * self.sample_rate)
+        # Capacitor waveshaper: dry/wet blend (7% wet — transparent).
+        self._CAP_WS_BLEND      = 0.07
+        # Capacitor waveshaper: RC time constant normalised to oscillator period.
+        self._CAP_WS_RC         = 1.0
+        # RC gate curve: tau as fraction of ramp duration (1-exp(-1/0.33)=0.953).
+        self._CAP_GATE_TAU      = 0.33
 
         self.pitch_bend = 0.0
         self.pitch_bend_target = 0.0
@@ -1491,6 +1551,15 @@ class SynthEngine:
                 envelope[dec_mask] = v_int * (1.0 - p * (1.0 - self.sustain))
             else: envelope[dec_mask] = v_int * self.sustain
             envelope[times >= dec_end] = v_int * self.sustain
+            # Feature 2: Sustain capacitor leakage — dielectric loss on the hold
+            # capacitor. Very long sustained notes drift slightly downward over
+            # ~6.5 seconds, flooring at 65% of the sustain level. Models the slow
+            # charge bleed that occurs in real analog envelope generator hold stages.
+            if not voice.is_releasing:
+                sustain_mask = times >= dec_end
+                if sustain_mask.any():
+                    voice.sustain_cap = max(0.65, voice.sustain_cap - self._CAP_SUSTAIN_LEAK * num_samples)
+                    envelope[sustain_mask] *= voice.sustain_cap
             # DC blocker settling transient suppression is now handled by ONSET_RAMP
             # (frequency-adaptive linear fade-in applied to post-envelope signal).
             # Removed ANTI_I exponential envelope suppression to prevent interference
@@ -1785,6 +1854,16 @@ class SynthEngine:
             voice.smooth_resonance = voice.smooth_resonance * _SMOOTH_K + self.resonance_current * (1.0 - _SMOOTH_K)
         fl_lpf = voice.smooth_fl_lpf
         fl_hpf = voice.smooth_fl_hpf
+
+        # Feature 1: Varicap — voltage-dependent filter modulation.
+        # Loud signals increase the effective capacitance, darkening the filter
+        # by up to 10%. Models the non-linear behaviour of varicap diodes used
+        # in real analog filter circuits under high drive conditions.
+        if fl_lpf > 0.0:
+            sig_level = float(np.sqrt(np.mean(samples * samples)))
+            voice.cap_env += (sig_level - voice.cap_env) * self._CAP_VARICAP_ATK
+            fl_lpf = fl_lpf * (1.0 - self._CAP_VARICAP_DEPTH * voice.cap_env)
+            fl_lpf = float(np.clip(fl_lpf, 20.0, 20000.0))
 
         # ── scipy fast path: biquad IIR (C code, GIL-free, ~100x faster) ───────
         # Replaces the per-sample Python loops for both HPF and LPF stages.
@@ -2842,6 +2921,22 @@ class SynthEngine:
                             ss = self._downsample_polyphase_signal(ss, self.OVERSAMPLE_FACTOR, history=v._oversample_history_sine)
                         s1 = s1 + ss * self.sine_mix
 
+                    # Feature 3: Capacitor waveshaper — leaky integrator applied to
+                    # the oscillator output at 7% wet blend. At low pitches the
+                    # capacitor charges fully each cycle (near-identity). At high
+                    # pitches it barely moves, softening transient peaks. Models the
+                    # frequency-dependent waveshaping of a series capacitor in the
+                    # signal path of a real analog circuit.
+                    if v.frequency:
+                        _alpha_ws = min(0.92, 2.0 * math.pi * v.frequency / self.sample_rate * self._CAP_WS_RC)
+                        _cap_s    = v.cap_ws_state
+                        _ws_out   = v._v_cap_ws_buf[:frame_count]
+                        for _k in range(frame_count):
+                            _cap_s    += _alpha_ws * (float(s1[_k]) - _cap_s)
+                            _ws_out[_k] = _cap_s
+                        v.cap_ws_state = _cap_s
+                        s1 = s1 * (1.0 - self._CAP_WS_BLEND) + _ws_out * self._CAP_WS_BLEND
+
                     # Filter EG: compute per-buffer scalar and add to vcf_lfo modulation.
                     # feg_value is 0→1; scaled by feg_amount×_FEG_MAX_SWEEP_HZ and added
                     # to the base cutoff inside _apply_filter via cutoff_mod offset.
@@ -2909,9 +3004,15 @@ class SynthEngine:
                         # Default value is 1.0 (flat); only the first n samples need updating.
                         ramp = v._v_onset_ramp[:frame_count]
                         ramp.fill(1.0)
-                        self._fill_linspace(
-                            ramp, v.onset_samples / ONSET_RAMP,
-                            min((v.onset_samples + n) / ONSET_RAMP, 1.0), n)
+                        # Feature 4: RC gate curve — exponential RC charge shape
+                        # replaces the linear ramp. Models a capacitor on the gate
+                        # signal: fast initial rise then gradual approach to 1.0,
+                        # characteristic of real analog gate circuitry.
+                        _t_arr = np.linspace(v.onset_samples / ONSET_RAMP,
+                                             min((v.onset_samples + n) / ONSET_RAMP, 1.0),
+                                             n, dtype=np.float32)
+                        ramp[:n] = 1.0 - np.exp(-_t_arr / self._CAP_GATE_TAU)
+                        ramp[:n] /= np.float32(1.0 - math.exp(-1.0 / self._CAP_GATE_TAU))
                         v_samples = v_samples * ramp
                         v.onset_samples += frame_count
                     v_samples = self._apply_dc_blocker(v, v_samples)
@@ -2959,9 +3060,12 @@ class SynthEngine:
                         n = min(frame_count, ONSET_RAMP - g.onset_samples)
                         ramp = g._v_onset_ramp[:frame_count]
                         ramp.fill(1.0)
-                        self._fill_linspace(
-                            ramp, g.onset_samples / ONSET_RAMP,
-                            min((g.onset_samples + n) / ONSET_RAMP, 1.0), n)
+                        # Feature 4: RC gate curve (ghost voice path — same formula).
+                        _t_arr = np.linspace(g.onset_samples / ONSET_RAMP,
+                                             min((g.onset_samples + n) / ONSET_RAMP, 1.0),
+                                             n, dtype=np.float32)
+                        ramp[:n] = 1.0 - np.exp(-_t_arr / self._CAP_GATE_TAU)
+                        ramp[:n] /= np.float32(1.0 - math.exp(-1.0 / self._CAP_GATE_TAU))
                         gs[:n] = gs[:n] * ramp[:n]
                         g.onset_samples += frame_count
                     gs = self._apply_dc_blocker(g, gs)
@@ -3216,6 +3320,77 @@ class SynthEngine:
                 self._metro_click_pos += n_click
                 if self._metro_click_pos >= len(self._metro_click_buf):
                     self._metro_click_buf = None
+
+            # --- Output transformer: one-pole 18 kHz LP + even harmonic ---
+            # The LP softens extreme highs (analog output transformer roundness).
+            # Even harmonic x += k*x² injects 2nd harmonic warmth with no per-
+            # sample Python loop: scipy lfilter fast path (C/GIL-free) when
+            # available; scalar ARM fallback otherwise. Pre-allocated _xfmr_sq_buf
+            # avoids temporary array creation on the hot path.
+            _fc = frame_count
+            if self._scipy_lfilter is not None:
+                _tl, self._XFMR_LP_ZI_L = self._scipy_lfilter(
+                    self._XFMR_LP_B, self._XFMR_LP_A,
+                    clipped_l[:_fc].astype(np.float64), zi=self._XFMR_LP_ZI_L)
+                clipped_l[:_fc] = _tl.astype(np.float32)
+                _tr, self._XFMR_LP_ZI_R = self._scipy_lfilter(
+                    self._XFMR_LP_B, self._XFMR_LP_A,
+                    clipped_r[:_fc].astype(np.float64), zi=self._XFMR_LP_ZI_R)
+                clipped_r[:_fc] = _tr.astype(np.float32)
+            else:
+                # Scalar loop for ARM / no-scipy. 512 iters, no allocation.
+                _xc  = -float(self._XFMR_LP_A[1])
+                _xg  = 1.0 - _xc
+                _xsl = float(self._XFMR_LP_ZI_L[0])
+                _xsr = float(self._XFMR_LP_ZI_R[0])
+                for _xi in range(_fc):
+                    _xsl = _xg * clipped_l[_xi] + _xc * _xsl
+                    _xsr = _xg * clipped_r[_xi] + _xc * _xsr
+                    clipped_l[_xi] = _xsl
+                    clipped_r[_xi] = _xsr
+                self._XFMR_LP_ZI_L[0] = _xsl
+                self._XFMR_LP_ZI_R[0] = _xsr
+            # Even harmonic: x += k*x² — pre-alloc buf reused for both channels.
+            _sq = self._xfmr_sq_buf[:_fc]
+            np.multiply(clipped_l[:_fc], clipped_l[:_fc], out=_sq)
+            clipped_l[:_fc] += self._XFMR_EVEN * _sq
+            np.multiply(clipped_r[:_fc], clipped_r[:_fc], out=_sq)
+            clipped_r[:_fc] += self._XFMR_EVEN * _sq
+            np.clip(clipped_l[:_fc], -1.0, 1.0, out=clipped_l[:_fc])
+            np.clip(clipped_r[:_fc], -1.0, 1.0, out=clipped_r[:_fc])
+
+            # --- Tube compressor: warm RMS compression at the output ---
+            # Per-buffer RMS via np.dot (BLAS, zero temp allocation) drives a
+            # scalar envelope follower and gain computer — no per-sample work.
+            # 2nd harmonic injection (x += k2*x²) scales with gain reduction so
+            # warmth is audible only when the compressor is actively squashing.
+            _dot_sum = (float(np.dot(clipped_l[:_fc], clipped_l[:_fc])) +
+                        float(np.dot(clipped_r[:_fc], clipped_r[:_fc])))
+            _rms = math.sqrt(_dot_sum * (0.5 / _fc))
+            if _rms > self._comp_env:
+                self._comp_env += self._COMP_ENV_ATK * (_rms - self._comp_env)
+            else:
+                self._comp_env += self._COMP_ENV_REL * (_rms - self._comp_env)
+            _env = max(self._comp_env, 1e-6)
+            _gtgt = (((self._COMP_THRESH / _env) ** self._COMP_RATIO_EXP)
+                     if _env > self._COMP_THRESH else 1.0)
+            if _gtgt < self._comp_gain:
+                self._comp_gain += self._COMP_GAIN_ATK * (_gtgt - self._comp_gain)
+            else:
+                self._comp_gain += self._COMP_GAIN_REL * (_gtgt - self._comp_gain)
+            _fg = self._comp_gain * self._COMP_MAKEUP
+            clipped_l[:_fc] *= _fg
+            clipped_r[:_fc] *= _fg
+            # 2nd harmonic: only active during compression — gate prevents overhead
+            # on silence or quiet passages where comp_gain stays near 1.0.
+            if self._comp_gain < 0.98:
+                _k2 = (1.0 - self._comp_gain) * self._COMP_HARMONIC
+                np.multiply(clipped_l[:_fc], clipped_l[:_fc], out=_sq)
+                clipped_l[:_fc] += _k2 * _sq
+                np.multiply(clipped_r[:_fc], clipped_r[:_fc], out=_sq)
+                clipped_r[:_fc] += _k2 * _sq
+                np.clip(clipped_l[:_fc], -1.0, 1.0, out=clipped_l[:_fc])
+                np.clip(clipped_r[:_fc], -1.0, 1.0, out=clipped_r[:_fc])
 
             self._last_output_L = float(clipped_l[-1])
             self._last_output_R = float(clipped_r[-1])

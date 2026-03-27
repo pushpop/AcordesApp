@@ -153,7 +153,7 @@ class LoadingScreen(Screen):
             if self._spin_timer:
                 self._spin_timer.stop()
 
-            self.query_one("#loading-spinner").update("[green]ready[/]")
+            self.query_one("#loading-spinner").update("[#d79b00]ready[/]")
 
             # Show engine diagnostics if the subprocess populated them (ARM only).
             info = self._proxy.get_startup_info()
@@ -744,7 +744,7 @@ class MainScreen(Screen):
 class AcordesApp(App):
     """MIDI Piano TUI Application."""
 
-    VERSION = "1.10.2 - Scope"
+    VERSION = "1.11.0 - Analogue"
     ENABLE_COMMAND_PALETTE = False  # Disable command palette (Ctrl+Backslash)
     CSS = """
     """
