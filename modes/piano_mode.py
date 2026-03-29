@@ -255,6 +255,11 @@ class PianoMode(Widget):
         self._saved_synth_params = self.synth_engine.get_current_params()
         self.synth_engine.update_parameters(**_PIANO_PARAMS)
         self._register_midi_callbacks()
+        # Guard against duplicate timers: config opens via push_screen which
+        # skips on_mode_pause, so the old timer may still be running.
+        if self._poll_timer is not None:
+            self._poll_timer.stop()
+            self._poll_timer = None
         self._poll_timer = self.set_interval(0.01, self._poll_midi)
         self._register_gamepad_callbacks()
 

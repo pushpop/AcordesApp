@@ -448,7 +448,7 @@ class MainScreen(Screen):
             # Any gamepad button or axis event resets the idle/screensaver timer.
             gp._activity_callback = self._idle_manager.reset
             self._setup_gamepad_globals(gp)
-            self.set_interval(0.016, gp.poll)
+            self.set_interval(0.033, gp.poll)
 
     def _setup_gamepad_globals(self, gp):
         """Wire global gamepad bindings that persist across all mode switches.
